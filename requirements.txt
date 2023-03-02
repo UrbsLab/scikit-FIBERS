@@ -1,0 +1,6 @@
+numpy
+pandas
+sklearn
+lifelines
+skrebate==0.7
+matplotlib
