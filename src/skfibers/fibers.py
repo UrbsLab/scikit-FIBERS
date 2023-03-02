@@ -170,20 +170,30 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.hasTrained = False
 
     def reboot_population(self):
+        """
+        Function to Reboot Population, not Implemented
+
+        """
         raise NotImplementedError
 
     @staticmethod
     def check_is_int(num):
+        """
+        :meta private:
+        """
         return isinstance(num, int)
 
     @staticmethod
     def check_is_float(num):
+        """
+        :meta private:
+        """
         return isinstance(num, float)
 
     def fit(self, original_feature_matrix, y=None):
         """
-        Scikit-learn required: Supervised training of FIBERS
-        Parameters
+        Scikit-learn required function for Supervised training of FIBERS
+
         :param original_feature_matrix: array-like {n_samples, n_features} Training instances.
                 ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
         :param y: array-like {n_samples} Training labels.
@@ -219,12 +229,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def transform(self, original_feature_matrix, y=None):
         """
+        Scikit-learn required function for Supervised training of FIBERS
 
         :param original_feature_matrix: array-like {n_samples, n_features} Training instances.
                 ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
         :param y: array-like {n_samples} Training labels.
                 ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE
-        :return:
+        :return: self, bin_feature_matrix_internal, amino_acid_bins_internal, \
+            amino_acid_bin_scores_internal, maf_0_features
         """
 
         if y is not None:
