@@ -1,5 +1,8 @@
 # scikit-FIBERS
 
+Feature Inclusion Bin Evolver for Risk Stratification (FIBERS) (under development, publication forthcoming) is 
+an evolutionary algorithm for binning features to stratify risk in biomedical datasets.
+
 FIBERS utilizes an evolutionary algorithm approach to optimizing bins of features based on their stratification of event risk through the following steps:
 
 1) Random bin initialization or expert knowledge input; the bin value at an instance is the sum of the instance's values for the features included in the bin
@@ -30,3 +33,8 @@ pip install scikit-fibers
 12) crossover_probability: the probability of each feature in an offspring bin to crossover to the paired offspring bin (recommendation: 0.5 to 0.8)
 13) mutation_probability: the probability of each feature in a bin to be deleted (a proportionate probability is automatically applied on each feature outside the bin to be added (recommendation: 0.05 to 0.5 depending on situation and number of iterations run)
 14) elitism_parameter: the proportion of elite bins in the current generation to be preserved for the next evolutionary cycle (recommendation: 0.2 to 0.8 depending on conservativeness of approach and number of iterations run)
+
+## Contact
+
+Please email sdasariraju23@lawrenceville.org and Ryan.Urbanowicz@cshs.org for any 
+inquiries related to FIBERS.
