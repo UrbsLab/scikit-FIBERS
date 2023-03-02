@@ -12,7 +12,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                  informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.05, elitism_parameter=0.2,
                  random_seed=None, bin_size_variability_constraint=None, max_features_per_bin=None):
         """
-        A Scikit-Learn compatible framework for the RARE Algorithm
+        A Scikit-Learn compatible framework for the FIBERS Algorithm
 
         :param label_name: described as below
         :param duration_name: another column name in dataset, not used
