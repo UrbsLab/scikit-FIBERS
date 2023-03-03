@@ -1,5 +1,5 @@
-skfibers
-========
+Code Documentation
+====================
 
 .. toctree::
    :maxdepth: 4

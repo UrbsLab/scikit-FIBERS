@@ -17,7 +17,7 @@ FIBERS utilizes an evolutionary algorithm approach to optimizing bins of feature
 Installation
 -----------------------------
 
-We can easily install scikit-rare using the following command:
+We can easily install scikit-fibers using the following command:
 
 .. code-block:: bash
 
@@ -25,7 +25,7 @@ We can easily install scikit-rare using the following command:
 
 
 Documentation for FIBERS Class:
-------------------------------
+--------------------------------
 
 Documentation for the FIBERS class can be found `here <skfibers.html#module-skfibers.fibers>`_.
 
