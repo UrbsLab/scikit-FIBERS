@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from .fibers_methods import fibers_algorithm
-from .rare_methods import rare_algorithm_v2 as rare_algorithm
+from .methods.fibers_methods import fibers_algorithm
+from .methods.rare_methods import rare_algorithm_v2 as rare_algorithm
 
 
 class FIBERS(BaseEstimator, TransformerMixin):
