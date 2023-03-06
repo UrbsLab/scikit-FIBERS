@@ -16,7 +16,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                  scoring_method='Relief', score_based_on_sample=True, score_with_common_variables=False,
                  instance_sample_size=500):
         """
-        A Scikit-Learn compatible framework for the RARE Algorithm.
+        A Scikit-Learn compatible framework for the FIBERS Algorithm.
 
         :param label_name: label for the class/endpoint column in the dataset (e.g., 'Class')
         :param duration_name: label to omit extra column in the dataset
