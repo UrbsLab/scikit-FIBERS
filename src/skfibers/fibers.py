@@ -354,13 +354,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
         :param y: array-like {n_samples} Training labels.
                 ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE
-        :return: self, bin_feature_matrix_internal, amino_acid_bins_internal, \
-                    amino_acid_bin_scores_internal, maf_0_features \
-                    or \
-                    self, bin_feature_matrix, common_features_and_bins_matrix, \
-                    amino_acid_bins, amino_acid_bin_scores, rare_feature_maf_dict, \
-                    common_feature_maf_dict, rare_feature_df, common_feature_df, maf_0_features \
-                    based on algorithm.
+        :return: either of rare_transform or fibers_transform depending on "algorithm"
         """
         if self.algorithm == "RARE":
             return self.rare_transform(original_feature_matrix, y)
