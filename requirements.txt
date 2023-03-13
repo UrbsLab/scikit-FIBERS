@@ -5,5 +5,4 @@ lifelines
 skrebate
 matplotlib
 pytest
-sklearn
 setuptools
