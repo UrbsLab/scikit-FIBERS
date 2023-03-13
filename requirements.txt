@@ -2,5 +2,8 @@ numpy
 pandas
 scikit-learn
 lifelines
-skrebate==0.7
+skrebate
 matplotlib
+pytest
+sklearn
+setuptools

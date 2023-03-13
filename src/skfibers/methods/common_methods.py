@@ -172,7 +172,7 @@ def crossover_and_mutation(max_population_of_bins, elitism_parameter, feature_li
     # Each pair of parents will produce two offspring
     num_replacement_sets = int((max_population_of_bins - (elitism_parameter * max_population_of_bins)) / 2)
     np.random.seed(random_seed)
-    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 8)
+    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 10)
     for i in range(0, num_replacement_sets):
         # Choosing the two parents and getting the list of features in each parent bin
         parent_bins = tournament_selection_parent_bins(bin_scores, random_seeds[i])
@@ -324,10 +324,10 @@ def crossover_and_mutation(max_population_of_bins, elitism_parameter, feature_li
         # Ensuring the size of the offspring is not greater than the max_features_per_bin allowed
         if not (max_features_per_bin is None):
             if len(offspring1) > max_features_per_bin:
-                random.seed(random_seeds[num_replacement_sets * 8 + i])
+                random.seed(random_seeds[num_replacement_sets * 10 + i])
                 offspring1 = list(random.sample(offspring1, max_features_per_bin))
             if len(offspring2) > max_features_per_bin:
-                random.seed(random_seeds[num_replacement_sets * 9 + i])
+                random.seed(random_seeds[num_replacement_sets * 10 + i])
                 offspring2 = list(random.sample(offspring2, max_features_per_bin))
 
         # Adding the new offspring to the list of feature bins
@@ -347,7 +347,9 @@ def crossover_and_mutation_multiprocess(max_population_of_bins, elitism_paramete
     # Determining the number of offspring created
     num_replacement_sets = int((max_population_of_bins - (elitism_parameter * max_population_of_bins)) / 2)
     np.random.seed(random_seed)
-    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 8)
+
+    # TODO: next parameter depends on number of cores
+    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 10)
     arg_of_func = [(feature_list, binned_feature_groups, bin_scores,
                     crossover_probability, mutation_probability,
                     bin_size_variability_constraint, list([]), max_features_per_bin)] * num_replacement_sets

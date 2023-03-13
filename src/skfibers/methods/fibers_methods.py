@@ -15,6 +15,9 @@ def log_rank_test_feature_importance(bin_feature_matrix,
                                      amino_acid_bins, label_name, duration_name, informative_cutoff):
     bin_scores = {}
 
+    if duration_name is None:
+        raise Exception("No Survival/Duration column name given")
+
     for Bin_name in amino_acid_bins.keys():
 
         df_0 = bin_feature_matrix.loc[bin_feature_matrix[Bin_name] == 0]
@@ -22,21 +25,27 @@ def log_rank_test_feature_importance(bin_feature_matrix,
         df_1 = df_1.append(bin_feature_matrix.loc[bin_feature_matrix[Bin_name] == 1], ignore_index=True)
         df_2 = bin_feature_matrix.loc[bin_feature_matrix[Bin_name] > 2]
 
-        durations_no = df_0[duration_name].to_list()
+        if duration_name:
+            durations_no = df_0[duration_name].to_list()
         event_observed_no = df_0[label_name].to_list()
         group_no = list([0] * len(event_observed_no))
 
-        durations_mm1 = df_1[duration_name].to_list()
+        if duration_name:
+            durations_mm1 = df_1[duration_name].to_list()
         event_observed_mm1 = df_1[label_name].to_list()
         group_mm1 = list([1] * len(event_observed_mm1))
 
-        durations_mm2 = df_2[duration_name].to_list()
+        if duration_name:
+            durations_mm2 = df_2[duration_name].to_list()
         event_observed_mm2 = df_2[label_name].to_list()
         group_mm2 = list([2] * len(event_observed_mm2))
 
         total_len = len(event_observed_no) + len(event_observed_mm1) + len(event_observed_mm2)
 
-        all_durations = durations_no + durations_mm1 + durations_mm2
+        if duration_name:
+            all_durations = durations_no + durations_mm1 + durations_mm2
+        else:
+            all_durations = 0
         all_events = event_observed_no + event_observed_mm1 + event_observed_mm2
         groups = group_no + group_mm1 + group_mm2
 

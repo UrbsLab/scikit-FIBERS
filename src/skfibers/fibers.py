@@ -137,8 +137,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
             raise Exception("label_name param must be str")
 
         # scoring_method
-        if scoring_method != 'Relief' or scoring_method != 'Univariate' or scoring_method != 'Relief only on bin and ' \
-                                                                                             'common features':
+        if scoring_method not in ['Relief', 'Univariate',
+                                  'Relief only on bin and common features']:
             raise Exception(
                 "scoring_method param must be 'Relief' or 'Univariate' or 'Relief only on bin and common features'")
 
@@ -154,12 +154,15 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not self.check_is_int(instance_sample_size):
             raise Exception("instance_sample_size param must be integer")
         if instance_sample_size > set_number_of_bins:
+            print(instance_sample_size, set_number_of_bins)
             raise Exception(
                 "instance_sample_size param must be less than or equal to the number of bins, which is " + str(
                     set_number_of_bins) + " bins.")
 
         # bin_size_variability_constraint
-        if not (bin_size_variability_constraint is None) or not self.check_is_float(bin_size_variability_constraint):
+        if not ((bin_size_variability_constraint is None)
+                or (not self.check_is_float(bin_size_variability_constraint))):
+            print(bin_size_variability_constraint)
             raise Exception("bin_size_variability_constraint param must be None, an integer 1 or greater, or a float "
                             "1.0 or greater")
         if not (bin_size_variability_constraint is None) and bin_size_variability_constraint < 1:
@@ -246,21 +249,23 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         # Check if original_feature_matrix and y are numeric
         try:
-            for instance in original_feature_matrix:
-                for value in instance:
-                    if not (np.isnan(value)):
-                        float(value)
-            for value in y:
-                float(value)
-
+            original_feature_matrix.copy()\
+                .apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
         except Exception:
-            raise Exception("X and y must be fully numeric")
+            raise Exception("X must be fully numeric")
+
+        # try:
+        #     for value in y:
+        #         float(value)
+        # except Exception:
+        #     print(y)
+        #     raise Exception("y must be fully numeric")
 
         if not (self.label_name in original_feature_matrix.columns):
             raise Exception("label_name param must be a column in the dataset")
 
-        if not (self.duration_name in original_feature_matrix.columns):
-            raise Exception("duration_name param must be a column in the dataset")
+        # if not (self.duration_name in original_feature_matrix.columns):
+        #     raise Exception("duration_name param must be a column in the dataset")
 
         self.original_feature_matrix = original_feature_matrix
 
@@ -280,7 +285,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if y is not None:
             pass
 
-        if not (self.original_feature_matrix == original_feature_matrix):
+        if not (self.original_feature_matrix.equals(original_feature_matrix)):
             raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
 
         bin_feature_matrix, common_features_and_bins_matrix, amino_acid_bins, \
@@ -320,7 +325,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if y is not None:
             pass
 
-        if not (self.original_feature_matrix == original_feature_matrix):
+        if not (self.original_feature_matrix.equals(original_feature_matrix)):
             raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
 
         bin_feature_matrix_internal, amino_acid_bins_internal, \
@@ -356,6 +361,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE
         :return: either of rare_transform or fibers_transform depending on "algorithm"
         """
+        print(self.algorithm)
         if self.algorithm == "RARE":
             return self.rare_transform(original_feature_matrix, y)
         elif self.algorithm == "FIBERS":
