@@ -12,6 +12,9 @@ from multiprocessing import Pool
 # Defining a function to delete variables with MAF = 0
 def remove_empty_variables(original_feature_matrix, label_name, duration_name):
     # Removing the label column to create a list of features
+
+    assert duration_name is not None
+
     if duration_name:
         feature_df = original_feature_matrix.drop(columns=[label_name, duration_name])
     else:

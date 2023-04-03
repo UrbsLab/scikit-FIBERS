@@ -49,6 +49,8 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# BIG Datasets
+FIBERSData
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
