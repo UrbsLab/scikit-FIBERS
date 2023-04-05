@@ -1,3 +1,4 @@
+import logging
 import pytest
 import pandas as pd
 from sklearn.pipeline import Pipeline
@@ -83,6 +84,7 @@ def test_fibers():
     pipe_fibers.fit(data)
     pipe_fibers, bin_feature_matrix_internal, amino_acid_bins_internal, \
         amino_acid_bin_scores_internal, maf_0_features = pipe_fibers.transform(data)
+    logging.warning(amino_acid_bins_internal)
 
 
 @pytest.mark.skip(reason="Already Tested")
