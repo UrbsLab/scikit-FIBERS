@@ -1,4 +1,5 @@
 import logging
+import pytest
 from skfibers.fibers import FIBERS
 from skfibers.experiments.datagen import create_data_simulation_bin
 
