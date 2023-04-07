@@ -209,7 +209,7 @@ def top_bin_summary_fibers(original_feature_matrix, label_name, duration_name, b
     all_events = event_observed_no + event_observed_mm1 + event_observed_mm2
     groups = group_no + group_mm1 + group_mm2
 
-    results = multivariate_logrank_test(all_durations, groups, all_events)
+    results = logrank_test(all_durations, groups, all_events)
 
     print("Bin of Amino Acid Positions:")
     print(bins[topbin])
