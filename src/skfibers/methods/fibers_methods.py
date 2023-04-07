@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 from .common_methods import remove_empty_variables
 from .common_methods import random_feature_grouping
 from .common_methods import grouped_feature_matrix
@@ -6,13 +7,42 @@ from .common_methods import crossover_and_mutation_multiprocess as crossover_and
 from .common_methods import create_next_generation
 from .common_methods import regroup_feature_matrix
 from lifelines import KaplanMeierFitter
-from lifelines.statistics import multivariate_logrank_test
+from lifelines.statistics import multivariate_logrank_test, logrank_test
+
 
 # Functions for FIBERS
 
 
-def log_rank_test_feature_importance(bin_feature_matrix,
-                                     amino_acid_bins, label_name, duration_name, informative_cutoff):
+def log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_name, duration_name,
+                                     informative_cutoff):
+    bin_scores = {}
+    for Bin_name in amino_acid_bins.keys():
+        df_0 = bin_feature_matrix.loc[bin_feature_matrix[Bin_name] == 0]
+        df_1 = bin_feature_matrix.loc[bin_feature_matrix[Bin_name] > 0]
+
+        durations_no = df_0[duration_name].to_list()
+        event_observed_no = df_0[label_name].to_list()
+        durations_mm = df_1[duration_name].to_list()
+        event_observed_mm = df_1[label_name].to_list()
+
+        if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
+                event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
+            results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
+                                   event_observed_B=event_observed_mm)
+            bin_scores[Bin_name] = results.test_statistic
+
+        else:
+            bin_scores[Bin_name] = 0
+
+    for i in bin_scores.keys():
+        if np.isnan(bin_scores[i]):
+            bin_scores[i] = 0
+
+    return bin_scores
+
+
+def log_rank_test_feature_importance_new(bin_feature_matrix,
+                                         amino_acid_bins, label_name, duration_name, informative_cutoff):
     bin_scores = {}
 
     if duration_name is None:
@@ -121,8 +151,8 @@ def fibers_algorithm(given_starting_point,
     upper_bound = (len(maf_0_features) + len(nonempty_feature_list)) * (
             len(maf_0_features) + len(nonempty_feature_list))
     random_seeds = np.random.randint(upper_bound, size=iterations * 2)
-    for i in range(0, iterations):
-        print("iteration:" + str(i))
+    for i in tqdm(range(0, iterations)):
+        # print("iteration:" + str(i))
 
         # Step 2a: Feature Importance Scoring and Bin Deletion
         amino_acid_bin_scores = log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_name,

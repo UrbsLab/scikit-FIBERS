@@ -6,6 +6,8 @@ import pandas as pd
 from random import randrange
 from multiprocessing import Pool
 
+pd.options.mode.chained_assignment = None
+
 
 # Common Functions
 

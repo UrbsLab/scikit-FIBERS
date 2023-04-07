@@ -6,3 +6,4 @@ skrebate
 matplotlib
 pytest
 setuptools
+tqdm
