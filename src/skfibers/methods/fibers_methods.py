@@ -1,13 +1,15 @@
 import numpy as np
+from matplotlib import pyplot as plt
 from tqdm import tqdm
 from .common_methods import remove_empty_variables
 from .common_methods import random_feature_grouping
 from .common_methods import grouped_feature_matrix
-from .common_methods import crossover_and_mutation_multiprocess as crossover_and_mutation
+# from .common_methods import crossover_and_mutation_multiprocess as crossover_and_mutation
+from .common_methods import crossover_and_mutation
 from .common_methods import create_next_generation
 from .common_methods import regroup_feature_matrix
 from lifelines import KaplanMeierFitter
-from lifelines.statistics import multivariate_logrank_test, logrank_test
+from lifelines.statistics import logrank_test
 
 
 # Functions for FIBERS
@@ -82,7 +84,7 @@ def log_rank_test_feature_importance_new(bin_feature_matrix,
         if len(event_observed_no) > informative_cutoff * total_len and len(
                 event_observed_mm1) > informative_cutoff * total_len \
                 and len(event_observed_mm2) > informative_cutoff * total_len:
-            results = multivariate_logrank_test(all_durations, groups, all_events)
+            results = logrank_test(all_durations, groups, all_events)
             bin_scores[Bin_name] = results.test_statistic
 
         else:
@@ -182,6 +184,51 @@ def fibers_algorithm(given_starting_point,
 
 
 def top_bin_summary_fibers(original_feature_matrix, label_name, duration_name, bin_feature_matrix, bins, bin_scores):
+    # Ordering the bin scores from best to worst
+    sorted_bin_scores = dict(sorted(bin_scores.items(), key=lambda item: item[1], reverse=True))
+    sorted_bin_list = list(sorted_bin_scores.keys())
+    sorted_bin_feature_importance_values = list(sorted_bin_scores.values())
+
+    topbin = sorted_bin_list[0]
+
+    df_0 = bin_feature_matrix.loc[bin_feature_matrix[topbin] == 0]
+    df_1 = bin_feature_matrix.loc[bin_feature_matrix[topbin] > 0]
+
+    durations_no = df_0[duration_name].to_list()
+    event_observed_no = df_0[label_name].to_list()
+    durations_mm = df_1[duration_name].to_list()
+    event_observed_mm = df_1[label_name].to_list()
+
+    results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
+                           event_observed_B=event_observed_mm)
+
+    print("Bin of Amino Acid Positions:")
+    print(bins[topbin])
+    print("---")
+    print("Number of Instances with No Mismatches in Bin:")
+    print(len(durations_no))
+    print("Number of Instances with Mismatch(es) in Bin:")
+    print(len(durations_mm))
+    print("---")
+    print("p-value from Log Rank Test:")
+    print(results.p_value)
+    results.print_summary()
+    kmf1 = KaplanMeierFitter()
+
+    # fit the model for 1st cohort
+    kmf1.fit(durations_no, event_observed_no, label='No Mismatches in Bin')
+    a1 = kmf1.plot_survival_function()
+    a1.set_ylabel('Survival Probability')
+
+    # fit the model for 2nd cohort
+    kmf1.fit(durations_mm, event_observed_mm, label='Mismatch(es) in Bin')
+    kmf1.plot_survival_function(ax=a1)
+    a1.set_xlabel('Years After Transplant')
+    plt.show()
+
+
+def top_bin_summary_fibers_new(original_feature_matrix, label_name,
+                               duration_name, bin_feature_matrix, bins, bin_scores):
     # Ordering the bin scores from best to worst
     sorted_bin_scores = dict(sorted(bin_scores.items(), key=lambda item: item[1], reverse=True))
     sorted_bin_list = list(sorted_bin_scores.keys())

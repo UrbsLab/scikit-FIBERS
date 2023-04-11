@@ -12,10 +12,10 @@ pd.options.mode.chained_assignment = None
 # Common Functions
 
 # Defining a function to delete variables with MAF = 0
-def remove_empty_variables(original_feature_matrix, label_name, duration_name):
+def remove_empty_variables_old(original_feature_matrix, label_name, duration_name):
     # Removing the label column to create a list of features
 
-    assert duration_name is not None
+    # assert duration_name is not None
 
     if duration_name:
         feature_df = original_feature_matrix.drop(columns=[label_name, duration_name])
@@ -50,6 +50,46 @@ def remove_empty_variables(original_feature_matrix, label_name, duration_name):
     return feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list
 
 
+def remove_empty_variables(original_feature_matrix, label_name, duration_name):
+    # Removing the label column to create a list of features
+    if duration_name:
+        feature_df = original_feature_matrix.drop(columns=[label_name, duration_name])
+    else:
+        feature_df = original_feature_matrix.drop(columns=[label_name])
+
+    # Creating a list of features
+    feature_list = []
+    for column in feature_df:
+        feature_list.append(str(column))
+    feature_matrix_no_empty_variables = pd.DataFrame()
+
+    # Creating a list of features with MAF = 0 to delete
+    maf_0_features = []
+
+    for i in range(0, len(feature_list)):
+        # If the MAF of the feature is less than the cutoff, it will be removed
+        if feature_df[feature_list[i]].sum() / (2 * len(feature_df.index)) == 0:
+            maf_0_features.append(feature_list[i])
+
+    # Removing the features
+    for j in range(0, len(maf_0_features)):
+        feature_list.remove(maf_0_features[j])
+
+    # Updating the feature matrix accordingly
+    for k in range(0, len(feature_list)):
+        feature_matrix_no_empty_variables[feature_list[k]] = feature_df[feature_list[k]]
+
+    # Adding the class label to the feature matrix
+    feature_matrix_no_empty_variables[label_name] = original_feature_matrix[label_name]
+    if duration_name:
+        feature_matrix_no_empty_variables[duration_name] = original_feature_matrix[duration_name]
+
+    # Saving the feature list of nonempty features
+    nonempty_feature_list = feature_list
+
+    return feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list
+
+
 # Defining a function to group features randomly, each feature can be in a number of groups up to a set max
 def random_feature_grouping(feature_matrix, label_name, duration_name, number_of_groups, min_features_per_group,
                             max_number_of_groups_with_feature, random_seed, max_features_per_bin):
@@ -64,12 +104,16 @@ def random_feature_grouping(feature_matrix, label_name, duration_name, number_of
     feature_list = list(feature_df.columns)
 
     # Adding a random number of repeats of the features so that features can be in more than one group
-    np.random.seed(random_seed)
-    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=len(feature_list))
+    # np.random.seed(random_seed)
+    # random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=len(feature_list))
+    # for w in range(0, len(feature_list)):
+    #     random.seed(random_seeds[w])
+    #     repeats = randrange(max_number_of_groups_with_feature)
+    #     feature_list.extend([feature_list[w]] * repeats)
     for w in range(0, len(feature_list)):
-        random.seed(random_seeds[w])
         repeats = randrange(max_number_of_groups_with_feature)
-        feature_list.extend([feature_list[w]] * repeats)
+        for i in range(0, repeats):
+            feature_list.append(feature_list[w])
 
     # Shuffling the feature list to enable random groups
     random.seed(random_seed)
@@ -83,23 +127,31 @@ def random_feature_grouping(feature_matrix, label_name, duration_name, number_of
         feature_groups[x / min_features_per_group] = feature_list[x:x + min_features_per_group]
 
     # Randomly distributes the remaining features across the set number of groups
-    np.random.seed(random_seed)
-    random_seeds = np.random.randint(len(feature_list) * len(feature_list),
-                                     size=(len(feature_list) - min_features_per_group * number_of_groups))
-    for y in range(min_features_per_group * number_of_groups, len(feature_list)):
-        random.seed(random_seeds[y - min_features_per_group * number_of_groups])
+    # np.random.seed(random_seed)
+    # random_seeds = np.random.randint(len(feature_list) * len(feature_list),
+    #                                  size=(len(feature_list) - min_features_per_group * number_of_groups))
+    # for y in range(min_features_per_group * number_of_groups, len(feature_list)):
+    #     random.seed(random_seeds[y - min_features_per_group * number_of_groups])
+    #     feature_groups[random.choice(list(feature_groups.keys()))].append(feature_list[y])
+    for y in range(min_features_per_group*number_of_groups, len(feature_list)):
         feature_groups[random.choice(list(feature_groups.keys()))].append(feature_list[y])
 
     # Removing duplicates of features in the same bin
+    # for z in range(0, len(feature_groups)):
+    #     feature_groups[z] = list(set(feature_groups[z]))
+    #
+    #     # Randomly removing features until the number of features is equal to or less than the max_features_per_bin
+    #     # param
+    #     if not (max_features_per_bin is None):
+    #         if len(feature_groups[z]) > max_features_per_bin:
+    #             # random.seed(random_seeds[z])
+    #             feature_groups[z] = list(random.sample(feature_groups[z], max_features_per_bin))
     for z in range(0, len(feature_groups)):
-        feature_groups[z] = list(set(feature_groups[z]))
-
-        # Randomly removing features until the number of features is equal to or less than the max_features_per_bin
-        # param
-        if not (max_features_per_bin is None):
-            if len(feature_groups[z]) > max_features_per_bin:
-                random.seed(random_seeds[z])
-                feature_groups[z] = list(random.sample(feature_groups[z], max_features_per_bin))
+        unique = []
+        for a in range(0, len(feature_groups[z])):
+            if feature_groups[z][a] not in unique:
+                unique.append(feature_groups[z][a])
+        feature_groups[z] = unique
 
     # Creating a dictionary with bin labels
     binned_feature_groups = {}
