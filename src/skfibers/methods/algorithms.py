@@ -5,10 +5,8 @@ from warnings import simplefilter
 
 import numpy as np
 import pandas as pd
-from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
 from lifelines.statistics import multivariate_logrank_test
-from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
