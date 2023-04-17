@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>skfibers.fibers &mdash; FIBERS 1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FIBERS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FIBERS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">skfibers.fibers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for skfibers.fibers</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span>
+
+<span class="kn">from</span> <span class="nn">.methods.fibers_methods</span> <span class="kn">import</span> <span class="n">fibers_algorithm</span>
+<span class="kn">from</span> <span class="nn">.methods.rare_methods</span> <span class="kn">import</span> <span class="n">rare_algorithm_v2</span> <span class="k">as</span> <span class="n">rare_algorithm</span>
+
+
+<div class="viewcode-block" id="FIBERS"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS">[docs]</a><span class="k">class</span> <span class="nc">FIBERS</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label_name</span><span class="o">=</span><span class="s2">&quot;Class&quot;</span><span class="p">,</span> <span class="n">duration_name</span><span class="o">=</span><span class="s2">&quot;grf_yrs&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;FIBERS&quot;</span><span class="p">,</span>
+                 <span class="n">given_starting_point</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">amino_acid_start_point</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">amino_acid_bins_start_point</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">iterations</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">set_number_of_bins</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">min_features_per_group</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_number_of_groups_with_feature</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">informative_cutoff</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">crossover_probability</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">mutation_probability</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">elitism_parameter</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+                 <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bin_size_variability_constraint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_features_per_bin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">rare_variant_maf_cutoff</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">scoring_method</span><span class="o">=</span><span class="s1">&#39;Relief&#39;</span><span class="p">,</span> <span class="n">score_based_on_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">score_with_common_variables</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">instance_sample_size</span><span class="o">=</span><span class="mi">500</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A Scikit-Learn compatible framework for the RARE Algorithm.</span>
+
+<span class="sd">        :param label_name: label for the class/endpoint column in the dataset (e.g., &#39;Class&#39;)</span>
+<span class="sd">        :param duration_name: label to omit extra column in the dataset</span>
+<span class="sd">        :param algorithm: which method to use (&quot;RARE&quot; or &quot;FIBERS&quot;, default=&quot;FIBERS&quot;)</span>
+<span class="sd">        :param given_starting_point: whether or not expert knowledge is being inputted (True or False)</span>
+<span class="sd">        :param amino_acid_start_point: if RARE is starting with expert knowledge, input the list</span>
+<span class="sd">               of features here; otherwise None</span>
+<span class="sd">        :param amino_acid_bins_start_point: if RARE is starting with expert knowledge, input the list of bins of</span>
+<span class="sd">               features here; otherwise None</span>
+<span class="sd">        :param iterations: the number of evolutionary cycles RARE will run</span>
+<span class="sd">        :param rare_variant_maf_cutoff: the minor allele frequency cutoff separating common features from rare</span>
+<span class="sd">               variant features</span>
+<span class="sd">        :param set_number_of_bins: the population size of candidate bins</span>
+<span class="sd">        :param min_features_per_group: the minimum number of features in a bin</span>
+<span class="sd">        :param max_number_of_groups_with_feature: the maximum number of bins containing a feature</span>
+<span class="sd">        :param scoring_method: &#39;Univariate&#39;, &#39;Relief&#39;, or &#39;Relief only on bin and common features&#39;</span>
+<span class="sd">        :param score_based_on_sample: if Relief scoring is used, whether or not bin evaluation is done based on a</span>
+<span class="sd">               sample of instances rather than the whole dataset</span>
+<span class="sd">        :param score_with_common_variables: if Relief scoring is used, whether or not common features should be</span>
+<span class="sd">               used as context for evaluating rare variant bins</span>
+<span class="sd">        :param instance_sample_size: if bin evaluation is done based on a sample of instances,</span>
+<span class="sd">               input the sample size here</span>
+<span class="sd">        :param crossover_probability: the probability of each feature in an offspring bin to crossover</span>
+<span class="sd">               to the paired offspring bin (recommendation: 0.5 to 0.8)</span>
+<span class="sd">        :param mutation_probability: the probability of each feature in a bin to be deleted (a proportionate</span>
+<span class="sd">               probability is automatically applied on each feature outside the bin to be added</span>
+<span class="sd">               (recommendation: 0.05 to 0.5 depending on situation and number of iterations run)</span>
+<span class="sd">        :param elitism_parameter: the proportion of elite bins in the current generation to be</span>
+<span class="sd">               preserved for the next evolutionary cycle (recommendation: 0.2 to 0.8</span>
+<span class="sd">               depending on conservativeness of approach and number of iterations run)</span>
+<span class="sd">        :param random_seed: the seed value needed to generate a random number</span>
+<span class="sd">        :param bin_size_variability_constraint: sets the max bin size of children to be n</span>
+<span class="sd">               times the size of their sibling (recommendation: 2, with larger or smaller</span>
+<span class="sd">               values the population would trend heavily towards small or large bins without</span>
+<span class="sd">               exploring the search space)</span>
+<span class="sd">        :param max_features_per_bin: sets a max value for the number of features per bin</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># iterations</span>
+
+        <span class="k">if</span> <span class="n">algorithm</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;RARE&quot;</span><span class="p">,</span> <span class="s2">&quot;FIBERS&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Invalid Algorithm&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;iterations param must be nonnegative integer&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">iterations</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;iterations param must be nonnegative integer&quot;</span><span class="p">)</span>
+
+        <span class="c1"># set_number_of_bins</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">set_number_of_bins</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;set_number_of_bins param must be nonnegative integer&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">set_number_of_bins</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;set_number_of_bins param must be nonnegative integer 1 or greater&quot;</span><span class="p">)</span>
+
+        <span class="c1"># min_features_per_group</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">min_features_per_group</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;min_features_per_group param must be nonnegative integer&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">min_features_per_group</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;min_features_per_group param must be nonnegative integer&quot;</span><span class="p">)</span>
+
+        <span class="c1"># max_number_of_groups_with_feature</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">max_number_of_groups_with_feature</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;max_number_of_groups_with_feature param must be nonnegative integer&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">max_number_of_groups_with_feature</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;max_number_of_groups_with_feature param must be nonnegative integer&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">max_number_of_groups_with_feature</span> <span class="o">&gt;</span> <span class="n">set_number_of_bins</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;max_number_of_groups_with_feature must be less than or equal to population size of candidate bins&quot;</span><span class="p">)</span>
+
+        <span class="c1"># informative_cutoff</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">informative_cutoff</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;informative_cutoff param must be float from 0 - 0.5&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">informative_cutoff</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">informative_cutoff</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;informative_cutoff param must be float from 0 - 0.5&quot;</span><span class="p">)</span>
+
+        <span class="c1"># crossover_probability</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">crossover_probability</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;crossover_probability param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">crossover_probability</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">crossover_probability</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;crossover_probability param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="c1"># mutation_probability</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">mutation_probability</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;mutation_probability param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mutation_probability</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">mutation_probability</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;mutation_probability param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="c1"># elitism_parameter</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">elitism_parameter</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;elitism_parameter param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">elitism_parameter</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">elitism_parameter</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;elitism_parameter param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="c1"># given_starting_point</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">given_starting_point</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;given_starting_point param must be boolean True or False&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">given_starting_point</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">amino_acid_start_point</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">amino_acid_bins_start_point</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s2">&quot;amino_acid_start_point param and amino_acid_bins_start_point param must be a list if expert &quot;</span>
+                    <span class="s2">&quot;knowledge is being inputted&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">amino_acid_start_point</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;amino_acid_start_point param must be a list&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">amino_acid_bins_start_point</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;amino_acid_bins_start_point param must be a list&quot;</span><span class="p">)</span>
+
+        <span class="c1"># label_name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">label_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;label_name param must be str&quot;</span><span class="p">)</span>
+
+        <span class="c1"># scoring_method</span>
+        <span class="k">if</span> <span class="n">scoring_method</span> <span class="o">!=</span> <span class="s1">&#39;Relief&#39;</span> <span class="ow">or</span> <span class="n">scoring_method</span> <span class="o">!=</span> <span class="s1">&#39;Univariate&#39;</span> <span class="ow">or</span> <span class="n">scoring_method</span> <span class="o">!=</span> <span class="s1">&#39;Relief only on bin and &#39;</span> \
+                                                                                             <span class="s1">&#39;common features&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;scoring_method param must be &#39;Relief&#39; or &#39;Univariate&#39; or &#39;Relief only on bin and common features&#39;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># score_based_on_sample</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">score_based_on_sample</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;score_based_on_sample param must be boolean True or False&quot;</span><span class="p">)</span>
+
+        <span class="c1"># score_with_common_variables</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">score_with_common_variables</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;score_with_common_variables param must be boolean True or False&quot;</span><span class="p">)</span>
+
+        <span class="c1"># instance_sample_size</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">instance_sample_size</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;instance_sample_size param must be integer&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">instance_sample_size</span> <span class="o">&gt;</span> <span class="n">set_number_of_bins</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">&quot;instance_sample_size param must be less than or equal to the number of bins, which is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
+                    <span class="n">set_number_of_bins</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; bins.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># bin_size_variability_constraint</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">bin_size_variability_constraint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">bin_size_variability_constraint</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;bin_size_variability_constraint param must be None, an integer 1 or greater, or a float &quot;</span>
+                            <span class="s2">&quot;1.0 or greater&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">bin_size_variability_constraint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="n">bin_size_variability_constraint</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;bin_size_variability_constraint is less than 1&quot;</span><span class="p">)</span>
+
+        <span class="c1"># max_features_per_bin</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">max_features_per_bin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">max_features_per_bin</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;max_features_per_bin param must be nonnegative integer&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">min_features_per_group</span> <span class="o">&lt;=</span> <span class="n">max_features_per_bin</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;max_features_per_bin param must be greater or equal to min_features_per_group param&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">=</span> <span class="n">algorithm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">given_starting_point</span> <span class="o">=</span> <span class="n">given_starting_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">amino_acid_start_point</span> <span class="o">=</span> <span class="n">amino_acid_start_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">amino_acid_bins_start_point</span> <span class="o">=</span> <span class="n">amino_acid_bins_start_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">iterations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_name</span> <span class="o">=</span> <span class="n">label_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration_name</span> <span class="o">=</span> <span class="n">duration_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_number_of_bins</span> <span class="o">=</span> <span class="n">set_number_of_bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_features_per_group</span> <span class="o">=</span> <span class="n">min_features_per_group</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_number_of_groups_with_feature</span> <span class="o">=</span> <span class="n">max_number_of_groups_with_feature</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">informative_cutoff</span> <span class="o">=</span> <span class="n">informative_cutoff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crossover_probability</span> <span class="o">=</span> <span class="n">crossover_probability</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mutation_probability</span> <span class="o">=</span> <span class="n">mutation_probability</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elitism_parameter</span> <span class="o">=</span> <span class="n">elitism_parameter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instance_sample_size</span> <span class="o">=</span> <span class="n">instance_sample_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">random_seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_size_variability_constraint</span> <span class="o">=</span> <span class="n">bin_size_variability_constraint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_features_per_bin</span> <span class="o">=</span> <span class="n">max_features_per_bin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reboot_filename</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_feature_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score_with_common_variables</span> <span class="o">=</span> <span class="n">score_with_common_variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score_based_on_sample</span> <span class="o">=</span> <span class="n">score_based_on_sample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scoring_method</span> <span class="o">=</span> <span class="n">scoring_method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rare_variant_maf_cutoff</span> <span class="o">=</span> <span class="n">rare_variant_maf_cutoff</span>
+
+        <span class="c1"># Reboot Population</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reboot_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reboot_population</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iterationCount</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="FIBERS.reboot_population"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.reboot_population">[docs]</a>    <span class="k">def</span> <span class="nf">reboot_population</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function to Reboot Population, not Implemented</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">check_is_int</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :meta private:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">check_is_float</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :meta private:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FIBERS.fit"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_feature_matrix</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scikit-learn required function for Supervised training of FIBERS</span>
+
+<span class="sd">        :param original_feature_matrix: array-like {n_samples, n_features} Training instances.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</span>
+<span class="sd">        :param y: array-like {n_samples} Training labels.</span>
+<span class="sd">                ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</span>
+
+<span class="sd">        :return self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># original_feature_matrix</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">original_feature_matrix</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;original_feature_matrix must be pandas dataframe&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check if original_feature_matrix and y are numeric</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="n">original_feature_matrix</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">instance</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">value</span><span class="p">)):</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">y</span><span class="p">:</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;X and y must be fully numeric&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_name</span> <span class="ow">in</span> <span class="n">original_feature_matrix</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;label_name param must be a column in the dataset&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">duration_name</span> <span class="ow">in</span> <span class="n">original_feature_matrix</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;duration_name param must be a column in the dataset&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_feature_matrix</span> <span class="o">=</span> <span class="n">original_feature_matrix</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="FIBERS.rare_transform"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.rare_transform">[docs]</a>    <span class="k">def</span> <span class="nf">rare_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_feature_matrix</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scikit-learn compatible transform function for supervised training of FIBERS</span>
+
+<span class="sd">        :param original_feature_matrix: original feature matrix. pd.DataFrame</span>
+<span class="sd">        :param y: array-like {n_samples} Training labels.</span>
+<span class="sd">               ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</span>
+<span class="sd">        :return self, bin_feature_matrix, common_features_and_bins_matrix, \</span>
+<span class="sd">                amino_acid_bins, amino_acid_bin_scores, rare_feature_maf_dict, \</span>
+<span class="sd">                common_feature_maf_dict, rare_feature_df, common_feature_df, maf_0_features</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">original_feature_matrix</span> <span class="o">==</span> <span class="n">original_feature_matrix</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;X param does not match fitted matrix. Fit needs to be first called on the same matrix.&quot;</span><span class="p">)</span>
+
+        <span class="n">bin_feature_matrix</span><span class="p">,</span> <span class="n">common_features_and_bins_matrix</span><span class="p">,</span> <span class="n">amino_acid_bins</span><span class="p">,</span> \
+            <span class="n">amino_acid_bin_scores</span><span class="p">,</span> <span class="n">rare_feature_maf_dict</span><span class="p">,</span> \
+            <span class="n">common_feature_maf_dict</span><span class="p">,</span> \
+            <span class="n">rare_feature_df</span><span class="p">,</span> <span class="n">common_feature_df</span><span class="p">,</span> \
+            <span class="n">maf_0_features</span> <span class="o">=</span> <span class="n">rare_algorithm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">given_starting_point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">amino_acid_start_point</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">amino_acid_bins_start_point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">original_feature_matrix</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">label_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rare_variant_maf_cutoff</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">set_number_of_bins</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">min_features_per_group</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_number_of_groups_with_feature</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">scoring_method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_based_on_sample</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">score_with_common_variables</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">instance_sample_size</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">crossover_probability</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutation_probability</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">elitism_parameter</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_size_variability_constraint</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">max_features_per_bin</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="p">,</span> <span class="n">bin_feature_matrix</span><span class="p">,</span> <span class="n">common_features_and_bins_matrix</span><span class="p">,</span> \
+            <span class="n">amino_acid_bins</span><span class="p">,</span> <span class="n">amino_acid_bin_scores</span><span class="p">,</span> <span class="n">rare_feature_maf_dict</span><span class="p">,</span> \
+            <span class="n">common_feature_maf_dict</span><span class="p">,</span> <span class="n">rare_feature_df</span><span class="p">,</span> <span class="n">common_feature_df</span><span class="p">,</span> <span class="n">maf_0_features</span></div>
+
+<div class="viewcode-block" id="FIBERS.fibers_transform"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.fibers_transform">[docs]</a>    <span class="k">def</span> <span class="nf">fibers_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_feature_matrix</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scikit-learn required function for Supervised training of FIBERS</span>
+
+<span class="sd">        :param original_feature_matrix: array-like {n_samples, n_features} Training instances.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</span>
+<span class="sd">        :param y: array-like {n_samples} Training labels.</span>
+<span class="sd">                ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</span>
+<span class="sd">        :return: self, bin_feature_matrix_internal, amino_acid_bins_internal, \</span>
+<span class="sd">            amino_acid_bin_scores_internal, maf_0_features</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">original_feature_matrix</span> <span class="o">==</span> <span class="n">original_feature_matrix</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;X param does not match fitted matrix. Fit needs to be first called on the same matrix.&quot;</span><span class="p">)</span>
+
+        <span class="n">bin_feature_matrix_internal</span><span class="p">,</span> <span class="n">amino_acid_bins_internal</span><span class="p">,</span> \
+            <span class="n">amino_acid_bin_scores_internal</span><span class="p">,</span> <span class="n">maf_0_features</span> <span class="o">=</span> \
+            <span class="n">fibers_algorithm</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">given_starting_point</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">amino_acid_start_point</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">amino_acid_bins_start_point</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">original_feature_matrix</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">label_name</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">duration_name</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_number_of_bins</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">min_features_per_group</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_number_of_groups_with_feature</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">informative_cutoff</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">crossover_probability</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mutation_probability</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">elitism_parameter</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bin_size_variability_constraint</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_features_per_bin</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">,</span> <span class="n">bin_feature_matrix_internal</span><span class="p">,</span> <span class="n">amino_acid_bins_internal</span><span class="p">,</span> \
+            <span class="n">amino_acid_bin_scores_internal</span><span class="p">,</span> <span class="n">maf_0_features</span></div>
+
+<div class="viewcode-block" id="FIBERS.transform"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_feature_matrix</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scikit-learn required function for Supervised training of FIBERS</span>
+
+<span class="sd">        :param original_feature_matrix: array-like {n_samples, n_features} Training instances.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</span>
+<span class="sd">        :param y: array-like {n_samples} Training labels.</span>
+<span class="sd">                ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</span>
+<span class="sd">        :return: either of rare_transform or fibers_transform depending on &quot;algorithm&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">==</span> <span class="s2">&quot;RARE&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rare_transform</span><span class="p">(</span><span class="n">original_feature_matrix</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">==</span> <span class="s2">&quot;FIBERS&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fibers_transform</span><span class="p">(</span><span class="n">original_feature_matrix</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown Algorithm&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Ryan Urbanowicz, Harsh Bandhey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+numpy
+pandas
+scikit-learn
+lifelines
+skrebate
+matplotlib
+pytest
+setuptools
+tqdm
