@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def generate_features(row, number_of_features, number_of_features_in_bin, mm_frequency_range, random_seeds=None):
