@@ -482,7 +482,7 @@ def crossover_and_mutation_new(max_population_of_bins, elitism_parameter, featur
         offspring2.extend(features_to_add2)
 
         # Ensuring that each of the offspring is no more than c times the size of the other offspring
-        bin_size_variability_constraint = 1
+        bin_size_variability_constraint = 2
         if not (bin_size_variability_constraint is None):
             c_constraint = bin_size_variability_constraint
             np.random.seed(random_seeds[num_replacement_sets * 7 + i])
@@ -519,7 +519,7 @@ def crossover_and_mutation_new(max_population_of_bins, elitism_parameter, featur
                 offspring2 = list(set(offspring2))
                 counter = counter + 1
 
-        # Ensuring the the size of the offspring is not greater than the max_features_per_bin allowed
+        # Ensuring the size of the offspring is not greater than the max_features_per_bin allowed
         if not (max_features_per_bin is None):
             if len(offspring1) > max_features_per_bin:
                 random.seed(random_seeds[num_replacement_sets * 8 + i])
@@ -536,15 +536,243 @@ def crossover_and_mutation_new(max_population_of_bins, elitism_parameter, featur
 
 
 def crossover_and_mutation(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups, bin_scores,
-                           crossover_probability, mutation_probability, random_seed):
+                           crossover_probability, mutation_probability, random_seed=None, max_features_per_bin=None):
     # Creating a list for offspring
     offspring_list = []
 
     # Creating a number of offspring equal to the number needed to replace the non-elites
     # Each pair of parents will produce two offspring
-    for i in range(0, int((max_population_of_bins - (elitism_parameter * max_population_of_bins)) / 2)):
+    num_replacement_sets = int((max_population_of_bins - (elitism_parameter * max_population_of_bins)) / 2)
+    np.random.seed(random_seed)
+    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 8)
+    for i in range(0, num_replacement_sets):
         # Choosing the two parents and getting the list of features in each parent bin
-        parent_bins = tournament_selection_parent_bins(bin_scores, random_seed)
+        parent_bins = tournament_selection_parent_bins(bin_scores, random_seeds[i])
+        parent1_features = binned_feature_groups[parent_bins[0]].copy()
+        parent2_features = binned_feature_groups[parent_bins[1]].copy()
+
+        # Creating two lists for the offspring bins
+        offspring1 = []
+        offspring2 = []
+
+        # CROSSOVER
+        # Each feature in the parent bin will cross over based on the given probability (uniform crossover)
+
+        # Creating two df for parent features and probability of crossover
+        np.random.seed(random_seeds[num_replacement_sets + i])
+        randnums1 = list(np.random.randint(0, 101, len(parent1_features)))
+        crossover_threshold1 = list([crossover_probability * 100] * len(parent1_features))
+        parent1_df = pd.DataFrame(parent1_features, columns=['Features'])
+        parent1_df['Threshold'] = crossover_threshold1
+        parent1_df['Rand_prob'] = randnums1
+
+        np.random.seed(random_seeds[num_replacement_sets * 2 + i])
+        randnums2 = list(np.random.randint(0, 101, len(parent2_features)))
+        crossover_threshold2 = list([crossover_probability * 100] * len(parent2_features))
+        parent2_df = pd.DataFrame(parent2_features, columns=['Features'])
+        parent2_df['Threshold'] = crossover_threshold2
+        parent2_df['Rand_prob'] = randnums2
+
+        # Features with random probability less than the crossover probability will go to offspring 1.
+        # The rest will go to offspring 2.
+        offspring1.extend(list(parent1_df.loc[parent1_df['Threshold'] > parent1_df['Rand_prob']]['Features']))
+        offspring2.extend(list(parent1_df.loc[parent1_df['Threshold'] <= parent1_df['Rand_prob']]['Features']))
+        offspring1.extend(list(parent2_df.loc[parent2_df['Threshold'] > parent2_df['Rand_prob']]['Features']))
+        offspring2.extend(list(parent2_df.loc[parent2_df['Threshold'] <= parent2_df['Rand_prob']]['Features']))
+
+        #         # Ensuring that each of the offspring is no more than c times the size of the other offspring
+        #         bin_size_variability_constraint = 2
+        #         if not (bin_size_variability_constraint is None):
+        #             c_constraint = bin_size_variability_constraint
+        #             np.random.seed(random_seeds[num_replacement_sets * 7 + i])
+        #             random_seeds_loop = np.random.randint(len(feature_list) * len(feature_list), size=2 * len(feature_list))
+        #             counter = 0
+        #             while counter < 2 * len(feature_list) and (
+        #                     len(offspring1) > c_constraint * len(offspring2) or len(offspring2) > c_constraint * len(
+        #                 offspring1)):
+        #                 np.random.seed(random_seeds_loop[counter])
+        #                 random.seed(random_seeds_loop[counter])
+
+        #                 if len(offspring1) > c_constraint * len(offspring2):
+        #                     min_features = int((len(offspring1) + len(offspring2)) / (c_constraint + 1)) + 1
+        #                     min_to_move = min_features - len(offspring2)
+        #                     max_to_move = len(offspring1) - min_features
+        #                     np.random.seed(random_seed)
+        #                     num_to_move = np.random.randint(min_to_move, max_to_move + 1)
+        #                     random.seed(random_seed)
+        #                     features_to_move = list(random.sample(offspring1, num_to_move))
+        #                     offspring1 = [x for x in offspring1 if x not in features_to_move]
+        #                     offspring2.extend(features_to_move)
+        #                 elif len(offspring2) > c_constraint * len(offspring1):
+        #                     min_features = int((len(offspring1) + len(offspring2)) / (c_constraint + 1)) + 1
+        #                     min_to_move = min_features - len(offspring1)
+        #                     max_to_move = len(offspring2) - min_features
+        #                     print(len(offspring1), len(offspring2), min_to_move, max_to_move)
+        #                     np.random.seed(random_seed)
+        #                     num_to_move = np.random.randint(min_to_move, max_to_move + 1)
+        #                     random.seed(random_seed)
+        #                     features_to_move = random.sample(offspring2, num_to_move)
+        #                     offspring2 = [x for x in offspring2 if x not in features_to_move]
+        #                     offspring1.extend(features_to_move)
+        #                 offspring1 = list(set(offspring1))
+        #                 offspring2 = list(set(offspring2))
+        #                 counter = counter + 1
+
+        # Ensuring that each of the offspring is no more than twice the size of the other offspring
+        while len(offspring1) > len(offspring2):
+            switch = random.choice(offspring1)
+            offspring1.remove(switch)
+            offspring2.append(switch)
+
+        while len(offspring2) > len(offspring1):
+            switch = random.choice(offspring2)
+            offspring2.remove(switch)
+            offspring1.append(switch)
+
+        # Ensuring the size of the offspring is not greater than the max_features_per_bin allowed
+        if not (max_features_per_bin is None):
+            if len(offspring1) > max_features_per_bin:
+                random.seed(random_seeds[num_replacement_sets * 8 + i])
+                offspring1 = list(random.sample(offspring1, max_features_per_bin))
+            if len(offspring2) > max_features_per_bin:
+                random.seed(random_seeds[num_replacement_sets * 9 + i])
+                offspring2 = list(random.sample(offspring2, max_features_per_bin))
+
+        # MUTATION
+
+        # Mutation (deletion and addition) only occurs with a certain probability on each feature in the original
+        # feature space
+
+        # Creating a probability for mutation (addition) that accounts for the ratio between the feature list and the
+        # size of the bin
+        mutation_addition_prob1, mutation_addition_prob2 = None, None
+        if len(offspring1) > 0 and len(offspring1) != len(feature_list):
+            mutation_addition_prob1 = mutation_probability * (len(offspring1)) / \
+                                      (len(feature_list) - len(offspring1))
+        elif len(offspring1) == 0 and len(offspring1) != len(feature_list):
+            mutation_addition_prob1 = mutation_probability
+        elif len(offspring1) == len(feature_list):
+            mutation_addition_prob1 = 0
+
+        if len(offspring2) > 0 and len(offspring2) != len(feature_list):
+            mutation_addition_prob2 = mutation_probability * (len(offspring2)) / \
+                                      (len(feature_list) - len(offspring2))
+        elif len(offspring2) == 0 and len(offspring2) != len(feature_list):
+            mutation_addition_prob2 = mutation_probability
+        elif len(offspring2) == len(feature_list):
+            mutation_addition_prob2 = 0
+
+        # Mutation: Deletion occurs on features with probability equal to the mutation parameter
+        offspring1_df = pd.DataFrame(offspring1, columns=['Features'])
+        mutation_threshold1 = list([mutation_probability * 100] * len(offspring1))
+        np.random.seed(random_seeds[num_replacement_sets * 3 + i])
+        rand1 = list(np.random.randint(0, 101, len(offspring1)))
+        offspring1_df['Threshold'] = mutation_threshold1
+        offspring1_df['Rand_prob'] = rand1
+
+        offspring2_df = pd.DataFrame(offspring2, columns=['Features'])
+        mutation_threshold2 = list([mutation_probability * 100] * len(offspring2))
+        np.random.seed(random_seeds[num_replacement_sets * 4 + i])
+        rand2 = list(np.random.randint(0, 101, len(offspring2)))
+        offspring2_df['Threshold'] = mutation_threshold2
+        offspring2_df['Rand_prob'] = rand2
+
+        offspring1_df = offspring1_df.loc[offspring1_df['Threshold'] < offspring1_df['Rand_prob']]
+        offspring1 = list(offspring1_df['Features'])
+
+        offspring2_df = offspring2_df.loc[offspring2_df['Threshold'] < offspring2_df['Rand_prob']]
+        offspring2 = list(offspring2_df['Features'])
+
+        # Mutation: Addition occurs on this feature with probability proportional to the mutation parameter
+        # The probability accounts for the ratio between the feature list and the size of the bin
+
+        features_not_in_offspring1 = [item for item in feature_list if item not in offspring1]
+        features_not_in_offspring2 = [item for item in feature_list if item not in offspring2]
+
+        features_not_in_offspring1_df = pd.DataFrame(features_not_in_offspring1, columns=['Features'])
+        mutation_addition_threshold1 = list([mutation_addition_prob1 * 100] * len(features_not_in_offspring1_df))
+        np.random.seed(random_seeds[num_replacement_sets * 5 + i])
+        rand1 = list(np.random.randint(0, 101, len(features_not_in_offspring1)))
+        features_not_in_offspring1_df['Threshold'] = mutation_addition_threshold1
+        features_not_in_offspring1_df['Rand_prob'] = rand1
+
+        features_not_in_offspring2_df = pd.DataFrame(features_not_in_offspring2, columns=['Features'])
+        mutation_addition_threshold2 = list([mutation_addition_prob2 * 100] * len(features_not_in_offspring2_df))
+        np.random.seed(random_seeds[num_replacement_sets * 6 + i])
+        rand2 = list(np.random.randint(0, 101, len(features_not_in_offspring2)))
+        features_not_in_offspring2_df['Threshold'] = mutation_addition_threshold2
+        features_not_in_offspring2_df['Rand_prob'] = rand2
+
+        features_to_add1 = list(features_not_in_offspring1_df.loc[
+                                    features_not_in_offspring1_df['Threshold'] >= features_not_in_offspring1_df[
+                                        'Rand_prob']]['Features'])
+        features_to_add2 = list(features_not_in_offspring2_df.loc[
+                                    features_not_in_offspring2_df['Threshold'] >= features_not_in_offspring2_df[
+                                        'Rand_prob']]['Features'])
+
+        offspring1.extend(features_to_add1)
+        offspring2.extend(features_to_add2)
+
+        # # CLEANUP
+        # # Remove repeated features within each offspring
+        # offspring1 = list(set(offspring1))
+        # offspring2 = list(set(offspring2))
+
+        # CLEANUP
+        # Deleting any repeats of an amino acid in a bin
+        # Removing duplicates of features in the same bin that may arise due to crossover
+        unique = []
+        for a in range(0, len(offspring1)):
+            if offspring1[a] not in unique:
+                unique.append(offspring1[a])
+
+        # Adding random features from outside the bin to replace the deleted features in the bin
+        replace_number = len(offspring1) - len(unique)
+        features_not_in_offspring = [item for item in feature_list if item not in offspring1]
+        offspring1 = unique.copy()
+        if len(features_not_in_offspring) > replace_number:
+            replacements = random.sample(features_not_in_offspring, replace_number)
+        else:
+            replacements = features_not_in_offspring.copy()
+        offspring1.extend(replacements)
+
+        unique = []
+        for a in range(0, len(offspring2)):
+            if offspring2[a] not in unique:
+                unique.append(offspring2[a])
+
+        # Adding random features from outside the bin to replace the deleted features in the bin
+        replace_number = len(offspring2) - len(unique)
+        features_not_in_offspring = []
+        features_not_in_offspring = [item for item in feature_list if item not in offspring2]
+        offspring2 = unique.copy()
+        if len(features_not_in_offspring) > replace_number:
+            replacements = random.sample(features_not_in_offspring, replace_number)
+        else:
+            replacements = features_not_in_offspring.copy()
+        offspring2.extend(replacements)
+
+        # Adding the new offspring to the list of feature bins
+        offspring_list.append(offspring1)
+        offspring_list.append(offspring2)
+
+    return offspring_list
+
+
+def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
+                               bin_scores,
+                               crossover_probability, mutation_probability, random_seed):
+    # Creating a list for offspring
+    offspring_list = []
+
+    num_replacement_sets = int((max_population_of_bins - (elitism_parameter * max_population_of_bins)) / 2)
+    np.random.seed(random_seed)
+    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 8)
+    # Creating a number of offspring equal to the number needed to replace the non-elites
+    # Each pair of parents will produce two offspring
+    for i in range(0, num_replacement_sets):
+        # Choosing the two parents and getting the list of features in each parent bin
+        parent_bins = tournament_selection_parent_bins(bin_scores, random_seeds[i])
         parent1_features = binned_feature_groups[parent_bins[0]].copy()
         parent2_features = binned_feature_groups[parent_bins[1]].copy()
 
