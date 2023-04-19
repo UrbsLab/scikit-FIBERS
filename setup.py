@@ -23,7 +23,11 @@ setuptools.setup(
         "sklearn",
         "lifelines",
         "skrebate==0.7",
-        "matplotlib"],
+        "matplotlib",
+        "seaborn",
+        "pytest",
+        "tqdm",
+    ],
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.6"

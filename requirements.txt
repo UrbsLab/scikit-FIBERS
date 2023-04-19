@@ -2,8 +2,10 @@ numpy
 pandas
 scikit-learn
 lifelines
-skrebate
+skrebate==0.7
 matplotlib
 pytest
 setuptools
 tqdm
+sklearn
+seaborn

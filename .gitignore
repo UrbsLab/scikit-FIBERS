@@ -3,7 +3,7 @@
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+__pycache__
 *.py[cod]
 *$py.class
 
@@ -54,3 +54,6 @@ data/
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
+
+# Pickle
+.pickle
