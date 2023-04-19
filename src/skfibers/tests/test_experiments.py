@@ -145,7 +145,7 @@ def test_experiment_random_seed():
                       mutation_probability=0.1, elitism_parameter=0.4,
                       random_seed=42)
 
-    fibers_1.fit(data)
+    fibers_1 = fibers_1.fit(data)
 
     fibers_2 = FIBERS(given_starting_point=False, amino_acid_start_point=None,
                       amino_acid_bins_start_point=None,
@@ -157,17 +157,17 @@ def test_experiment_random_seed():
                       mutation_probability=0.1, elitism_parameter=0.4,
                       random_seed=42)
 
-    fibers_2.fit(data)
+    fibers_2 = fibers_2.fit(data)
     assert (fibers_1.bins == fibers_2.bins)
     assert (fibers_1.bin_feature_matrix.equals(fibers_2.bin_feature_matrix))
     assert (fibers_1.bin_scores == fibers_2.bin_scores)
 
 
-@pytest.mark.skip(reason="Test Later")
+@pytest.mark.skip(reason="Big Runtime")
 def test_experiments():
     data = create_data_simulation_bin()
     results = list()
-    for replicate in range(0, 3):
+    for replicate in range(0, 2):
         print('Replication ' + str(replicate))
         fibers = FIBERS(given_starting_point=False, amino_acid_start_point=None,
                         amino_acid_bins_start_point=None,
@@ -177,14 +177,14 @@ def test_experiments():
                         set_number_of_bins=50, min_features_per_group=2,
                         max_number_of_groups_with_feature=5, crossover_probability=0.8,
                         mutation_probability=0.1, elitism_parameter=0.4,
-                        random_seed=None)
+                        random_seed=42)
 
-        fibers.fit(data)
+        fibers = fibers.fit(data)
         fibers, bin_feature_matrix_internal, amino_acid_bins_internal, \
             amino_acid_bin_scores_internal, maf_0_features = fibers.transform(data)
         results.append((fibers, bin_feature_matrix_internal, amino_acid_bins_internal,
                         amino_acid_bin_scores_internal, maf_0_features))
     for i in range(1, len(results)):
-        assert (results[i][1].equals(results[i - 1][1].equals()))
+        assert (results[i][1].equals(results[i - 1][1]))
         assert (results[i][2] == results[i - 1][2])
         assert (results[i][3] == results[i - 1][3])

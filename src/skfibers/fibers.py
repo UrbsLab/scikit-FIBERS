@@ -1,9 +1,11 @@
 import pandas as pd
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
-from matplotlib import pyplot as plt
 from sklearn.base import BaseEstimator, TransformerMixin
 from .methods.algorithms import fibers_algorithm
+from matplotlib import pyplot as plt
+import seaborn as sns
+sns.set_theme(font="Times New Roman")
 
 
 class FIBERS(BaseEstimator, TransformerMixin):
@@ -222,12 +224,12 @@ class FIBERS(BaseEstimator, TransformerMixin):
         """
         original_feature_matrix = self.check_x_y(x, y)
         if self.algorithm == "FIBERS":
-            self.original_feature_matrix = original_feature_matrix
-            return self.fibers_transform(original_feature_matrix)
+            self.fibers_fit(original_feature_matrix)
+            return self
         else:
             raise Exception("Unknown Algorithm")
 
-    def fibers_transform(self, original_feature_matrix):
+    def fibers_fit(self, original_feature_matrix):
         """
         Scikit-learn required function for Supervised training of FIBERS
 
@@ -236,9 +238,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :return: self, bin_feature_matrix_internal, amino_acid_bins_internal, \
             amino_acid_bin_scores_internal, maf_0_features
         """
-
-        if not (self.original_feature_matrix.equals(original_feature_matrix)):
-            raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
+        self.original_feature_matrix = original_feature_matrix
 
         bin_feature_matrix_internal, bins_internal, \
             bin_scores_internal, maf_0_features = \
@@ -282,24 +282,25 @@ class FIBERS(BaseEstimator, TransformerMixin):
             amino_acid_bin_scores_internal, maf_0_features
         """
         original_feature_matrix = self.check_x_y(x, y)
+
+        if not (self.original_feature_matrix.equals(original_feature_matrix)):
+            raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
+
         if self.algorithm == "FIBERS":
-            return self.fibers_transform(original_feature_matrix), \
-                self.bin_feature_matrix, \
+            return self, self.bin_feature_matrix, \
                 self.bins, \
                 self.bin_scores, \
                 self.maf_0_features
         else:
             raise Exception("Unknown Algorithm")
 
-    def get_duration_event(self, bin_id=None):
+    def get_duration_event(self, bin_order=0):
         if not self.hasTrained:
             raise Exception("Model must be trained first")
         # Ordering the bin scores from best to worst
         sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
         sorted_bin_list = list(sorted_bin_scores.keys())
-        top_bin = sorted_bin_list[0]
-        if bin_id:
-            top_bin = bin_id
+        top_bin = sorted_bin_list[bin_order]
         df_0 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] == 0]
         df_1 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] > 0]
 
@@ -309,31 +310,31 @@ class FIBERS(BaseEstimator, TransformerMixin):
         event_observed_mm = df_1[self.label_name].to_list()
         return durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin
 
-    def get_top_bin_summary(self, prin=True):
+    def get_bin_summary(self, prin=False, save=None, bin_order=0):
         if not self.hasTrained:
             raise Exception("Model must be trained first")
         # Ordering the bin scores from best to worst
-        durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event()
+        durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event(bin_order)
         results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
                                event_observed_B=event_observed_mm)
-        if prin:
-            print("Top Bin of Features:")
-            print(self.bins[top_bin])
-            print("---")
-            print("Number of Instances with No Mismatches in Bin:")
-            print(len(durations_no))
-            print("Number of Instances with Mismatch(es) in Bin:")
-            print(len(durations_mm))
-            print("---")
-            print("p-value from Log Rank Test:")
-            print(results.p_value)
+        if prin or save is not None:
+            columns = ["Top Bin", "Top Bin of Features:",
+                       "Number of Instances with No Mismatches in Bin:",
+                       "Number of Instances with Mismatch(es) in Bin:", "p-value from Log Rank Test:"]
+            pdf = pd.DataFrame([[self.bins[top_bin],
+                                 len(durations_no), len(durations_no),
+                                 len(durations_mm), results.p_value]], columns=columns)
+            if prin:
+                print(pdf)
+            if save:
+                pdf.to_csv(save)
         return results
 
-    def get_top_bin_survival_plot(self):
+    def get_bin_survival_plot(self, show=False, save=None, bin_order=0):
 
         kmf1 = KaplanMeierFitter()
 
-        durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event()
+        durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event(bin_order)
 
         # fit the model for 1st cohort
         kmf1.fit(durations_no, event_observed_no, label='No Mismatches in Bin')
@@ -344,9 +345,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
         kmf1.fit(durations_mm, event_observed_mm, label='Mismatch(es) in Bin')
         kmf1.plot_survival_function(ax=a1)
         a1.set_xlabel('Time After Event')
-        plt.show()
+        if show:
+            plt.show()
+        if save:
+            plt.savefig(save, dpi=1200, bbox_inches="tight")
+            plt.close()
 
-    def get_top_bin_scores(self):
+    def get_bin_scores(self, save=None):
         bin_scores_sorted = sorted(self.bin_scores.items(),
                                    key=lambda x: x[1], reverse=True)
         bins_sorted = sorted(self.bins.items(),
@@ -354,4 +359,6 @@ class FIBERS(BaseEstimator, TransformerMixin):
         tdf1 = pd.DataFrame(bin_scores_sorted, columns=['Bin #', 'Score'])
         tdf2 = pd.DataFrame(bins_sorted, columns=['Bin #', 'Bins'])
         tdf3 = tdf1.merge(tdf2, on='Bin #', how='inner', suffixes=('_1', '_2'))
+        if save:
+            tdf3.to_csv(save)
         return tdf3
