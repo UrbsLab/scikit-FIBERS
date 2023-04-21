@@ -111,8 +111,8 @@ def create_data_simulation_bin(number_of_instances=10000, number_of_features=50,
                                a_min=0, a_max=None)
     df = censor(pd.concat([df_0, df_1]), censoring_frequency, random_seed)
 
-    df_0 = df[df['Censoring'] == 0].sample(frac=1).reset_index(drop=True)
-    df_1 = df[df['Censoring'] == 1].sample(frac=1).reset_index(drop=True)
+    df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
+    df_1 = df[df['TrueRiskGroup'] == 1].sample(frac=1).reset_index(drop=True)
     if noise_frequency > 0:
         swap_count = int(min(len(df_0), len(df_1)) * noise_frequency)
         indexes = random.sample(list(range(min(len(df_0), len(df_1)))), swap_count)
