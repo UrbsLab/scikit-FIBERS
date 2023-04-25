@@ -30,7 +30,7 @@ def censor(df, censoring_frequency, random_seed=None):
     df['Censoring'] = 1
     inst_to_censor = int(censoring_frequency * len(df))
     max_duration = max(df['Duration'])
-    df = df.sort_values('Duration')
+    # df = df.sort_values('Duration')
     censor_count = 0
     count = 0
     while censor_count < inst_to_censor:
@@ -39,6 +39,8 @@ def censor(df, censoring_frequency, random_seed=None):
         for index in range(len(df)):
             prob = df['Duration'].iloc[index] / max_duration
             choice = np.random.choice([0, 1], 1, p=[prob, 1 - prob])
+            if censor_count >= inst_to_censor:
+                break
             if choice == 0:
                 censor_count += 1
             df['Censoring'].iloc[index] = choice
