@@ -1,2 +1,2 @@
 ,Top Bin,Top Bin of Features:,Number of Instances with No Mismatches in Bin:,Number of Instances with Mismatch(es) in Bin:,p-value from Log Rank Test:
-0,"['R_39', 'R_40', 'R_24', 'R_1', 'R_20', 'R_33', 'R_34', 'R_11', 'R_13', 'R_35', 'R_9']",6227,6227,3773,0.004279891460320213
+0,"['R_36', 'R_8', 'R_21', 'R_32', 'R_34', 'R_40', 'R_38']",7348,7348,2652,0.015112569381711388
