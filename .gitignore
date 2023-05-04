@@ -7,20 +7,6 @@ __pycache__
 *.py[cod]
 *$py.class
 
-# Unit test / coverage reports
-#htmlcov/
-#.tox/
-#.nox/
-#.coverage
-#.coverage.*
-#.cache
-#nosetests.xml
-#coverage.xml
-#*.cover
-#*.py,cover
-#.hypothesis/
-#.pytest_cache/
-
 # Distribution / packaging
 .Python
 build/
@@ -51,9 +37,14 @@ target/
 
 # BIG Datasets
 data/
+/src/old/
+/src/experiments_2/
+/src/experimnets_3/
+/GECCO'23/FIBERSDatasimTest.ipynb
+
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 
 # Pickle
-.pickle
+*.pickle

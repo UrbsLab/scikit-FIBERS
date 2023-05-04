@@ -2,6 +2,7 @@ import pandas as pd
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.metrics import classification_report, accuracy_score
 from .methods.algorithms import fibers_algorithm
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -37,11 +38,6 @@ class FIBERS(BaseEstimator, TransformerMixin):
                preserved for the next evolutionary cycle (recommendation: 0.2 to 0.8
                depending on conservativeness of approach and number of iterations run)
         :param random_seed: the seed value needed to generate a random number
-        # :param bin_size_variability_constraint: sets the max bin size of children to be n
-        #        times the size of their sibling (recommendation: 2, with larger or smaller
-        #        values the population would trend heavily towards small or large bins without
-        #        exploring the search space)
-        # :param max_features_per_bin: sets a max value for the number of features per bin
         """
 
         algorithm = "FIBERS"
@@ -158,7 +154,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def reboot_population(self):
         """
         Function to Reboot Population, not Implemented
-
+        :meta private:
         """
         raise NotImplementedError
 
@@ -177,6 +173,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
         return isinstance(num, float)
 
     def check_x_y(self, x, y):
+        """
+        Function to check if x and y input to fit are valid.
+        Functionality to support input as both just X as a dataframe
+        similar to lifelines package
+        x and y similar to scikit survival.
+
+        :meta private:
+        """
         if y is None:
             if not (isinstance(x, pd.DataFrame)):
                 raise Exception("x must be pandas dataframe")
@@ -265,38 +269,84 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.hasTrained = True
         return self
 
-    def transform(self, x, y=None):
+    def transform(self, x):
         """
         Scikit-learn required function for Supervised training of FIBERS
 
-        :param x: array-like {n_samples, n_features} Training instances.
+        :param x: array-like {n_samples, n_features} Transform instances.
                 ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-                OR array-like dataframe {n_samples, n_features} Training instances
-                with column name as given in label_name and duration_name.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN when y=None
 
-        :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.
-                ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE
-
-        :return: self, bin_feature_matrix_internal, amino_acid_bins_internal, \
-            amino_acid_bin_scores_internal, maf_0_features
+        :return: Top Feature Bin Features as a pd.DataFrame
         """
-        original_feature_matrix = self.check_x_y(x, y)
+        # x_new = self.check_x_y(x, y)
 
-        if not (self.original_feature_matrix.equals(original_feature_matrix)):
-            raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
+        if not self.hasTrained:
+            raise Exception("Model must be fit first")
+
+        # if not (self.original_feature_matrix.equals(original_feature_matrix)):
+        #     raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
 
         if self.algorithm == "FIBERS":
-            return self, self.bin_feature_matrix, \
-                self.bins, \
-                self.bin_scores, \
-                self.maf_0_features
+            sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
+            sorted_bin_list = list(sorted_bin_scores.keys())
+            tdf = pd.DataFrame()
+            try:
+                for i in range(len(sorted_bin_list)):
+                    tdf[sorted_bin_list[i]] = x[self.bins[sorted_bin_list[i]]].sum(axis=1)
+            except Exception as e:
+                print(e)
+                raise Exception("Bin Feature not present in dataset")
+            return tdf
         else:
             raise Exception("Unknown Algorithm")
 
-    def get_duration_event(self, bin_order=0):
+    def predict(self, x):
+        """
+        Function to predict risk on the basis of top OR bin.
+
+        :param x: array-like {n_samples, n_features} Transform instances.
+                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
+        :return: y: prediction of risk stratification
+        """
         if not self.hasTrained:
             raise Exception("Model must be trained first")
+        _, _, _, _, top_bin = self.get_duration_event(bin_order=0)
+        top_or_rule = self.bins[top_bin]
+        return (x[top_or_rule].sum(axis=1) > 0).astype(int)
+
+    def score(self, x, y):
+        """
+
+        :param x: array-like {n_samples, n_features} Transform instances.
+                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
+        :param y: True Risk Group, y_true
+        :return: accuracy score of the risk stratification.
+        """
+        if not self.hasTrained:
+            raise Exception("Model must be fit first")
+        y_pred = self.predict(x)
+        return accuracy_score(y, y_pred)
+
+    def classification_report(self, x, y, prin=False, save=None):
+        """
+        :meta private:
+        """
+        y_pred = self.predict(x)
+        report = classification_report(y, y_pred)
+        if prin:
+            print(report)
+        if save:
+            report = classification_report(y, y_pred, output_dict=True)
+            df = pd.DataFrame(report).transpose()
+            df.to_csv(save)
+        return report
+
+    def get_duration_event(self, bin_order=0):
+        """
+        :meta private:
+        """
+        if not self.hasTrained:
+            raise Exception("Model must be fit first")
         # Ordering the bin scores from best to worst
         sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
         sorted_bin_list = list(sorted_bin_scores.keys())
@@ -311,26 +361,42 @@ class FIBERS(BaseEstimator, TransformerMixin):
         return durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin
 
     def get_bin_summary(self, prin=False, save=None, bin_order=0):
+        """
+        Function to print statistics summary of given bin
+
+        :param prin: flag to print statistics summary
+        :param save: filename to save statistics to or None to skip (default=None)
+        :param bin_order: bin index in sorted bins by log rank score (starts from 0, default=0)
+        :return: log_rank_results, summary_dataframe
+        """
         if not self.hasTrained:
             raise Exception("Model must be trained first")
         # Ordering the bin scores from best to worst
         durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event(bin_order)
         results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
                                event_observed_B=event_observed_mm)
+        columns = ["", "Bin #", "Top Bin of Features:", "Log-Rank Score"
+                   "Number of Instances with No Mismatches in Bin:",
+                   "Number of Instances with Mismatch(es) in Bin:", "p-value from Log Rank Test:"]
+        pdf = pd.DataFrame([[top_bin, self.bins[top_bin],
+                             self.bin_scores[top_bin], len(durations_no),
+                             len(durations_mm), results.p_value]], columns=columns).T
         if prin or save is not None:
-            columns = ["Top Bin", "Top Bin of Features:",
-                       "Number of Instances with No Mismatches in Bin:",
-                       "Number of Instances with Mismatch(es) in Bin:", "p-value from Log Rank Test:"]
-            pdf = pd.DataFrame([[self.bins[top_bin],
-                                 len(durations_no), len(durations_no),
-                                 len(durations_mm), results.p_value]], columns=columns)
             if prin:
                 print(pdf)
             if save:
                 pdf.to_csv(save)
-        return results
+        return results, pdf
 
     def get_bin_survival_plot(self, show=False, save=None, bin_order=0):
+        """
+        Function to plot Kaplan Meier Survival Plot
+
+        :param show: flag to show plot
+        :param save: filename to save plot to or None to skip (default=None)
+        :param bin_order: bin_order: bin index in sorted bins by log rank score (starts from 0, default=0)
+        :return: None
+        """
 
         kmf1 = KaplanMeierFitter()
 
@@ -352,6 +418,12 @@ class FIBERS(BaseEstimator, TransformerMixin):
             plt.close()
 
     def get_bin_scores(self, save=None):
+        """
+        Function to get all bins and their corresponding log-rank scores
+
+        :param save: filename to save bins to or None to skip (default=None)
+        :return: pd.DataFrame of Bins and their corresponding log-rank scores.
+        """
         bin_scores_sorted = sorted(self.bin_scores.items(),
                                    key=lambda x: x[1], reverse=True)
         bins_sorted = sorted(self.bins.items(),

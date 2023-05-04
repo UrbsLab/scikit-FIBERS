@@ -3,7 +3,7 @@ from skfibers.fibers import FIBERS
 from skfibers.experiments.datagen import create_data_simulation_bin
 from skfibers.methods.algorithms import remove_empty_variables, random_feature_grouping, grouped_feature_matrix, \
     log_rank_test_feature_importance, tournament_selection_parent_bins, crossover_and_mutation, \
-    create_next_generation, regroup_feature_matrix
+    create_next_generation, regroup_feature_matrix, crossover_and_mutation_old
 
 
 def test_create_data_simulation_bin():
@@ -93,6 +93,42 @@ def test_crossover_and_mutation():
     assert (offspring_bins_2 == offspring_bins_1)
 
 
+def test_crossover_and_mutation_old():
+    data = create_data_simulation_bin(number_of_instances=1000, random_seed=42)
+    data = data.drop('TrueRiskGroup', axis=1)
+    label_name = "Censoring"
+    duration_name = "Duration"
+    feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list \
+        = remove_empty_variables(data, label_name, duration_name)
+    feature_list, binned_feature_groups = random_feature_grouping(feature_matrix_no_empty_variables, label_name,
+                                                                  duration_name, number_of_groups=50,
+                                                                  min_features_per_group=2,
+                                                                  max_number_of_groups_with_feature=10,
+                                                                  random_seed=42, max_features_per_bin=None)
+
+    bin_feature_matrix = grouped_feature_matrix(feature_matrix_no_empty_variables, label_name, duration_name,
+                                                binned_feature_groups)
+
+    bin_scores = log_rank_test_feature_importance(bin_feature_matrix, binned_feature_groups, label_name, duration_name,
+                                                  informative_cutoff=0.2)
+
+    offspring_bins_1 = crossover_and_mutation_old(max_population_of_bins=50, elitism_parameter=0.8,
+                                                  feature_list=feature_list,
+                                                  binned_feature_groups=binned_feature_groups,
+                                                  bin_scores=bin_scores,
+                                                  crossover_probability=0.8,
+                                                  mutation_probability=0.4, random_seed=42)
+
+    offspring_bins_2 = crossover_and_mutation_old(max_population_of_bins=50, elitism_parameter=0.8,
+                                                  feature_list=feature_list,
+                                                  binned_feature_groups=binned_feature_groups,
+                                                  bin_scores=bin_scores,
+                                                  crossover_probability=0.8,
+                                                  mutation_probability=0.4, random_seed=42)
+
+    assert (offspring_bins_2 == offspring_bins_1)
+
+
 def test_regroup_feature_matrix():
     data = create_data_simulation_bin(number_of_instances=1000, random_seed=42)
     original_feature_matrix = data.drop('TrueRiskGroup', axis=1)
@@ -133,8 +169,12 @@ def test_regroup_feature_matrix():
     assert (amino_acid_bins_2 == amino_acid_bins_1)
 
 
+# @pytest.mark.skip(reason="Big Runtime")
 def test_experiment_random_seed():
     data = create_data_simulation_bin(number_of_instances=1000, random_seed=42)
+
+    data = data.drop('TrueRiskGroup', axis=1)
+
     fibers_1 = FIBERS(given_starting_point=False, amino_acid_start_point=None,
                       amino_acid_bins_start_point=None,
                       iterations=100,

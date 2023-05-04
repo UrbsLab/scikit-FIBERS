@@ -83,24 +83,24 @@ def random_feature_grouping(feature_matrix, label_name, duration_name, number_of
     except Exception:
         pass
 
+    # # Removing duplicates of features in the same bin
+    # for z in range(0, len(feature_groups)):
+    #     feature_groups[z] = list(set(feature_groups[z]))
+    #
+    #     # Randomly removing features until the number of features is equal to or less than the max_features_per_bin
+    #     # param
+    #     if not (max_features_per_bin is None):
+    #         if len(feature_groups[z]) > max_features_per_bin:
+    #             random.seed(random_seeds[z])
+    #             feature_groups[z] = list(random.sample(feature_groups[z], max_features_per_bin))
+
     # Removing duplicates of features in the same bin
     for z in range(0, len(feature_groups)):
-        feature_groups[z] = list(set(feature_groups[z]))
-
-        # Randomly removing features until the number of features is equal to or less than the max_features_per_bin
-        # param
-        if not (max_features_per_bin is None):
-            if len(feature_groups[z]) > max_features_per_bin:
-                random.seed(random_seeds[z])
-                feature_groups[z] = list(random.sample(feature_groups[z], max_features_per_bin))
-
-    # # Removing duplicates of features in the same bin
-    # for z in range (0, len(feature_groups)):
-    #     unique = []
-    #     for a in range (0, len(feature_groups[z])):
-    #         if feature_groups[z][a] not in unique:
-    #             unique.append(feature_groups[z][a])
-    #     feature_groups[z] = unique
+        unique = []
+        for a in range(0, len(feature_groups[z])):
+            if feature_groups[z][a] not in unique:
+                unique.append(feature_groups[z][a])
+        feature_groups[z] = unique
 
     # Creating a dictionary with bin labels
     binned_feature_groups = {}
@@ -244,13 +244,13 @@ def create_next_generation(binned_feature_groups, bin_scores, max_population_of_
 
     # Determining the number of elite bins
     number_of_elite_bins = round(max_population_of_bins * elitism_parameter)
-    elite_bin_list = sorted_bin_list[0:number_of_elite_bins]
-
+    elites = []
     # Adding the elites to a list of elite feature bins
-    elite_dict = {k: v for k, v in binned_feature_groups.items() if k in elite_bin_list}
+    for a in range(0, number_of_elite_bins):
+        elites.append(binned_feature_groups[sorted_bin_list[a]])
 
     # Creating a list of feature bins (without labels because those will be changed as things get deleted and added)
-    feature_bin_list = list(elite_dict.values())
+    feature_bin_list = elites.copy()
 
     # Adding the offspring to the feature bin list
     feature_bin_list.extend(offspring_list)
@@ -277,6 +277,8 @@ def regroup_feature_matrix(feature_list, feature_matrix, label_name, duration_na
     # Calculate average length of nonempty bins in the population
     bin_lengths = [len(x) for x in feature_bin_list if len(x) != 0]
     replacement_length = round(statistics.mean(bin_lengths))
+
+    # ---------- DIFFERENT FORM ORIGINAL HERE
 
     # Replacing each deleted bin with a bin with random features
     np.random.seed(random_seed)
@@ -969,9 +971,9 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
 
         # Step 2b: Genetic Algorithm
         # Creating the offspring bins through crossover and mutation
-        offspring_bins = crossover_and_mutation(set_number_of_bins, elitism_parameter, amino_acids, amino_acid_bins,
-                                                amino_acid_bin_scores,
-                                                crossover_probability, mutation_probability, random_seeds[i])
+        offspring_bins = crossover_and_mutation_old(set_number_of_bins, elitism_parameter, amino_acids, amino_acid_bins,
+                                                    amino_acid_bin_scores,
+                                                    crossover_probability, mutation_probability, random_seeds[i])
 
         # Creating the new generation by preserving some elites and adding the offspring
         feature_bin_list = create_next_generation(amino_acid_bins, amino_acid_bin_scores, set_number_of_bins,
