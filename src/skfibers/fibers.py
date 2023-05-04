@@ -375,7 +375,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event(bin_order)
         results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
                                event_observed_B=event_observed_mm)
-        columns = ["", "Bin #", "Top Bin of Features:", "Log-Rank Score"
+        columns = ["Bin #", "Top Bin of Features:", "Log-Rank Score",
                    "Number of Instances with No Mismatches in Bin:",
                    "Number of Instances with Mismatch(es) in Bin:", "p-value from Log Rank Test:"]
         pdf = pd.DataFrame([[top_bin, self.bins[top_bin],
