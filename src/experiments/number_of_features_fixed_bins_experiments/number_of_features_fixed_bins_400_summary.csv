@@ -1,0 +1,7 @@
+,0
+,Bin 1
+Bin #,"['R_283', 'R_390', 'R_77', 'R_129', 'R_51', 'R_371', 'R_58', 'R_44', 'R_240', 'R_233', 'R_29', 'R_225', 'R_301']"
+Top Bin of Features:,0
+Log-Rank ScoreNumber of Instances with No Mismatches in Bin:,6
+Number of Instances with Mismatch(es) in Bin:,9994
+p-value from Log Rank Test:,0.5136613105265906
