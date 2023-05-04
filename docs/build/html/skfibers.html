@@ -86,33 +86,23 @@
 <span id="skfibers-fibers-module"></span><h2>skfibers.fibers module<a class="headerlink" href="#module-skfibers.fibers" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="skfibers.fibers.FIBERS">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">skfibers.fibers.</span></span><span class="sig-name descname"><span class="pre">FIBERS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Class'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'grf_yrs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'FIBERS'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">given_starting_point</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amino_acid_start_point</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amino_acid_bins_start_point</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_number_of_bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_features_per_group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_number_of_groups_with_feature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">informative_cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crossover_probability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mutation_probability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elitism_parameter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_size_variability_constraint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_features_per_bin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rare_variant_maf_cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scoring_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Relief'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">score_based_on_sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">score_with_common_variables</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_sample_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">skfibers.fibers.</span></span><span class="sig-name descname"><span class="pre">FIBERS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Class'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Duration'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">given_starting_point</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amino_acid_start_point</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amino_acid_bins_start_point</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_number_of_bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_features_per_group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_number_of_groups_with_feature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">informative_cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crossover_probability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mutation_probability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elitism_parameter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseEstimator</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerMixin</span></code></p>
-<p>A Scikit-Learn compatible framework for the RARE Algorithm.</p>
+<p>A Scikit-Learn compatible framework for the FIBERS Algorithm.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>label_name</strong> – label for the class/endpoint column in the dataset (e.g., ‘Class’)</p></li>
 <li><p><strong>duration_name</strong> – label to omit extra column in the dataset</p></li>
-<li><p><strong>algorithm</strong> – which method to use (“RARE” or “FIBERS”, default=”FIBERS”)</p></li>
 <li><p><strong>given_starting_point</strong> – whether or not expert knowledge is being inputted (True or False)</p></li>
 <li><p><strong>amino_acid_start_point</strong> – if RARE is starting with expert knowledge, input the list
 of features here; otherwise None</p></li>
 <li><p><strong>amino_acid_bins_start_point</strong> – if RARE is starting with expert knowledge, input the list of bins of
 features here; otherwise None</p></li>
 <li><p><strong>iterations</strong> – the number of evolutionary cycles RARE will run</p></li>
-<li><p><strong>rare_variant_maf_cutoff</strong> – the minor allele frequency cutoff separating common features from rare
-variant features</p></li>
 <li><p><strong>set_number_of_bins</strong> – the population size of candidate bins</p></li>
 <li><p><strong>min_features_per_group</strong> – the minimum number of features in a bin</p></li>
 <li><p><strong>max_number_of_groups_with_feature</strong> – the maximum number of bins containing a feature</p></li>
-<li><p><strong>scoring_method</strong> – ‘Univariate’, ‘Relief’, or ‘Relief only on bin and common features’</p></li>
-<li><p><strong>score_based_on_sample</strong> – if Relief scoring is used, whether or not bin evaluation is done based on a
-sample of instances rather than the whole dataset</p></li>
-<li><p><strong>score_with_common_variables</strong> – if Relief scoring is used, whether or not common features should be
-used as context for evaluating rare variant bins</p></li>
-<li><p><strong>instance_sample_size</strong> – if bin evaluation is done based on a sample of instances,
-input the sample size here</p></li>
 <li><p><strong>crossover_probability</strong> – the probability of each feature in an offspring bin to crossover
 to the paired offspring bin (recommendation: 0.5 to 0.8)</p></li>
 <li><p><strong>mutation_probability</strong> – the probability of each feature in a bin to be deleted (a proportionate
@@ -122,26 +112,17 @@ probability is automatically applied on each feature outside the bin to be added
 preserved for the next evolutionary cycle (recommendation: 0.2 to 0.8
 depending on conservativeness of approach and number of iterations run)</p></li>
 <li><p><strong>random_seed</strong> – the seed value needed to generate a random number</p></li>
-<li><p><strong>bin_size_variability_constraint</strong> – sets the max bin size of children to be n
-times the size of their sibling (recommendation: 2, with larger or smaller
-values the population would trend heavily towards small or large bins without
-exploring the search space)</p></li>
-<li><p><strong>max_features_per_bin</strong> – sets a max value for the number of features per bin</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="skfibers.fibers.FIBERS.fibers_transform">
-<span class="sig-name descname"><span class="pre">fibers_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_feature_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.fibers_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.fibers_transform" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="skfibers.fibers.FIBERS.fibers_fit">
+<span class="sig-name descname"><span class="pre">fibers_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_feature_matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.fibers_fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.fibers_fit" title="Permalink to this definition"></a></dt>
 <dd><p>Scikit-learn required function for Supervised training of FIBERS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>original_feature_matrix</strong> – array-like {n_samples, n_features} Training instances.
-ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</p></li>
-<li><p><strong>y</strong> – array-like {n_samples} Training labels.
-ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</p></li>
-</ul>
+<dd class="field-odd"><p><strong>original_feature_matrix</strong> – array-like {n_samples, n_features} Training instances.
+ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>self, bin_feature_matrix_internal, amino_acid_bins_internal,             amino_acid_bin_scores_internal, maf_0_features</p>
@@ -151,58 +132,126 @@ ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="skfibers.fibers.FIBERS.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_feature_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.fit" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.fit" title="Permalink to this definition"></a></dt>
 <dd><p>Scikit-learn required function for Supervised training of FIBERS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>original_feature_matrix</strong> – array-like {n_samples, n_features} Training instances.
-ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</p></li>
-<li><p><strong>y</strong> – array-like {n_samples} Training labels.
+<li><p><strong>x</strong> – array-like {n_samples, n_features} Training instances.
+ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
+OR array-like dataframe {n_samples, n_features} Training instances
+with column name as given in label_name and duration_name.
+ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN when y=None</p></li>
+<li><p><strong>y</strong> – None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.
 ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>self</p>
+</dd>
 </dl>
-<p>:return self</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="skfibers.fibers.FIBERS.rare_transform">
-<span class="sig-name descname"><span class="pre">rare_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_feature_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.rare_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.rare_transform" title="Permalink to this definition"></a></dt>
-<dd><p>Scikit-learn compatible transform function for supervised training of FIBERS</p>
+<dt class="sig sig-object py" id="skfibers.fibers.FIBERS.get_bin_scores">
+<span class="sig-name descname"><span class="pre">get_bin_scores</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.get_bin_scores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.get_bin_scores" title="Permalink to this definition"></a></dt>
+<dd><p>Function to get all bins and their corresponding log-rank scores</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>save</strong> – filename to save bins to or None to skip (default=None)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame of Bins and their corresponding log-rank scores.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="skfibers.fibers.FIBERS.get_bin_summary">
+<span class="sig-name descname"><span class="pre">get_bin_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.get_bin_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.get_bin_summary" title="Permalink to this definition"></a></dt>
+<dd><p>Function to print statistics summary of given bin</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>original_feature_matrix</strong> – original feature matrix. pd.DataFrame</p></li>
-<li><p><strong>y</strong> – array-like {n_samples} Training labels.
-ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</p></li>
+<li><p><strong>prin</strong> – flag to print statistics summary</p></li>
+<li><p><strong>save</strong> – filename to save statistics to or None to skip (default=None)</p></li>
+<li><p><strong>bin_order</strong> – bin index in sorted bins by log rank score (starts from 0, default=0)</p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>log_rank_results, summary_dataframe</p>
+</dd>
 </dl>
-<p>:return self, bin_feature_matrix, common_features_and_bins_matrix,                 amino_acid_bins, amino_acid_bin_scores, rare_feature_maf_dict,                 common_feature_maf_dict, rare_feature_df, common_feature_df, maf_0_features</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="skfibers.fibers.FIBERS.get_bin_survival_plot">
+<span class="sig-name descname"><span class="pre">get_bin_survival_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.get_bin_survival_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.get_bin_survival_plot" title="Permalink to this definition"></a></dt>
+<dd><p>Function to plot Kaplan Meier Survival Plot</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>show</strong> – flag to show plot</p></li>
+<li><p><strong>save</strong> – filename to save plot to or None to skip (default=None)</p></li>
+<li><p><strong>bin_order</strong> – bin_order: bin index in sorted bins by log rank score (starts from 0, default=0)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="skfibers.fibers.FIBERS.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Function to predict risk on the basis of top OR bin.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> – array-like {n_samples, n_features} Transform instances.
+ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>y: prediction of risk stratification</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="skfibers.fibers.FIBERS.reboot_population">
 <span class="sig-name descname"><span class="pre">reboot_population</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.reboot_population"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.reboot_population" title="Permalink to this definition"></a></dt>
-<dd><p>Function to Reboot Population, not Implemented</p>
+<dd><p>Function to Reboot Population, not Implemented
+:meta private:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="skfibers.fibers.FIBERS.score">
+<span class="sig-name descname"><span class="pre">score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.score" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – array-like {n_samples, n_features} Transform instances.
+ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</p></li>
+<li><p><strong>y</strong> – True Risk Group, y_true</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>accuracy score of the risk stratification.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="skfibers.fibers.FIBERS.transform">
-<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_feature_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.transform" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/skfibers/fibers.html#FIBERS.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#skfibers.fibers.FIBERS.transform" title="Permalink to this definition"></a></dt>
 <dd><p>Scikit-learn required function for Supervised training of FIBERS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>original_feature_matrix</strong> – array-like {n_samples, n_features} Training instances.
-ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</p></li>
-<li><p><strong>y</strong> – array-like {n_samples} Training labels.
-ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE</p></li>
-</ul>
+<dd class="field-odd"><p><strong>x</strong> – array-like {n_samples, n_features} Transform instances.
+ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>either of rare_transform or fibers_transform depending on “algorithm”</p>
+<dd class="field-even"><p>Top Feature Bin Features as a pd.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>

@@ -1,2 +1,7 @@
-,Top Bin,Top Bin of Features:,Number of Instances with No Mismatches in Bin:,Number of Instances with Mismatch(es) in Bin:,p-value from Log Rank Test:
-0,"['P_1', 'P_7', 'P_5']",5870,5870,4130,1.148263682245163e-17
+,0
+,Bin 1
+Bin #,"['P_4', 'P_8', 'P_2']"
+Top Bin of Features:,98.56108438046148
+Log-Rank ScoreNumber of Instances with No Mismatches in Bin:,5812
+Number of Instances with Mismatch(es) in Bin:,4188
+p-value from Log Rank Test:,3.1515193834285723e-23

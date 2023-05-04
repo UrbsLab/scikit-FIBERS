@@ -5,9 +5,9 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def generate_features(row, number_of_features, number_of_features_in_bin, mm_frequency_range, random_seeds=None):
-
-    np.random.seed(random_seeds[row.name])
-    random.seed(random_seeds[row.name])
+    if random_seeds is not None:
+        np.random.seed(random_seeds[row.name])
+        random.seed(random_seeds[row.name])
     mm_frequency = np.random.uniform(mm_frequency_range[0], mm_frequency_range[1])
     if row['TrueRiskGroup'] == 1:
         indexes = random.sample(list(range(1, number_of_features_in_bin + 1)),
@@ -30,7 +30,7 @@ def censor(df, censoring_frequency, random_seed=None):
     df['Censoring'] = 1
     inst_to_censor = int(censoring_frequency * len(df))
     max_duration = max(df['Duration'])
-    # df = df.sort_values('Duration')
+    df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
     censor_count = 0
     count = 0
     while censor_count < inst_to_censor:
