@@ -169,7 +169,7 @@ def test_regroup_feature_matrix():
     assert (amino_acid_bins_2 == amino_acid_bins_1)
 
 
-# @pytest.mark.skip(reason="Big Runtime")
+@pytest.mark.skip(reason="Big Runtime")
 def test_experiment_random_seed():
     data = create_data_simulation_bin(number_of_instances=1000, random_seed=42)
 
