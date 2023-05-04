@@ -7,5 +7,4 @@ matplotlib
 pytest
 setuptools
 tqdm
-sklearn
 seaborn
