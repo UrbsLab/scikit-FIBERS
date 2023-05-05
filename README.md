@@ -13,7 +13,7 @@ It utilizes an evolutionary algorithm approach to optimizing bins of features ba
 
 
 ## Installation
-We can easily install scikit-rare using the following command:
+We can easily install scikit-FIBERS using the following command:
 ```
 pip install scikit-fibers
 ```
