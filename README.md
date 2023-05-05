@@ -19,7 +19,7 @@ pip install scikit-fibers
 ```
 
 ## How to Use:
-An [Example Notebook](ExampleNotebook.ipynb) is given with sample codes what functions are available
+An [Example Notebook](ExampleNotebook.ipynb) is given with sample codes that shows what functions are available
 in scikit-FIBERS and how to use them.
 
 ## Documentation:
