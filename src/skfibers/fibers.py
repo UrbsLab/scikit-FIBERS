@@ -21,11 +21,11 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param label_name: label for the class/endpoint column in the dataset (e.g., 'Class')
         :param duration_name: label to omit extra column in the dataset
         :param given_starting_point: whether or not expert knowledge is being inputted (True or False)
-        :param amino_acid_start_point: if RARE is starting with expert knowledge, input the list
+        :param amino_acid_start_point: if FIBERS is starting with expert knowledge, input the list
                of features here; otherwise None
-        :param amino_acid_bins_start_point: if RARE is starting with expert knowledge, input the list of bins of
+        :param amino_acid_bins_start_point: if FIBERS is starting with expert knowledge, input the list of bins of
                features here; otherwise None
-        :param iterations: the number of evolutionary cycles RARE will run
+        :param iterations: the number of evolutionary cycles FIBERS will run
         :param set_number_of_bins: the population size of candidate bins
         :param min_features_per_group: the minimum number of features in a bin
         :param max_number_of_groups_with_feature: the maximum number of bins containing a feature
