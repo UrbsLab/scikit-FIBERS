@@ -1,16 +1,87 @@
 import random
 import statistics
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+from scipy.stats import ranksums
+from lifelines import CoxPHFitter
+from lifelines.statistics import logrank_test
+from lifelines.statistics import multivariate_logrank_test
 from random import randrange
 from warnings import simplefilter
 
-import numpy as np
-import pandas as pd
-from lifelines.statistics import logrank_test
-from lifelines.statistics import multivariate_logrank_test
-from tqdm import tqdm
-
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=DeprecationWarning)
+
+
+def calculate_residuals(feature_matrix, label_name, duration_name, covariates):
+    # Fit a Cox proportional hazards model to the DataFrame
+    updated = feature_matrix.copy()
+    updated = updated[covariates + [duration_name, label_name]]
+    
+    # threshold = 0.98  # Percentage threshold for one type of values
+    # for column in updated.columns:
+    #     value_counts = updated[column].value_counts(normalize=True)
+    #     dominant_value_ratio = value_counts.max()
+    #
+    #     if dominant_value_ratio >= threshold:
+    #         updated.drop(column, axis=1, inplace=True)
+    #         # print(column)
+    #         pass
+
+    print("Fitting COX Model")
+    cph = CoxPHFitter()
+    cph.fit(updated, duration_col=duration_name, event_col=label_name, show_progress=True)
+
+    # Calculate the residuals using the Schoenfeld residuals method
+    residuals = cph.compute_residuals(updated, kind='deviance')
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(feature_matrix[duration_name], residuals["deviance"])
+    plt.title('Scatter plot of deviance residuals')
+    plt.xlabel(duration_name)
+    plt.ylabel('Deviance residuals')
+    plt.show()
+
+    return residuals
+
+
+def remove_empty_variables_residuals(original_feature_matrix, label_name, duration_name):
+    # Removing the label column to create a list of features
+    feature_df = original_feature_matrix.drop(columns=[label_name, duration_name])
+
+    # Calculating the MAF of each feature
+    maf = list(feature_df.sum() / (2 * len(feature_df.index)))
+
+    # Creating a df of features and their MAFs
+    feature_maf_df = pd.DataFrame(feature_df.columns, columns=['feature'])
+    feature_maf_df['maf'] = maf
+
+    maf_0_df = feature_maf_df.loc[feature_maf_df['maf'] == 0]
+    maf_not0_df = feature_maf_df.loc[feature_maf_df['maf'] != 0]
+
+    # Creating a list of features with MAF = 0
+    maf_0_features = list(maf_0_df['feature'])
+
+    # Saving the feature list of nonempty features
+    nonempty_feature_list = list(maf_not0_df['feature'])
+
+    # Creating feature matrix with only features where MAF != 0
+    feature_matrix_no_empty_variables = feature_df[nonempty_feature_list]
+
+    # Adding the class label to the feature matrix
+    feature_matrix_no_empty_variables[label_name] = original_feature_matrix[label_name]
+    feature_matrix_no_empty_variables[duration_name] = original_feature_matrix[duration_name]
+
+    # Calculate residuals for the feature matrix
+    residuals = calculate_residuals(feature_matrix_no_empty_variables, label_name, duration_name)
+
+    # Add the residuals as new features to the feature matrix
+    for feature in residuals.columns:
+        feature_matrix_no_empty_variables[f'{feature}_residual'] = residuals[feature]
+
+    return feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list
 
 
 # Defining a function to delete variables with MAF = 0
@@ -164,6 +235,51 @@ def log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_
             bin_scores[i] = 0
 
     return bin_scores
+
+
+def residuals_feature_importance(residuals, bin_feature_matrix, amino_acid_bins, label_name, duration_name,
+                                 informative_cutoff):
+    bin_scores = {}
+    for bin_name in amino_acid_bins.keys():
+        df_0 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] == 0]
+        df_1 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] > 0]
+
+        durations_no = df_0[duration_name].to_list()
+        event_observed_no = df_0[label_name].to_list()
+        durations_mm = df_1[duration_name].to_list()
+        event_observed_mm = df_1[label_name].to_list()
+
+        if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
+                event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
+
+            bin_residuals = residuals.loc[bin_feature_matrix[bin_name] > 0]
+            bin_residuals = bin_residuals["deviance"]
+
+            non_bin_residuals = residuals.loc[bin_feature_matrix[bin_name] == 0]
+            non_bin_residuals = non_bin_residuals["deviance"]
+
+            test_statistic = ranksums(bin_residuals, non_bin_residuals).statistic
+
+            bin_scores[bin_name] = test_statistic
+        else:
+            bin_scores[bin_name] = np.NINF
+
+    for i in bin_scores.keys():
+        if np.isnan(bin_scores[i]):
+            bin_scores[i] = 0
+
+    return bin_scores
+
+
+def create_cox_model(df_0, df_1, label_name, duration_name):
+    df = pd.concat([df_0, df_1])  # Concatenate dataframes
+
+    # Create a Cox model using case mix and antigen mismatch information
+    cph = CoxPHFitter()
+    cph.fit(df, duration_col=duration_name, event_col=label_name)
+    residuals = cph.compute_residuals(df, kind="deviance")
+
+    return residuals
 
 
 def log_rank_test_feature_importance_multivariate(bin_feature_matrix, amino_acid_bins, label_name,
@@ -988,3 +1104,198 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
                                                              duration_name, informative_cutoff)
 
     return bin_feature_matrix, amino_acid_bins, amino_acid_bin_scores, maf_0_features
+
+
+def fibers_algorithm_residuals(given_starting_point, amino_acid_start_point, amino_acid_bins_start_point, iterations,
+                               original_feature_matrix,
+                               label_name, duration_name, covariates, set_number_of_bins, min_features_per_group,
+                               max_number_of_groups_with_feature,
+                               crossover_probability, mutation_probability, elitism_parameter, informative_cutoff,
+                               random_seed):
+    # Step 0: Deleting Empty Features (MAF = 0)
+    feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list = remove_empty_variables(
+        original_feature_matrix,
+        label_name, duration_name)
+
+    # Step 1: Initialize Population of Candidate Bins
+    # Initialize Feature Groups
+
+    amino_acids, amino_acid_bins = None, None
+    # If there is a starting point, use that for the amino acid list and the amino acid bins list
+    if given_starting_point:
+        # Keep only MAF != 0 features from starting points in amino_acids and amino_acid_bins
+        # amino_acids = list(set(amino_acid_start_point).intersection(nonempty_feature_list))
+
+        # Original
+        amino_acids = amino_acid_start_point.copy()
+        amino_acid_bins = amino_acid_bins_start_point.copy()
+        bin_names = amino_acid_bins.keys()
+        features_to_remove = [item for item in amino_acid_start_point if item not in nonempty_feature_list]
+        for bin_name in bin_names:
+            # Remove duplicate features
+            amino_acid_bins[bin_name] = list(set(amino_acid_bins[bin_name]))
+            for feature in features_to_remove:
+                if feature in amino_acid_bins[bin_name]:
+                    amino_acid_bins[bin_name].remove(feature)
+
+    # Otherwise randomly initialize the bins
+    elif not given_starting_point:
+        amino_acids, amino_acid_bins = random_feature_grouping(feature_matrix_no_empty_variables, label_name,
+                                                               duration_name,
+                                                               set_number_of_bins, min_features_per_group,
+                                                               max_number_of_groups_with_feature, random_seed,
+                                                               max_features_per_bin=None)
+
+    # Create Initial Binned Feature Matrix
+    bin_feature_matrix = grouped_feature_matrix(feature_matrix_no_empty_variables, label_name, duration_name,
+                                                amino_acid_bins)
+
+    residuals = calculate_residuals(feature_matrix_no_empty_variables, label_name, duration_name, covariates)
+    # Step 2: Genetic Algorithm with Feature Scoring (repeated for a given number of iterations)
+    np.random.seed(random_seed)
+    upper_bound = (len(maf_0_features) + len(nonempty_feature_list)) * (
+            len(maf_0_features) + len(nonempty_feature_list))
+    random_seeds = np.random.randint(upper_bound, size=iterations * 2)
+    for i in tqdm(range(0, iterations)):
+        # Step 2a: Feature Importance Scoring and Bin Deletion
+        amino_acid_bin_scores = residuals_feature_importance(residuals, bin_feature_matrix, amino_acid_bins, label_name,
+                                                             duration_name, informative_cutoff)
+
+        # Step 2b: AGenetic Algorithm
+        # Creating the offspring bins through crossover and mutation
+        offspring_bins = crossover_and_mutation_old(set_number_of_bins, elitism_parameter, amino_acids, amino_acid_bins,
+                                                    amino_acid_bin_scores,
+                                                    crossover_probability, mutation_probability, random_seeds[i])
+
+        # Creating the new generation by preserving some elites and adding the offspring
+        feature_bin_list = create_next_generation(amino_acid_bins, amino_acid_bin_scores, set_number_of_bins,
+                                                  elitism_parameter, offspring_bins)
+
+        bin_feature_matrix, amino_acid_bins = regroup_feature_matrix(amino_acids, original_feature_matrix, label_name,
+                                                                     duration_name, feature_bin_list,
+                                                                     random_seeds[iterations + i])
+
+    # Creating the final amino acid bin scores
+    amino_acid_bin_scores = residuals_feature_importance(residuals, bin_feature_matrix, amino_acid_bins, label_name,
+                                                         duration_name, informative_cutoff)
+
+    return bin_feature_matrix, amino_acid_bins, amino_acid_bin_scores, maf_0_features
+
+
+def fibers_algorithm_aic(given_starting_point, amino_acid_start_point, amino_acid_bins_start_point, iterations,
+                         original_feature_matrix,
+                         label_name, duration_name, covariates, set_number_of_bins, min_features_per_group,
+                         max_number_of_groups_with_feature,
+                         crossover_probability, mutation_probability, elitism_parameter, informative_cutoff,
+                         random_seed):
+    # Separating features we want to bin from covariates
+    feature_matrix = original_feature_matrix.drop(covariates, axis=1)
+    covariate_matrix = original_feature_matrix[covariates]
+    covariate_matrix[label_name] = original_feature_matrix[label_name]
+    covariate_matrix[duration_name] = original_feature_matrix[duration_name]
+
+    # identify all categorical variables
+    cat_columns = covariate_matrix.select_dtypes(['object']).columns
+
+    # convert all categorical variables to numeric
+    covariate_matrix[cat_columns] = covariate_matrix[cat_columns].apply(lambda x: pd.factorize(x)[0])
+    covariate_matrix = covariate_matrix.dropna(axis='columns')
+    covariate_matrix = covariate_matrix.loc[:, (covariate_matrix != covariate_matrix.iloc[0]).any()]
+
+    # Step 0: Deleting Empty Features (MAF = 0)
+    feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list = remove_empty_variables(
+        original_feature_matrix,
+        label_name, duration_name)
+
+    # Step 1: Initialize Population of Candidate Bins
+    # Initialize Feature Groups
+    amino_acids, amino_acid_bins = None, None
+
+    # If there is a starting point, use that for the amino acid list and the amino acid bins list
+    if given_starting_point == True:
+        amino_acid_bins = amino_acid_bins_start_point.copy()
+        amino_acids = amino_acid_start_point.copy()
+
+        features_to_remove = [item for item in amino_acids if item not in nonempty_feature_list]
+        for feature in features_to_remove:
+            amino_acids.remove(feature)
+
+        bin_names = amino_acid_bins.keys()
+        for bin_name in bin_names:
+            for feature in features_to_remove:
+                if feature in amino_acid_bins[bin_name]:
+                    amino_acid_bins[bin_name].remove(feature)
+
+
+    # Otherwise randomly initialize the bins
+    elif given_starting_point == False:
+        amino_acids, amino_acid_bins = random_feature_grouping(feature_matrix_no_empty_variables, label_name,
+                                                               duration_name,
+                                                               set_number_of_bins, min_features_per_group,
+                                                               max_number_of_groups_with_feature, random_seed,
+                                                               max_features_per_bin=None)
+
+    # Create Initial Binned Feature Matrix
+    bin_feature_matrix = grouped_feature_matrix(feature_matrix_no_empty_variables, label_name, duration_name,
+                                                amino_acid_bins)
+
+    # Step 2: Genetic Algorithm with Feature Scoring (repeated for a given number of iterations)
+    np.random.seed(random_seed)
+    upper_bound = (len(maf_0_features) + len(nonempty_feature_list)) * (
+            len(maf_0_features) + len(nonempty_feature_list))
+    random_seeds = np.random.randint(upper_bound, size=iterations * 2)
+    for i in tqdm(range(0, iterations)):
+        # Step 2a: Feature Importance Scoring and Bin Deletion
+
+        amino_acid_bin_scores = cox_feature_importance(bin_feature_matrix, covariate_matrix, amino_acid_bins,
+                                                       label_name, duration_name, informative_cutoff, random_seed)
+
+        # Step 2b: Genetic Algorithm
+        # Creating the offspring bins through crossover and mutation
+        offspring_bins = crossover_and_mutation_old(set_number_of_bins, elitism_parameter, amino_acids, amino_acid_bins,
+                                                    amino_acid_bin_scores,
+                                                    crossover_probability, mutation_probability, random_seeds[i])
+
+        # Creating the new generation by preserving some elites and adding the offspring
+        feature_bin_list = create_next_generation(amino_acid_bins, amino_acid_bin_scores, set_number_of_bins,
+                                                  elitism_parameter, offspring_bins)
+
+        bin_feature_matrix, amino_acid_bins = regroup_feature_matrix(amino_acids, original_feature_matrix, label_name,
+                                                                     duration_name, feature_bin_list,
+                                                                     random_seeds[iterations + i])
+
+    # Creating the final amino acid bin scores
+    amino_acid_bin_scores = cox_feature_importance(bin_feature_matrix, covariate_matrix, amino_acid_bins, label_name,
+                                                   duration_name, informative_cutoff, random_seed)
+
+    return bin_feature_matrix, amino_acid_bins, amino_acid_bin_scores, maf_0_features
+
+
+def cox_feature_importance(bin_feature_matrix, covariate_matrix, amino_acid_bins, label_name, duration_name,
+                           informative_cutoff, random_seed):
+    bin_scores = {}
+    for bin_name in amino_acid_bins.keys():
+        df_0 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] == 0]
+        df_1 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] > 0]
+
+        durations_no = df_0[duration_name].to_list()
+        event_observed_no = df_0[label_name].to_list()
+        durations_mm = df_1[duration_name].to_list()
+        event_observed_mm = df_1[label_name].to_list()
+        if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
+                event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
+            column_values = bin_feature_matrix[bin_name].to_list()
+            for r in range(0, len(column_values)):
+                if column_values[r] > 0:
+                    column_values[r] = 1
+            data = covariate_matrix.copy()
+            data['Bin'] = column_values
+            data = data.loc[:, (data != data.iloc[0]).any()]
+            cph = CoxPHFitter()
+            cph.fit(data, duration_name, event_col=label_name)
+
+            bin_scores[bin_name] = 0 - cph.AIC_partial_
+        else:
+            bin_scores[bin_name] = -np.inf
+
+    return bin_scores

@@ -4,8 +4,10 @@ from lifelines.statistics import logrank_test
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import classification_report, accuracy_score
 from .methods.algorithms import fibers_algorithm
+from .methods.algorithms import fibers_algorithm_aic, fibers_algorithm_residuals
 from matplotlib import pyplot as plt
 import seaborn as sns
+
 sns.set_theme(font="Times New Roman")
 
 
@@ -14,7 +16,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                  given_starting_point=False, amino_acid_start_point=None, amino_acid_bins_start_point=None,
                  iterations=1000, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=4,
                  informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.4, elitism_parameter=0.8,
-                 random_seed=None):
+                 random_seed=None, method="AIC", covariates=None):
         """
         A Scikit-Learn compatible framework for the FIBERS Algorithm.
 
@@ -137,6 +139,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.random_seed = random_seed
         self.reboot_filename = None
         self.original_feature_matrix = None
+        self.method = method
+        self.covariates = covariates
 
         # Reboot Population
         if self.reboot_filename is not None:
@@ -244,24 +248,65 @@ class FIBERS(BaseEstimator, TransformerMixin):
         """
         self.original_feature_matrix = original_feature_matrix
 
-        bin_feature_matrix_internal, bins_internal, \
-            bin_scores_internal, maf_0_features = \
-            fibers_algorithm(
-                self.given_starting_point,
-                self.amino_acid_start_point,
-                self.amino_acid_bins_start_point,
-                self.iterations,
-                self.original_feature_matrix,
-                self.label_name,
-                self.duration_name,
-                self.set_number_of_bins,
-                self.min_features_per_group,
-                self.max_number_of_groups_with_feature,
-                self.informative_cutoff,
-                self.crossover_probability,
-                self.mutation_probability,
-                self.elitism_parameter,
-                self.random_seed)
+        if self.method == "AIC":
+            bin_feature_matrix_internal, bins_internal, \
+                bin_scores_internal, maf_0_features = \
+                fibers_algorithm_aic(
+                    self.given_starting_point,
+                    self.amino_acid_start_point,
+                    self.amino_acid_bins_start_point,
+                    self.iterations,
+                    self.original_feature_matrix,
+                    self.label_name,
+                    self.duration_name,
+                    self.covariates,
+                    self.set_number_of_bins,
+                    self.min_features_per_group,
+                    self.max_number_of_groups_with_feature,
+                    self.crossover_probability,
+                    self.mutation_probability,
+                    self.elitism_parameter,
+                    self.informative_cutoff,
+                    self.random_seed)
+        elif self.method == "Residuals":
+            bin_feature_matrix_internal, bins_internal, \
+                bin_scores_internal, maf_0_features = \
+                fibers_algorithm_residuals(
+                    self.given_starting_point,
+                    self.amino_acid_start_point,
+                    self.amino_acid_bins_start_point,
+                    self.iterations,
+                    self.original_feature_matrix,
+                    self.label_name,
+                    self.duration_name,
+                    self.covariates,
+                    self.set_number_of_bins,
+                    self.min_features_per_group,
+                    self.max_number_of_groups_with_feature,
+                    self.crossover_probability,
+                    self.mutation_probability,
+                    self.elitism_parameter,
+                    self.informative_cutoff,
+                    self.random_seed)
+        else:
+            bin_feature_matrix_internal, bins_internal, \
+                bin_scores_internal, maf_0_features = \
+                fibers_algorithm(
+                    self.given_starting_point,
+                    self.amino_acid_start_point,
+                    self.amino_acid_bins_start_point,
+                    self.iterations,
+                    self.original_feature_matrix,
+                    self.label_name,
+                    self.duration_name,
+                    self.set_number_of_bins,
+                    self.min_features_per_group,
+                    self.max_number_of_groups_with_feature,
+                    self.informative_cutoff,
+                    self.crossover_probability,
+                    self.mutation_probability,
+                    self.elitism_parameter,
+                    self.random_seed)
         self.bin_feature_matrix = bin_feature_matrix_internal
         self.bins = bins_internal
         self.bin_scores = bin_scores_internal

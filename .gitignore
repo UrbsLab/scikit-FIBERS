@@ -48,3 +48,4 @@ __pypackages__/
 
 # Pickle
 *.pickle
+/src/Data1.csv
