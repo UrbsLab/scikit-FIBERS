@@ -241,8 +241,8 @@ def residuals_feature_importance(residuals, bin_feature_matrix, amino_acid_bins,
                                  informative_cutoff):
     bin_scores = {}
     for bin_name in amino_acid_bins.keys():
-        df_0 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] == 0]
-        df_1 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] > 0]
+        df_0 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] > 0]
+        df_1 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] == 0]
 
         durations_no = df_0[duration_name].to_list()
         event_observed_no = df_0[label_name].to_list()
@@ -252,17 +252,19 @@ def residuals_feature_importance(residuals, bin_feature_matrix, amino_acid_bins,
         if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
                 event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
 
-            bin_residuals = residuals.loc[bin_feature_matrix[bin_name] > 0]
+            bin_residuals = residuals.loc[bin_feature_matrix[bin_name] == 0]
             bin_residuals = bin_residuals["deviance"]
 
-            non_bin_residuals = residuals.loc[bin_feature_matrix[bin_name] == 0]
+            non_bin_residuals = residuals.loc[bin_feature_matrix[bin_name] > 0]
             non_bin_residuals = non_bin_residuals["deviance"]
 
             test_statistic = ranksums(bin_residuals, non_bin_residuals).statistic
 
             bin_scores[bin_name] = test_statistic
         else:
-            bin_scores[bin_name] = np.NINF
+            bin_scores[bin_name] = -np.inf
+        
+#         print(bin_name, bin_scores[bin_name])
 
     for i in bin_scores.keys():
         if np.isnan(bin_scores[i]):
