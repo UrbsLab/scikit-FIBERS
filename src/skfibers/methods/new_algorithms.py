@@ -227,7 +227,7 @@ def create_next_generation(binned_feature_groups, max_population_of_bins, elitis
     return feature_bin_list
 
 
-# Defining a function to recreate the feature matrix (add up values of amino a ids from original dataset)
+# Defining a function to recreate the feature matrix (add up values of amino acids from original dataset)
 def regroup_feature_matrix(feature_list, feature_matrix, label_name, duration_name, feature_bin_list, random_seed,
                            threshold):
     # First deleting any bins that are empty  
@@ -336,7 +336,7 @@ def regroup_feature_matrix(feature_list, feature_matrix, label_name, duration_na
 
 def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
                                crossover_probability, mutation_probability, random_seed, threshold, 
-                               threshold_is_evolving, min_threshold, max_threshold, merge_probability):
+                               threshold_is_evolving, min_threshold, max_threshold):
     
     # Creating a list for offspring
     offspring_list = []
@@ -360,33 +360,20 @@ def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, featur
         threshold1 = threshold
         threshold2 = threshold
         
-        # Boolean Variable to keep track if the offspring has been merged
-        did_merge = False
-        
-        # MERGING        
-        # The two offsprings will be merged with the features from both parents based on the given
-        # merge probability (uniform crossover) otherwise will distribute the features 
-        
-        random.seed(random_seed)
-        if merge_probability > random.random():
-            did_merge = True
-            offspring1 = list(set(parent1_features + parent2_features))
-            offspring2 = list(set(parent1_features + parent2_features)) # sphia encourage change in the second offspring
-        else: 
-            # CROSSOVER
-            # Each feature in the parent bin will cross over based on the given probability (uniform crossover)
-            for j in range(0, len(parent1_features)):
-                if crossover_probability > random.random():
-                    offspring2.append(parent1_features[j])
-                else:
-                    offspring1.append(parent1_features[j])
-            
-            for k in range(0, len(parent2_features)):
-                if crossover_probability > random.random():
-                    offspring1.append(parent2_features[k])
-                else:
-                    offspring2.append(parent2_features[k])
-        
+        # CROSSOVER
+        # Each feature in the parent bin will cross over based on the given probability (uniform crossover)
+        for j in range(0, len(parent1_features)):
+            if crossover_probability > random.random():
+                offspring2.append(parent1_features[j])
+            else:
+                offspring1.append(parent1_features[j])
+
+        for k in range(0, len(parent2_features)):
+            if crossover_probability > random.random():
+                offspring1.append(parent2_features[k])
+            else:
+                offspring2.append(parent2_features[k])
+
         # Ensuring that each of the offspring is no more than twice the size of the other offspring
         while len(offspring1) > len(offspring2):
             switch = random.choice(offspring1)
@@ -415,38 +402,36 @@ def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, featur
 
         # Applying the mutation operation to the first offspring
 
-        # If the offspring was created by merging, the first offspring will not be mutated
-        if not did_merge:
-            # Creating a probability for adding a feature that accounts for the ratio between the feature list and the
-            # size of the bin
-            mutation_addition_prob = None
-            if len(offspring1) > 0 and len(offspring1) != len(feature_list):
-                mutation_addition_prob = mutation_probability * (len(offspring1)) / \
-                                        (len(feature_list) - len(offspring1))
-            elif len(offspring1) == 0 and len(offspring1) != len(feature_list):
-                mutation_addition_prob = mutation_probability
-            elif len(offspring1) == len(feature_list):
-                mutation_addition_prob = 0
+        # Creating a probability for adding a feature that accounts for the ratio between the feature list and the
+        # size of the bin
+        mutation_addition_prob = None
+        if len(offspring1) > 0 and len(offspring1) != len(feature_list):
+            mutation_addition_prob = mutation_probability * (len(offspring1)) / \
+                                    (len(feature_list) - len(offspring1))
+        elif len(offspring1) == 0 and len(offspring1) != len(feature_list):
+            mutation_addition_prob = mutation_probability
+        elif len(offspring1) == len(feature_list):
+            mutation_addition_prob = 0
 
-            deleted_list = []
-            # Deletion form of mutation
-            for idx in range(0, len(offspring1)):
-                # Mutation (deletion) occurs on this feature with probability equal to the mutation parameter
-                if mutation_probability > random.random():
-                    deleted_list.append(offspring1[idx])
+        deleted_list = []
+        # Deletion form of mutation
+        for idx in range(0, len(offspring1)):
+            # Mutation (deletion) occurs on this feature with probability equal to the mutation parameter
+            if mutation_probability > random.random():
+                deleted_list.append(offspring1[idx])
 
-            for idx in range(0, len(deleted_list)):
-                offspring1.remove(deleted_list[idx])
+        for idx in range(0, len(deleted_list)):
+            offspring1.remove(deleted_list[idx])
 
-            # Creating a list of features outside the offspring
-            features_not_in_offspring = [item for item in feature_list if item not in offspring1]
+        # Creating a list of features outside the offspring
+        features_not_in_offspring = [item for item in feature_list if item not in offspring1]
 
-            # Addition form of mutation
-            for idx in range(0, len(features_not_in_offspring)):
-                # Mutation (addition) occurs on this feature with probability proportional to the mutation parameter
-                # The probability accounts for the ratio between the feature list and the size of the bin
-                if mutation_addition_prob > random.random():
-                    offspring1.append(features_not_in_offspring[idx])
+        # Addition form of mutation
+        for idx in range(0, len(features_not_in_offspring)):
+            # Mutation (addition) occurs on this feature with probability proportional to the mutation parameter
+            # The probability accounts for the ratio between the feature list and the size of the bin
+            if mutation_addition_prob > random.random():
+                offspring1.append(features_not_in_offspring[idx])
 
         # Applying the mutation operation to the second offspring
 
@@ -534,6 +519,239 @@ def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, featur
 
     return offspring_list
 
+def crossover_and_mutation_new(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
+                               crossover_probability, mutation_probability, random_seed, threshold, 
+                               threshold_is_evolving, min_threshold, max_threshold):
+    
+    # Creating a list for offspring
+    offspring_list = []
+
+    num_replacement_sets = int((max_population_of_bins - (elitism_parameter * max_population_of_bins)) / 2)
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 8)
+    # Creating a number of offspring equal to the number needed to replace the non-elites
+    # Each pair of parents will produce two offspring
+    for i in range(0, num_replacement_sets):
+        # Choosing the two parents and getting the list of features in each parent bin
+        parent_bins = tournament_selection_parent_bins(binned_feature_groups, random_seeds[i])
+        parent1_features = parent_bins[0].get_feature_list() #SPHIA
+        parent2_features = parent_bins[1].get_feature_list() #SPHIA
+
+        # Creating two lists for the offspring bins
+        offspring1 = []
+        offspring2 = []
+        
+        # Creating two thresholds for the offspring bins
+        threshold1 = threshold
+        threshold2 = threshold
+        
+        # CROSSOVER
+        # Each feature in the parent bin will cross over based on the given probability (uniform crossover)
+        for j in range(0, len(parent1_features)):
+            if crossover_probability > random.random():
+                offspring2.append(parent1_features[j])
+            else:
+                offspring1.append(parent1_features[j])
+        
+        for k in range(0, len(parent2_features)):
+            if crossover_probability > random.random():
+                offspring1.append(parent2_features[k])
+            else:
+                offspring2.append(parent2_features[k])
+        
+        # CLEANUP
+        # Deleting any repeats of an amino acid in a bin
+        # Removing duplicates of features in the same bin that may arise due to crossover
+        
+        unique = []
+        for a in range(0, len(offspring1)):
+            if offspring1[a] not in unique:
+                unique.append(offspring1[a])
+        offspring1 = unique
+        
+        unique = []
+        for a in range(0, len(offspring2)):
+            if offspring2[a] not in unique:
+                unique.append(offspring2[a])
+        offspring2 = unique
+        
+        # Crossover the thresholds if threshold is evolving
+        if(threshold_is_evolving):
+            #The threshold of the parent bin is crossed over to offspring based on the given probability (uniform crossover)
+            if crossover_probability > random.random():
+                threshold1 = parent_bins[0].get_threshold()
+                threshold2 = parent_bins[1].get_threshold()
+            else:
+                threshold2 = parent_bins[0].get_threshold()
+                threshold1 = parent_bins[1].get_threshold()
+
+        # MUTATION
+        # Mutation only occurs with a certain probability on each feature in the original feature space
+        # Applying the mutation operation to the first offspring
+        for feature in feature_list:
+            if (mutation_probability > random.random()):
+                # equal chance of either removing the feature or adding a feature
+                    if (not feature in offspring1):
+                        offspring1.append(feature)
+                    else:
+                        offspring1.remove(feature)
+
+        # Applying mutation to the second offspring        
+        for feature in feature_list:
+            if (mutation_probability > random.random()):
+                # equal chance of either removing the feature or adding a feature
+                if (not feature in offspring2):
+                    offspring2.append(feature)
+                else:
+                    offspring2.remove(feature)
+            
+        #EVOLVING THRESHOLD 
+        if(threshold_is_evolving):
+            # Mutating the threshold for Offspring 1 based on the mutation_probability
+            if mutation_probability < random.random():
+                threshold1 = np.random.randint(min_threshold, max_threshold + 1)
+            
+            # Mutating the threshold for Offspring 2 based on the mutation_probability
+            if mutation_probability < random.random():
+                threshold2 = np.random.randint(min_threshold, max_threshold + 1)
+        
+        # Adding the new offspring to the list of feature bins SPHIA
+        temp_off_spring_bin1 = BIN(offspring1, threshold1)
+        temp_off_spring_bin2 = BIN(offspring2, threshold2)
+        
+        offspring_list.append(temp_off_spring_bin1)
+        offspring_list.append(temp_off_spring_bin2)
+
+    return offspring_list
+
+def crossover_and_mutation_new_previous(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
+                               crossover_probability, mutation_probability, random_seed, threshold, 
+                               threshold_is_evolving, min_threshold, max_threshold):
+    
+    # Creating a list for offspring
+    offspring_list = []
+
+    num_replacement_sets = int((max_population_of_bins - (elitism_parameter * max_population_of_bins)) / 2)
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 8)
+    # Creating a number of offspring equal to the number needed to replace the non-elites
+    # Each pair of parents will produce two offspring
+    for i in range(0, num_replacement_sets):
+        # Choosing the two parents and getting the list of features in each parent bin
+        parent_bins = tournament_selection_parent_bins(binned_feature_groups, random_seeds[i])
+        parent1_features = parent_bins[0].get_feature_list() #SPHIA
+        parent2_features = parent_bins[1].get_feature_list() #SPHIA
+
+        # Creating two lists for the offspring bins
+        offspring1 = []
+        offspring2 = []
+        
+        # Creating two thresholds for the offspring bins
+        threshold1 = threshold
+        threshold2 = threshold
+        
+        # CROSSOVER
+        # Each feature in the parent bin will cross over based on the given probability (uniform crossover)
+        for j in range(0, len(parent1_features)):
+            if crossover_probability > random.random():
+                offspring2.append(parent1_features[j])
+            else:
+                offspring1.append(parent1_features[j])
+        
+        for k in range(0, len(parent2_features)):
+            if crossover_probability > random.random():
+                offspring1.append(parent2_features[k])
+            else:
+                offspring2.append(parent2_features[k])
+        
+        # CLEANUP
+        # Deleting any repeats of an amino acid in a bin
+        # Removing duplicates of features in the same bin that may arise due to crossover
+        
+        unique = []
+        for a in range(0, len(offspring1)):
+            if offspring1[a] not in unique:
+                unique.append(offspring1[a])
+        offspring1 = unique
+        
+        features_not_in_offspring1 = [item for item in feature_list if item not in offspring1]
+        random.shuffle(features_not_in_offspring1)
+        idx1 = 0
+        
+        unique = []
+        for a in range(0, len(offspring2)):
+            if offspring2[a] not in unique:
+                unique.append(offspring2[a])
+        offspring2 = unique
+        
+        features_not_in_offspring2 = [item for item in feature_list if item not in offspring2]
+        random.shuffle(features_not_in_offspring2)
+        idx2 = 0
+        
+        # Crossover the thresholds if threshold is evolving
+        if(threshold_is_evolving):
+            #The threshold of the parent bin is crossed over to offspring based on the given probability (uniform crossover)
+            if crossover_probability > random.random():
+                threshold1 = parent_bins[0].get_threshold()
+                threshold2 = parent_bins[1].get_threshold()
+            else:
+                threshold2 = parent_bins[0].get_threshold()
+                threshold1 = parent_bins[1].get_threshold()
+
+        # MUTATION
+        # Mutation only occurs with a certain probability on each feature in the original feature space
+        # Applying the mutation operation to the first offspring
+        new_offspring1 = []
+        for feature in offspring1:
+            if (mutation_probability > random.random()):
+                # equal chance of either removing the feature or adding a feature
+                if (0.5 > random.random() and len(offspring1) < len(feature_list)):
+                    new_offspring1.append(features_not_in_offspring1[idx1])
+                    new_offspring1.append(feature)
+                    idx1 += 1
+            else: 
+                new_offspring1.append(feature)
+        
+        # print(idx1)
+        
+        offspring1 = new_offspring1
+        
+        # Applying mutation to the second offspring        
+        new_offspring2 = []
+        for feature in offspring2:
+            if (mutation_probability > random.random()):
+                # Equal chance of either removing the feature or adding a feature
+                if (0.5 > random.random() and len(offspring2) < len(feature_list)):
+                    new_offspring2.append(features_not_in_offspring2[idx2])
+                    new_offspring2.append(feature)
+                    idx2 += 1
+                    
+            else:
+                new_offspring2.append(feature)
+        
+        offspring2 = new_offspring2
+            
+        #EVOLVING THRESHOLD 
+        if(threshold_is_evolving):
+            # Mutating the threshold for Offspring 1 based on the mutation_probability
+            if mutation_probability < random.random():
+                threshold1 = np.random.randint(min_threshold, max_threshold + 1)
+            
+            # Mutating the threshold for Offspring 2 based on the mutation_probability
+            if mutation_probability < random.random():
+                threshold2 = np.random.randint(min_threshold, max_threshold + 1)
+        
+        # Adding the new offspring to the list of feature bins SPHIA
+        temp_off_spring_bin1 = BIN(offspring1, threshold1)
+        temp_off_spring_bin2 = BIN(offspring2, threshold2)
+        
+        offspring_list.append(temp_off_spring_bin1)
+        offspring_list.append(temp_off_spring_bin2)
+
+    return offspring_list
+
 def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bins_start_point, iterations,
                      original_feature_matrix, label_name, duration_name,
                      set_number_of_bins, min_features_per_group, max_number_of_groups_with_feature,
@@ -611,11 +829,10 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     
     stop_time = 0
     
+    random.seed(random_seed)
     for i in tqdm(range(0, iterations)):      
         
-        
-        #variable to keep track of whether the iteration evolves or tries all thresholds
-        random.seed(random_seed)
+        #variable to keep track of whether the iteration evolves or tries all thresholds   
         evolve = random.random()
         
         # Step 2a: Feature Importance Scoring and Bin Deletion
@@ -646,10 +863,10 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
         
         # Step 2b: Genetic Algorithm
         # Creating the offspring bins through crossover and mutation
-        offspring_bins = crossover_and_mutation_old(set_number_of_bins, elitism_parameter, amino_acids, amino_acid_bins,
+        offspring_bins = crossover_and_mutation_new(set_number_of_bins, elitism_parameter, amino_acids, amino_acid_bins,
                                                     crossover_probability, mutation_probability, random_seeds[i], set_threshold,
                                                     threshold_is_evolving, min_threshold,
-                                                    max_threshold, merge_probability)
+                                                    max_threshold)
 
         # Creating the new generation by preserving some elites and adding the offspring
         feature_bin_list = create_next_generation(amino_acid_bins, set_number_of_bins,
