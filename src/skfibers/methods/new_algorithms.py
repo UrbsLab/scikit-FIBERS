@@ -586,6 +586,11 @@ def crossover_and_mutation_new(max_population_of_bins, elitism_parameter, featur
                 threshold2 = parent_bins[0].get_threshold()
                 threshold1 = parent_bins[1].get_threshold()
 
+
+        print("Bin before mutation: "+str(len(offspring1)))
+        print(offspring1)
+        count_removed = 0
+        count_added = 0
         # MUTATION
         # Mutation only occurs with a certain probability on each feature in the original feature space
         # Applying the mutation operation to the first offspring
@@ -594,9 +599,17 @@ def crossover_and_mutation_new(max_population_of_bins, elitism_parameter, featur
                 # equal chance of either removing the feature or adding a feature
                     if (not feature in offspring1):
                         offspring1.append(feature)
+                        count_added += 1
                     else:
                         offspring1.remove(feature)
+                        count_removed += 1
+    
 
+        print("Bin after mutation: "+ str(len(offspring1)))
+        print(offspring1)
+        print("Features added: "+str(count_added))
+        print("Features removed: "+str(count_removed))
+        
         # Applying mutation to the second offspring        
         for feature in feature_list:
             if (mutation_probability > random.random()):
