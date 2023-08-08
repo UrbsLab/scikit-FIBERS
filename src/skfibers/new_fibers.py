@@ -15,7 +15,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                  iterations=1000, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=4,
                  informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.4, elitism_parameter=0.8,
                  random_seed=None, set_threshold = 0, evolving_probability = 1,
-                 min_threshold = 0, max_threshold = 3, merge_probability = 0.0):
+                 min_threshold = 0, max_threshold = 3, merge_probability = 0.0, adaptable_threshold = False):
         """
         A Scikit-Learn compatible framework for the FIBERS Algorithm.
 
@@ -129,9 +129,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if set_threshold < 0:
             raise Exception("threshold param must not be negative")
         
-        #min and max threshold
+        # min and max threshold
         if max_threshold < min_threshold:
             raise Exception("min threshold must be less than or equal to max_threshold")
+        
 
         self.algorithm = algorithm
         self.given_starting_point = given_starting_point
@@ -155,6 +156,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.max_threshold = max_threshold #SPHIA
         self.min_threshold = min_threshold #SPHIA
         self.merge_probability = merge_probability #SPHIA
+        self.adaptable_threshold = adaptable_threshold
         
         # Reboot Population
         if self.reboot_filename is not None:
@@ -280,12 +282,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 self.mutation_probability,
                 self.elitism_parameter,
                 self.random_seed,
-                self.threshold, #SPHIA
+                self.threshold, 
                 self.evolving_probability,
                 self.max_threshold,
                 self.min_threshold,
-                self.merge_probability
-                ) #SPHIA
+                self.merge_probability,
+                self.adaptable_threshold
+                ) 
         self.bin_feature_matrix = bin_feature_matrix_internal
         self.bins = bins_internal
         self.bin_scores = bin_scores_internal
