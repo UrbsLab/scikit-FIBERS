@@ -181,7 +181,7 @@ def log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_
             bin_scores[i] = 0
             amino_acid_bins[bin_name].set_score(0)
             amino_acid_bins[bin_name].set_seen()
-
+            
     return bin_scores
 
 # Defining a function to probabilistically select 2 parent bins based on their feature importance rank
@@ -654,8 +654,8 @@ def crossover_and_mutation_new_previous(max_population_of_bins, elitism_paramete
     for i in range(0, num_replacement_sets):
         # Choosing the two parents and getting the list of features in each parent bin
         parent_bins = tournament_selection_parent_bins(binned_feature_groups, random_seeds[i])
-        parent1_features = parent_bins[0].get_feature_list() #SPHIA
-        parent2_features = parent_bins[1].get_feature_list() #SPHIA
+        parent1_features = parent_bins[0].get_feature_list() 
+        parent2_features = parent_bins[1].get_feature_list() 
 
         # Creating two lists for the offspring bins
         offspring1 = []
@@ -727,8 +727,6 @@ def crossover_and_mutation_new_previous(max_population_of_bins, elitism_paramete
             else: 
                 new_offspring1.append(feature)
         
-        # print(idx1)
-        
         offspring1 = new_offspring1
         
         # Applying mutation to the second offspring        
@@ -739,8 +737,7 @@ def crossover_and_mutation_new_previous(max_population_of_bins, elitism_paramete
                 if (0.5 > random.random() and len(offspring2) < len(feature_list)):
                     new_offspring2.append(features_not_in_offspring2[idx2])
                     new_offspring2.append(feature)
-                    idx2 += 1
-                    
+                    idx2 += 1                
             else:
                 new_offspring2.append(feature)
         
@@ -771,7 +768,7 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
                      informative_cutoff,
                      crossover_probability, mutation_probability, elitism_parameter, random_seed, 
                      set_threshold, evolving_probability, max_threshold, min_threshold, 
-                     merge_probability): #SPHIA
+                     merge_probability, adaptable_threshold): #SPHIA
     
     # Step 0: Deleting Empty Features (MAF = 0)
     feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list = remove_empty_variables(
@@ -813,11 +810,13 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     bin_feature_matrix = grouped_feature_matrix(feature_matrix_no_empty_variables, label_name, duration_name,
                                                 amino_acid_bins)
     
-    # #Step 1b: To initialize, tries all thresholds to find the best one
-    for bin in amino_acid_bins.values():
-        bin.try_all_thresholds(
-                min_threshold,max_threshold, bin_feature_matrix,
-                label_name,duration_name,informative_cutoff)
+    # Step 1b: Initializing all thresholds
+    if (adaptable_threshold):
+        # To initialize, tries all thresholds to find the best one
+        for bin in amino_acid_bins.values():
+            bin.try_all_thresholds(
+                    min_threshold,max_threshold, bin_feature_matrix,
+                    label_name,duration_name,informative_cutoff)
     
     
     # Step 2: Genetic Algorithm with Feature Scoring (repeated for a given number of iterations)
@@ -829,8 +828,6 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     #current
     previous_bin = amino_acid_bins['Bin 1']
     
-    #current
-    previous_merged_bin = None
     
     #starting time to calculate time for each iteration
     start_time = time.time()
@@ -838,7 +835,7 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     time_list = []
     score_list = []
     
-    threshold_is_evolving = True
+    threshold_is_evolving = False
     
     stop_time = 0
     
@@ -869,14 +866,14 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
         
         # Given a evolving probability, there is a chance
         # It doesn't try all thresholds but instead evolves the threshold
-        if evolving_probability > evolve:
+        if evolving_probability > evolve and adaptable_threshold:
             threshold_is_evolving = True
         else:
             threshold_is_evolving = False
         
         # Step 2b: Genetic Algorithm
         # Creating the offspring bins through crossover and mutation
-        offspring_bins = crossover_and_mutation_new(set_number_of_bins, elitism_parameter, amino_acids, amino_acid_bins,
+        offspring_bins = crossover_and_mutation_new_previous(set_number_of_bins, elitism_parameter, amino_acids, amino_acid_bins,
                                                     crossover_probability, mutation_probability, random_seeds[i], set_threshold,
                                                     threshold_is_evolving, min_threshold,
                                                     max_threshold)
@@ -890,10 +887,11 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
                                                                      duration_name, feature_bin_list,
                                                                      random_seeds[iterations + i], set_threshold)
         
-        # If the try all try_all_threshold boolean is set true by the user, then the offspring BIN objects will have their
+        # If the adaptable_threshold boolean is set true by the user and threshold did not evolve,
+        # then the offspring BIN objects will have their
         # threshold changed based on highest log rank score
-        if not threshold_is_evolving:
-            for bin in amino_acid_bins.values():           
+        if not threshold_is_evolving and adaptable_threshold:
+            for bin in amino_acid_bins.values():
                 bin.try_all_thresholds(min_threshold,max_threshold, bin_feature_matrix,
                         label_name, duration_name, informative_cutoff)
     
