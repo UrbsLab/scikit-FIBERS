@@ -1067,6 +1067,8 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
                      set_threshold, evolving_probability, max_threshold, min_threshold,
                      merge_probability,covariates,scoring_method,threshold): #SPHIA
     
+    
+  
      # Separating features we want to bin from covariates
     feature_matrix = original_feature_matrix.drop(covariates, axis=1)
     covariate_matrix = original_feature_matrix[covariates]
@@ -1082,15 +1084,28 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     covariate_matrix = covariate_matrix.loc[:, (covariate_matrix != covariate_matrix.iloc[0]).any()]
     
     
-    
+   
     # Step 0: Deleting Empty Features (MAF = 0)
+    feature_matrix_no_empty_variables2, maf_0_features2, nonempty_feature_list2 = remove_empty_variables(
+        original_feature_matrix,
+        label_name, duration_name)
+    
+    
+    if(scoring_method == "residuals"):
+        residuals = calculate_residuals(feature_matrix_no_empty_variables2, label_name, duration_name, covariates)
+    
+    original_feature_matrix = original_feature_matrix.drop(covariates, axis=1)
+    
     feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list = remove_empty_variables(
         original_feature_matrix,
         label_name, duration_name)
     
+    
     # Step 1: Initialize Population of Candidate Bins
     # Initialize Feature Groups
 
+          
+    
     amino_acids, amino_acid_bins = None, None
     # If there is a starting point, use that for the amino acid list and the amino acid bins list
     # SPHIA FIX
@@ -1122,6 +1137,8 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     # Create Initial Binned Feature Matrix
     bin_feature_matrix = grouped_feature_matrix(feature_matrix_no_empty_variables, label_name, duration_name,
                                                 amino_acid_bins)
+    
+    
     
     # #Step 1b: To initialize, tries all thresholds to find the best one
     if(threshold == "yes"):
@@ -1157,8 +1174,7 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     
     stop_time = 0
     
-    if(scoring_method == "residuals"):
-        residuals = calculate_residuals(feature_matrix_no_empty_variables, label_name, duration_name, covariates)
+    
     
     
     random.seed(random_seed)
