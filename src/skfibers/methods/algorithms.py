@@ -260,9 +260,9 @@ def residuals_feature_importance(residuals, bin_feature_matrix, amino_acid_bins,
 
             test_statistic = ranksums(bin_residuals, non_bin_residuals).statistic
 
-            bin_scores[bin_name] = test_statistic
+            bin_scores[bin_name] = abs(test_statistic)
         else:
-            bin_scores[bin_name] = -np.inf
+            bin_scores[bin_name] = 0
         
 #         print(bin_name, bin_scores[bin_name])
 
