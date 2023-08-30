@@ -3,12 +3,12 @@ import pytest
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from skfibers import FIBERS
+from skfibers.old_fibers import FIBERS
 
 
 @pytest.mark.skip(reason="Huge Dataset")
 def test_fibers():
-    data = pd.read_csv('data/Imp1.csv')
+    data = pd.read_csv('data/Data1.csv')
     data = data[
         ['graftyrs', 'grf_fail', 'A1', 'A10', 'A100', 'A101', 'A102', 'A103', 'A104', 'A105', 'A106', 'A107', 'A108',
          'A109', 'A11', 'A110', 'A111', 'A112', 'A113', 'A114', 'A115', 'A116', 'A117', 'A118', 'A119', 'A12', 'A120',

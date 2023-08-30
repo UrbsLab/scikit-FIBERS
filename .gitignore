@@ -42,6 +42,7 @@ src/experiments_2/
 src/experimnets_3/
 GECCO'23/FIBERSDatasimTest.ipynb
 src/$Imp1.csv
+src/Data1.csv
 
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
@@ -49,3 +50,4 @@ __pypackages__/
 
 # Pickle
 *.pickle
+

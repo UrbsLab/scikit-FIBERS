@@ -6,6 +6,7 @@ from sklearn.metrics import classification_report, accuracy_score
 from .methods.algorithms import fibers_algorithm
 from matplotlib import pyplot as plt
 import seaborn as sns
+
 sns.set_theme(font="Times New Roman")
 
 
@@ -14,7 +15,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
                  given_starting_point=False, amino_acid_start_point=None, amino_acid_bins_start_point=None,
                  iterations=1000, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=4,
                  informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.4, elitism_parameter=0.8,
-                 random_seed=None):
+                 random_seed=None, set_threshold=0, evolving_probability=1,
+                 min_threshold=0, max_threshold=3, merge_probability=0.0, adaptable_threshold=False):
         """
         A Scikit-Learn compatible framework for the FIBERS Algorithm.
 
@@ -96,6 +98,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if mutation_probability < 0 or mutation_probability > 1:
             raise Exception("mutation_probability param must be float from 0 - 1")
 
+        # merge probability
+        if merge_probability < 0 or merge_probability > 1:
+            raise Exception("merge_probability param must be float from 0 - 1")
+
         # elitism_parameter
         if not self.check_is_float(elitism_parameter):
             raise Exception("elitism_parameter param must be float from 0 - 1")
@@ -120,6 +126,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not (isinstance(label_name, str)):
             raise Exception("label_name param must be str")
 
+        # threshold
+        if set_threshold < 0:
+            raise Exception("threshold param must not be negative")
+
+        # min and max threshold
+        if max_threshold < min_threshold:
+            raise Exception("min threshold must be less than or equal to max_threshold")
+
         self.algorithm = algorithm
         self.given_starting_point = given_starting_point
         self.amino_acid_start_point = amino_acid_start_point
@@ -137,6 +151,12 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.random_seed = random_seed
         self.reboot_filename = None
         self.original_feature_matrix = None
+        self.threshold = set_threshold  # SPHIA
+        self.evolving_probability = evolving_probability  # SPHIA
+        self.max_threshold = max_threshold  # SPHIA
+        self.min_threshold = min_threshold  # SPHIA
+        self.merge_probability = merge_probability  # SPHIA
+        self.adaptable_threshold = adaptable_threshold
 
         # Reboot Population
         if self.reboot_filename is not None:
@@ -261,7 +281,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 self.crossover_probability,
                 self.mutation_probability,
                 self.elitism_parameter,
-                self.random_seed)
+                self.random_seed,
+                self.threshold,
+                self.evolving_probability,
+                self.max_threshold,
+                self.min_threshold,
+                self.merge_probability,
+                self.adaptable_threshold
+            )
         self.bin_feature_matrix = bin_feature_matrix_internal
         self.bins = bins_internal
         self.bin_scores = bin_scores_internal
@@ -312,7 +339,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
             raise Exception("Model must be trained first")
         _, _, _, _, top_bin = self.get_duration_event(bin_order=0)
         top_or_rule = self.bins[top_bin]
-        return (x[top_or_rule].sum(axis=1) > 0).astype(int)
+        # check each column if 
+        return (x[top_or_rule].sum(axis=1) > self.bins[top_bin].get_threshold()).astype(int)
 
     def score(self, x, y):
         """
@@ -348,11 +376,18 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not self.hasTrained:
             raise Exception("Model must be fit first")
         # Ordering the bin scores from best to worst
-        sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
-        sorted_bin_list = list(sorted_bin_scores.keys())
+        # sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
+
+        sorted_bin_list = dict(sorted(self.bins.items(), key=lambda item: item[1], reverse=True))
+
+        threshold = list(sorted_bin_list.values())[bin_order].get_threshold()
+
+        sorted_bin_list = list(sorted_bin_list.keys())
+
         top_bin = sorted_bin_list[bin_order]
-        df_0 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] == 0]
-        df_1 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] > 0]
+
+        df_0 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] <= threshold]  # SPHIA
+        df_1 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] > threshold]
 
         durations_no = df_0[self.duration_name].to_list()
         event_observed_no = df_0[self.label_name].to_list()
@@ -377,10 +412,11 @@ class FIBERS(BaseEstimator, TransformerMixin):
                                event_observed_B=event_observed_mm)
         columns = ["Bin #", "Top Bin of Features:", "Log-Rank Score",
                    "Number of Instances with No Mismatches in Bin:",
-                   "Number of Instances with Mismatch(es) in Bin:", "p-value from Log Rank Test:"]
+                   "Number of Instances with Mismatch(es) in Bin:", "p-value from Log Rank Test:", "Threshold"]
         pdf = pd.DataFrame([[top_bin, self.bins[top_bin],
                              self.bin_scores[top_bin], len(durations_no),
-                             len(durations_mm), results.p_value]], columns=columns).T
+                             len(durations_mm), results.p_value, self.bins[top_bin].get_threshold()]],
+                           columns=columns).T  # SPHIA
         if prin or save is not None:
             if prin:
                 print(pdf)
@@ -428,9 +464,20 @@ class FIBERS(BaseEstimator, TransformerMixin):
                                    key=lambda x: x[1], reverse=True)
         bins_sorted = sorted(self.bins.items(),
                              key=lambda x: len(x[1]), reverse=True)
+
         tdf1 = pd.DataFrame(bin_scores_sorted, columns=['Bin #', 'Score'])
         tdf2 = pd.DataFrame(bins_sorted, columns=['Bin #', 'Bins'])
+
         tdf3 = tdf1.merge(tdf2, on='Bin #', how='inner', suffixes=('_1', '_2'))
+
+        tdf3['Threshold'] = tdf3.apply(lambda x: x['Bins'].get_threshold(), axis=1)  # Added column for threshold SPHIA
+
         if save:
             tdf3.to_csv(save)
         return tdf3
+
+    def print_bins(self, save=None):
+        if save:
+            self.bins.to_csv(save)
+
+        return self.bin_feature_matrix
