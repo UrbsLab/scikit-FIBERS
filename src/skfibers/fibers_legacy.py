@@ -3,7 +3,7 @@ from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import classification_report, accuracy_score
-from .methods.old_algorithms import fibers_algorithm
+from .methods.legacy_algorithms import fibers_algorithm
 from matplotlib import pyplot as plt
 import seaborn as sns
 sns.set_theme(font="Times New Roman")

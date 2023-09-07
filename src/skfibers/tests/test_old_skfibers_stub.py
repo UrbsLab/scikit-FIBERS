@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from skfibers.old_fibers import FIBERS
+from skfibers.fibers_legacy import FIBERS
 
 
 @pytest.mark.skip(reason="Huge Dataset")
