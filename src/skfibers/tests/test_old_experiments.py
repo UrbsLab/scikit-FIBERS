@@ -1,8 +1,10 @@
 import pytest
-from skfibers.old_fibers import FIBERS
+from skfibers.fibers_legacy import FIBERS
 from skfibers.experiments.datagen import create_data_simulation_bin
-from skfibers.methods.old_algorithms import remove_empty_variables, random_feature_grouping, grouped_feature_matrix, \
-    log_rank_test_feature_importance, tournament_selection_parent_bins, crossover_and_mutation, \
+from skfibers.methods.legacy_algorithms import remove_empty_variables, random_feature_grouping, \
+    grouped_feature_matrix, \
+    log_rank_test_feature_importance, \
+    tournament_selection_parent_bins, crossover_and_mutation, \
     create_next_generation, regroup_feature_matrix, crossover_and_mutation_old
 
 
