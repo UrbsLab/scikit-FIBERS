@@ -1,19 +1,51 @@
-import math
+import os
 import random
+import logging
 import statistics
-from random import randrange
-import time
-from warnings import simplefilter
-from matplotlib import pyplot as plt
 
 import numpy as np
 import pandas as pd
-from lifelines.statistics import logrank_test
+from lifelines import CoxPHFitter
+from warnings import simplefilter
+
 from tqdm import tqdm
+
 from .bin import BIN
+from .utils import save_scatterplot
+from .feature_importance import log_rank_test_feature_importance, residuals_feature_importance
+from .feature_importance import cox_feature_importance
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=DeprecationWarning)
+
+
+def calculate_residuals(feature_matrix, label_name, duration_name, covariates, save=True, show=False):
+    # Fit a Cox proportional hazards model to the DataFrame
+    updated = feature_matrix.copy()
+    updated = updated[covariates + [duration_name, label_name]]
+
+    logging.info("Fitting COX Model")
+    cph = CoxPHFitter()
+    cph.fit(updated, duration_col=duration_name, event_col=label_name, show_progress=True)
+
+    # Calculate the residuals using the Schoenfeld residuals method
+    residuals = cph.compute_residuals(updated, kind='deviance')
+
+    # Create the 'docs' folder if it doesn't exist
+    if not os.path.exists("run_history"):
+        os.makedirs("run_history")
+
+    # Remove any previous scatterplot.png from the 'docs' folder
+    previous_plots = os.listdir("run_history")
+    for plot_file in previous_plots:
+        if plot_file == "run_history.png":
+            os.remove(os.path.join("run_history", plot_file))
+
+    # Save the new residuals scatterplot as "scatterplot.png" in the 'run_history' folder
+    plot_path = os.path.join("run_history", "run_history.png")
+    save_scatterplot(feature_matrix[duration_name], residuals, plot_path, save, show)
+
+    return residuals
 
 
 # Defining a function to delete variables with MAF = 0
@@ -61,7 +93,7 @@ def random_feature_grouping(feature_matrix, label_name, duration_name, number_of
     random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=len(feature_list))
     for w in range(0, len(feature_list)):
         random.seed(random_seeds[w])
-        repeats = randrange(max_number_of_groups_with_feature)
+        repeats = random.randrange(max_number_of_groups_with_feature)
         feature_list.extend([feature_list[w]] * repeats)
 
     # Shuffling the feature list to enable random groups
@@ -86,17 +118,6 @@ def random_feature_grouping(feature_matrix, label_name, duration_name, number_of
     except Exception:
         pass
 
-    # # Removing duplicates of features in the same bin
-    # for z in range(0, len(feature_groups)):
-    #     feature_groups[z] = list(set(feature_groups[z]))
-    #
-    #     # Randomly removing features until the number of features is equal to or less than the max_features_per_bin
-    #     # param
-    #     if not (max_features_per_bin is None):
-    #         if len(feature_groups[z]) > max_features_per_bin:
-    #             random.seed(random_seeds[z])
-    #             feature_groups[z] = list(random.sample(feature_groups[z], max_features_per_bin))
-
     # Removing duplicates of features in the same bin
     for z in range(0, len(feature_groups)):
         unique = []
@@ -105,18 +126,14 @@ def random_feature_grouping(feature_matrix, label_name, duration_name, number_of
                 unique.append(feature_groups[z][a])
         feature_groups[z] = unique
 
-    # Creating a dictionary with bin labels, and instances of BIN class sphia
+    # Creating a dictionary with bin labels, and instances of BIN class
     binned_feature_groups = {}
     for index in range(0, len(feature_groups)):
-        # SPHIA
         binned_feature_groups["Bin " + str(index + 1)] = BIN(feature_groups[index], threshold,
                                                              "Bin " + str(index + 1))
 
     return feature_list, binned_feature_groups
 
-
-# Defining a function to create a feature matrix where each feature is a bin of features from the original feature
-# matrix
 
 def grouped_feature_matrix(feature_matrix, label_name, duration_name, binned_feature_groups):
     # Creating an empty data frame for the feature matrix with bins
@@ -143,48 +160,6 @@ def grouped_feature_matrix(feature_matrix, label_name, duration_name, binned_fea
     return bins_df
 
 
-def log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_name, duration_name,
-                                     informative_cutoff):  # SPHIA
-    bin_scores = {}
-    for bin_name in amino_acid_bins.keys():
-
-        # To not repeat calculations, if this bin has been seen (meaning evaluated before by the log rank test), it will not
-        # calculate the score again
-        if (not amino_acid_bins[bin_name].was_seen()):
-            df_0 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] <=
-                                          amino_acid_bins[bin_name].get_threshold()]  # SPHIA
-            df_1 = bin_feature_matrix.loc[bin_feature_matrix[bin_name] >
-                                          amino_acid_bins[bin_name].get_threshold()]
-
-            durations_no = df_0[duration_name].to_list()
-            event_observed_no = df_0[label_name].to_list()
-            durations_mm = df_1[duration_name].to_list()
-            event_observed_mm = df_1[label_name].to_list()
-
-            if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
-                    event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
-                results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
-                                       event_observed_B=event_observed_mm)
-                bin_scores[bin_name] = results.test_statistic
-                amino_acid_bins[bin_name].set_score(results.test_statistic)
-            else:
-                bin_scores[bin_name] = 0
-                amino_acid_bins[bin_name].set_score(0)
-
-            amino_acid_bins[bin_name].set_seen()
-
-        else:
-            bin_scores[bin_name] = amino_acid_bins[bin_name].get_score()
-
-    for i in bin_scores.keys():
-        if np.isnan(bin_scores[i]):
-            bin_scores[i] = 0
-            amino_acid_bins[bin_name].set_score(0)
-            amino_acid_bins[bin_name].set_seen()
-
-    return bin_scores
-
-
 # Defining a function to probabilistically select 2 parent bins based on their feature importance rank
 # Tournament Selection works in this case by choosing a random sample of the bins and choosing the best two scores
 def tournament_selection_parent_bins(binned_feature_groups, random_seed):
@@ -208,21 +183,18 @@ def tournament_selection_parent_bins(binned_feature_groups, random_seed):
 def create_next_generation(binned_feature_groups, max_population_of_bins, elitism_parameter,
                            offspring_list):
     # Sorting the bins from best score to worst score
-    # sorted_bin_scores = dict(sorted(bin_scores.items(), key=lambda item: item[1], reverse=True))
-    # sorted_bin_list = list(sorted_bin_scores.keys())
-
     sorted_bins = sorted(list(binned_feature_groups.values()), reverse=True)
     # Determining the number of elite bins
     number_of_elite_bins = round(max_population_of_bins * elitism_parameter)
     elites = []
     # Adding the elites to a list of elite feature bins
-    for bin in range(0, number_of_elite_bins):
-        elites.append(sorted_bins[bin])
+    for Bin in range(0, number_of_elite_bins):
+        elites.append(sorted_bins[Bin])
 
     # Creating a list of feature bins (without labels because those will be changed as things get deleted and added)
     feature_bin_list = elites.copy()
 
-    # Adding the offspring to the feature bin list
+    # Adding the offspring to the feature Bin list
     feature_bin_list.extend(offspring_list)
 
     return feature_bin_list
@@ -231,7 +203,7 @@ def create_next_generation(binned_feature_groups, max_population_of_bins, elitis
 # Defining a function to recreate the feature matrix (add up values of amino acids from original dataset)
 def regroup_feature_matrix(feature_list, feature_matrix, label_name, duration_name, feature_bin_list, random_seed,
                            threshold):
-    # First deleting any bins that are empty  
+    # First deleting any bins that are empty
     bins_deleted = [x for x in feature_bin_list if len(x) == 0]
     feature_bin_list = [x for x in feature_bin_list if len(x) != 0]
 
@@ -334,9 +306,9 @@ def regroup_feature_matrix(feature_list, feature_matrix, label_name, duration_na
     return bins_df, binned_feature_groups
 
 
-def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
-                               crossover_probability, mutation_probability, random_seed, threshold,
-                               threshold_is_evolving, min_threshold, max_threshold):
+def crossover_and_mutation_regular(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
+                                   crossover_probability, mutation_probability, random_seed, threshold,
+                                   threshold_is_evolving, min_threshold, max_threshold):
     # Creating a list for offspring
     offspring_list = []
 
@@ -348,8 +320,8 @@ def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, featur
     for i in range(0, num_replacement_sets):
         # Choosing the two parents and getting the list of features in each parent bin
         parent_bins = tournament_selection_parent_bins(binned_feature_groups, random_seeds[i])
-        parent1_features = parent_bins[0].get_feature_list()  # SPHIA
-        parent2_features = parent_bins[1].get_feature_list()  # SPHIA
+        parent1_features = parent_bins[0].get_feature_list()
+        parent2_features = parent_bins[1].get_feature_list()
 
         # Creating two lists for the offspring bins
         offspring1 = []
@@ -387,7 +359,8 @@ def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, featur
 
         # Crossover the thresholds if threshold is evolving
         if (threshold_is_evolving):
-            # The threshold of the parent bin is crossed over to offspring based on the given probability (uniform crossover)
+            # The threshold of the parent bin is crossed over to
+            # offspring based on the given probability (uniform crossover)
             if crossover_probability > random.random():
                 threshold1 = parent_bins[0].get_threshold()
                 threshold2 = parent_bins[1].get_threshold()
@@ -509,7 +482,7 @@ def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, featur
             replacements = features_not_in_offspring.copy()
         offspring2.extend(replacements)
 
-        # Adding the new offspring to the list of feature bins SPHIA
+        # Adding the new offspring to the list of feature bins
         temp_off_spring_bin1 = BIN(offspring1, threshold1)
         temp_off_spring_bin2 = BIN(offspring2, threshold2)
 
@@ -519,126 +492,9 @@ def crossover_and_mutation_old(max_population_of_bins, elitism_parameter, featur
     return offspring_list
 
 
-def crossover_and_mutation_new(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
-                               crossover_probability, mutation_probability, random_seed, threshold,
-                               threshold_is_evolving, min_threshold, max_threshold):
-    # Creating a list for offspring
-    offspring_list = []
-
-    num_replacement_sets = int((max_population_of_bins - (elitism_parameter * max_population_of_bins)) / 2)
-    np.random.seed(random_seed)
-    random.seed(random_seed)
-    random_seeds = np.random.randint(len(feature_list) * len(feature_list), size=num_replacement_sets * 8)
-    # Creating a number of offspring equal to the number needed to replace the non-elites
-    # Each pair of parents will produce two offspring
-    for i in range(0, num_replacement_sets):
-        # Choosing the two parents and getting the list of features in each parent bin
-        parent_bins = tournament_selection_parent_bins(binned_feature_groups, random_seeds[i])
-        parent1_features = parent_bins[0].get_feature_list()  # SPHIA
-        parent2_features = parent_bins[1].get_feature_list()  # SPHIA
-
-        # Creating two lists for the offspring bins
-        offspring1 = []
-        offspring2 = []
-
-        # Creating two thresholds for the offspring bins
-        threshold1 = threshold
-        threshold2 = threshold
-
-        # CROSSOVER
-        # Each feature in the parent bin will cross over based on the given probability (uniform crossover)
-        for j in range(0, len(parent1_features)):
-            if crossover_probability > random.random():
-                offspring2.append(parent1_features[j])
-            else:
-                offspring1.append(parent1_features[j])
-
-        for k in range(0, len(parent2_features)):
-            if crossover_probability > random.random():
-                offspring1.append(parent2_features[k])
-            else:
-                offspring2.append(parent2_features[k])
-
-        # CLEANUP
-        # Deleting any repeats of an amino acid in a bin
-        # Removing duplicates of features in the same bin that may arise due to crossover
-
-        unique = []
-        for a in range(0, len(offspring1)):
-            if offspring1[a] not in unique:
-                unique.append(offspring1[a])
-        offspring1 = unique
-
-        unique = []
-        for a in range(0, len(offspring2)):
-            if offspring2[a] not in unique:
-                unique.append(offspring2[a])
-        offspring2 = unique
-
-        # Crossover the thresholds if threshold is evolving
-        if (threshold_is_evolving):
-            # The threshold of the parent bin is crossed over to offspring based on the given probability (uniform crossover)
-            if crossover_probability > random.random():
-                threshold1 = parent_bins[0].get_threshold()
-                threshold2 = parent_bins[1].get_threshold()
-            else:
-                threshold2 = parent_bins[0].get_threshold()
-                threshold1 = parent_bins[1].get_threshold()
-
-        print("Bin before mutation: " + str(len(offspring1)))
-        print(offspring1)
-        count_removed = 0
-        count_added = 0
-        # MUTATION
-        # Mutation only occurs with a certain probability on each feature in the original feature space
-        # Applying the mutation operation to the first offspring
-        for feature in feature_list:
-            if (mutation_probability > random.random()):
-                # equal chance of either removing the feature or adding a feature
-                if (not feature in offspring1):
-                    offspring1.append(feature)
-                    count_added += 1
-                else:
-                    offspring1.remove(feature)
-                    count_removed += 1
-
-        print("Bin after mutation: " + str(len(offspring1)))
-        print(offspring1)
-        print("Features added: " + str(count_added))
-        print("Features removed: " + str(count_removed))
-
-        # Applying mutation to the second offspring        
-        for feature in feature_list:
-            if (mutation_probability > random.random()):
-                # equal chance of either removing the feature or adding a feature
-                if (not feature in offspring2):
-                    offspring2.append(feature)
-                else:
-                    offspring2.remove(feature)
-
-        # EVOLVING THRESHOLD
-        if (threshold_is_evolving):
-            # Mutating the threshold for Offspring 1 based on the mutation_probability
-            if mutation_probability < random.random():
-                threshold1 = np.random.randint(min_threshold, max_threshold + 1)
-
-            # Mutating the threshold for Offspring 2 based on the mutation_probability
-            if mutation_probability < random.random():
-                threshold2 = np.random.randint(min_threshold, max_threshold + 1)
-
-        # Adding the new offspring to the list of feature bins SPHIA
-        temp_off_spring_bin1 = BIN(offspring1, threshold1)
-        temp_off_spring_bin2 = BIN(offspring2, threshold2)
-
-        offspring_list.append(temp_off_spring_bin1)
-        offspring_list.append(temp_off_spring_bin2)
-
-    return offspring_list
-
-
-def crossover_and_mutation_new_previous(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
-                                        crossover_probability, mutation_probability, random_seed, threshold,
-                                        threshold_is_evolving, min_threshold, max_threshold):
+def crossover_and_mutation_new_simpler(max_population_of_bins, elitism_parameter, feature_list, binned_feature_groups,
+                                       crossover_probability, mutation_probability, random_seed, threshold,
+                                       threshold_is_evolving, min_threshold, max_threshold):
     # Creating a list for offspring
     offspring_list = []
 
@@ -702,7 +558,8 @@ def crossover_and_mutation_new_previous(max_population_of_bins, elitism_paramete
 
         # Crossover the thresholds if threshold is evolving
         if (threshold_is_evolving):
-            # The threshold of the parent bin is crossed over to offspring based on the given probability (uniform crossover)
+            # The threshold of the parent bin is crossed over to offspring
+            # based on the given probability (uniform crossover)
             if crossover_probability > random.random():
                 threshold1 = parent_bins[0].get_threshold()
                 threshold2 = parent_bins[1].get_threshold()
@@ -710,7 +567,6 @@ def crossover_and_mutation_new_previous(max_population_of_bins, elitism_paramete
                 threshold2 = parent_bins[0].get_threshold()
                 threshold1 = parent_bins[1].get_threshold()
 
-        # MUTATION
         # Mutation only occurs with a certain probability on each feature in the original feature space
         # Applying the mutation operation to the first offspring
         new_offspring1 = []
@@ -726,7 +582,7 @@ def crossover_and_mutation_new_previous(max_population_of_bins, elitism_paramete
 
         offspring1 = new_offspring1
 
-        # Applying mutation to the second offspring        
+        # Applying mutation to the second offspring
         new_offspring2 = []
         for feature in offspring2:
             if (mutation_probability > random.random()):
@@ -750,7 +606,7 @@ def crossover_and_mutation_new_previous(max_population_of_bins, elitism_paramete
             if mutation_probability < random.random():
                 threshold2 = np.random.randint(min_threshold, max_threshold + 1)
 
-        # Adding the new offspring to the list of feature bins SPHIA
+        # Adding the new offspring to the list of feature bins
         temp_off_spring_bin1 = BIN(offspring1, threshold1)
         temp_off_spring_bin2 = BIN(offspring2, threshold2)
 
@@ -764,11 +620,43 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
                      original_feature_matrix, label_name, duration_name,
                      set_number_of_bins, min_features_per_group, max_number_of_groups_with_feature,
                      informative_cutoff,
-                     crossover_probability, mutation_probability, elitism_parameter, random_seed,
+                     crossover_probability, mutation_probability, elitism_parameter, mutation_strategy, random_seed,
                      set_threshold, evolving_probability, max_threshold, min_threshold,
-                     merge_probability, adaptable_threshold):  # SPHIA
+                     merge_probability, adaptive_threshold, covariates, scoring_method):
+    process_categorical = False
+    if covariates:
+        if process_categorical:
+            # Separating features we want to bin from covariates
+            feature_matrix = original_feature_matrix.drop(covariates, axis=1)
+            covariate_matrix = original_feature_matrix[covariates]
+            covariate_matrix[label_name] = original_feature_matrix[label_name]
+            covariate_matrix[duration_name] = original_feature_matrix[duration_name]
+            # identify all categorical variables
+            cat_columns = covariate_matrix.select_dtypes(['object']).columns
+
+            # convert all categorical variables to numeric
+            covariate_matrix[cat_columns] = covariate_matrix[cat_columns].apply(lambda x: pd.factorize(x)[0])
+            covariate_matrix = covariate_matrix.dropna(axis='columns')
+            covariate_matrix = covariate_matrix.loc[:, (covariate_matrix != covariate_matrix.iloc[0]).any()]
+        else:
+            covariate_matrix = original_feature_matrix[covariates]
+            covariate_matrix[label_name] = original_feature_matrix[label_name]
+            covariate_matrix[duration_name] = original_feature_matrix[duration_name]
+    else:
+        covatiate_matrix = None
 
     # Step 0: Deleting Empty Features (MAF = 0)
+    feature_matrix_no_empty_variables2, maf_0_features2, nonempty_feature_list2 = remove_empty_variables(
+        original_feature_matrix,
+        label_name, duration_name)
+
+    if scoring_method == "residuals":
+        residuals = calculate_residuals(feature_matrix_no_empty_variables2, label_name, duration_name, covariates)
+    else:
+        residuals = None
+
+    original_feature_matrix = original_feature_matrix.drop(covariates, axis=1)
+
     feature_matrix_no_empty_variables, maf_0_features, nonempty_feature_list = remove_empty_variables(
         original_feature_matrix,
         label_name, duration_name)
@@ -778,23 +666,25 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
 
     amino_acids, amino_acid_bins = None, None
     # If there is a starting point, use that for the amino acid list and the amino acid bins list
-    # SPHIA FIX
     if given_starting_point:
         # Keep only MAF != 0 features from starting points in amino_acids and amino_acid_bins
-        # amino_acids = list(set(amino_acid_start_point).intersection(nonempty_feature_list))
-
-        # Original
         amino_acids = amino_acid_start_point.copy()
-        amino_acid_bins = amino_acid_bins_start_point.copy()
-        bin_names = amino_acid_bins.keys()
-        features_to_remove = [item for item in amino_acid_start_point if item not in nonempty_feature_list]
-        for bin_name in bin_names:
-            # Remove duplicate features
-            amino_acid_bins[bin_name] = list(set(amino_acid_bins[bin_name]))
-            for feature in features_to_remove:
-                if feature in amino_acid_bins[bin_name]:
-                    amino_acid_bins[bin_name].remove(feature)
+        feature_groups = amino_acid_bins_start_point.copy()
+        bin_names = feature_groups.keys()
 
+        # Removing duplicates of features in the same bin
+        for z in range(0, len(feature_groups)):
+            unique = []
+            for a in range(0, len(feature_groups[z])):
+                if feature_groups[z][a] not in unique:
+                    unique.append(feature_groups[z][a])
+            feature_groups[z] = unique
+
+        # Creating a dictionary with bin labels, and instances of BIN class
+        amino_acid_bins = {}
+        for index in range(0, len(feature_groups)):
+            amino_acid_bins[bin_names[index]] = BIN(feature_groups[index], set_threshold,
+                                                    bin_names[index])
     # Otherwise randomly initialize the bins
     elif not given_starting_point:
         amino_acids, amino_acid_bins = random_feature_grouping(feature_matrix_no_empty_variables, label_name,
@@ -808,32 +698,19 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     bin_feature_matrix = grouped_feature_matrix(feature_matrix_no_empty_variables, label_name, duration_name,
                                                 amino_acid_bins)
 
-    # Step 1b: Initializing all thresholds
-    if (adaptable_threshold):
-        # To initialize, tries all thresholds to find the best one
-        for bin in amino_acid_bins.values():
-            bin.try_all_thresholds(
+    # #Step 1b: To initialize, tries all thresholds to find the best one
+    if adaptive_threshold:
+        for Bin in amino_acid_bins.values():
+            Bin.try_all_thresholds(
                 min_threshold, max_threshold, bin_feature_matrix,
-                label_name, duration_name, informative_cutoff)
+                label_name, duration_name, informative_cutoff, scoring_method,
+                residuals, covariate_matrix)
 
     # Step 2: Genetic Algorithm with Feature Scoring (repeated for a given number of iterations)
     np.random.seed(random_seed)
     upper_bound = (len(maf_0_features) + len(nonempty_feature_list)) * (
             len(maf_0_features) + len(nonempty_feature_list))
     random_seeds = np.random.randint(upper_bound, size=iterations * 2)
-
-    # current
-    previous_bin = amino_acid_bins['Bin 1']
-
-    # starting time to calculate time for each iteration
-    start_time = time.time()
-
-    time_list = []
-    score_list = []
-
-    threshold_is_evolving = False
-
-    stop_time = 0
 
     random.seed(random_seed)
     for i in tqdm(range(0, iterations)):
@@ -844,37 +721,42 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
         # Step 2a: Feature Importance Scoring and Bin Deletion
 
         # If the try_all_thresholds is set to True, then their log_rank_scores have already been evaluated
-        log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_name,
+        if scoring_method == "log_rank":
+            log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_name,
+                                             duration_name, informative_cutoff)
+        if scoring_method == "residuals":
+            residuals_feature_importance(residuals, bin_feature_matrix, amino_acid_bins, label_name,
                                          duration_name, informative_cutoff)
 
-        # random.seed(random_seed)
-        # #merging the top two bins based on the merge_probability
-        # if merge_probability > random.random():
-        #     sorted_bins = sorted(list(amino_acid_bins.values()), reverse = True)
-        #     merged_feature_list = list(set(sorted_bins[0].get_feature_list() + sorted_bins[1].get_feature_list()))
-        #     merged_bin = sorted_bins[set_number_of_bins - 1]
-        #     merged_bin.set_feature_list(merged_feature_list)
-        #     merged_bin.set_not_seen()
-        #     amino_acid_bins['Bin 50'] = merged_bin
-        #     if(previous_merged_bin != merged_bin):
-        #         previous_merged_bin = merged_bin
-        #         print(merged_bin)
+        if scoring_method == "AIC":
+            cox_feature_importance(bin_feature_matrix, covariate_matrix, amino_acid_bins, label_name,
+                                   duration_name, informative_cutoff, random_seed)
 
-        # Given a evolving probability, there is a chance
+        # Given an evolving probability, there is a chance
         # It doesn't try all thresholds but instead evolves the threshold
-        if evolving_probability > evolve and adaptable_threshold:
+        if evolving_probability > evolve and adaptive_threshold:
             threshold_is_evolving = True
         else:
             threshold_is_evolving = False
 
-        # Step 2b: Genetic Algorithm
-        # Creating the offspring bins through crossover and mutation
-        offspring_bins = crossover_and_mutation_new_previous(set_number_of_bins, elitism_parameter, amino_acids,
-                                                             amino_acid_bins,
-                                                             crossover_probability, mutation_probability,
-                                                             random_seeds[i], set_threshold,
-                                                             threshold_is_evolving, min_threshold,
-                                                             max_threshold)
+        if mutation_strategy == "Regular":
+            # Step 2b: Genetic Algorithm
+            # Creating the offspring bins through crossover and mutation
+            offspring_bins = crossover_and_mutation_regular(set_number_of_bins, elitism_parameter, amino_acids,
+                                                            amino_acid_bins,
+                                                            crossover_probability, mutation_probability,
+                                                            random_seeds[i],
+                                                            set_threshold,
+                                                            threshold_is_evolving, min_threshold,
+                                                            max_threshold)
+        elif mutation_strategy == "Simple":
+            offspring_bins = crossover_and_mutation_new_simpler(set_number_of_bins, elitism_parameter, amino_acids,
+                                                                amino_acid_bins,
+                                                                crossover_probability, mutation_probability,
+                                                                random_seeds[i],
+                                                                set_threshold,
+                                                                threshold_is_evolving, min_threshold,
+                                                                max_threshold)
 
         # Creating the new generation by preserving some elites and adding the offspring
         feature_bin_list = create_next_generation(amino_acid_bins, set_number_of_bins,
@@ -884,39 +766,26 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
                                                                      duration_name, feature_bin_list,
                                                                      random_seeds[iterations + i], set_threshold)
 
-        # If the adaptable_threshold boolean is set true by the user and threshold did not evolve,
+        # If the try all try_all_threshold boolean is set true by the user,
         # then the offspring BIN objects will have their
         # threshold changed based on highest log rank score
-        if not threshold_is_evolving and adaptable_threshold:
-            for bin in amino_acid_bins.values():
-                bin.try_all_thresholds(min_threshold, max_threshold, bin_feature_matrix,
-                                       label_name, duration_name, informative_cutoff)
-
-        stop_time = time.time()
-
-        current_bin = amino_acid_bins['Bin 1']
-
-        time_list.append(stop_time)
-        score_list.append(current_bin.get_score())
-
-        if (current_bin != previous_bin):
-            print("Time took: " + str((stop_time - start_time) // 60) + " Minutes and " + str(
-                (stop_time - start_time) % 60) +
-                  " Seconds")
-            print("Bin Change Iteration: " + str(i))
-            print(current_bin)
-            print("Score: " + str(current_bin.get_score()))
-            previous_bin = current_bin
-
-        if ((stop_time - start_time) // 60 >= 60):
-            break
-
-    plt.scatter(time_list, score_list)
-    plt.show()
+        if not threshold_is_evolving and adaptive_threshold:
+            for Bin in amino_acid_bins.values():
+                Bin.try_all_thresholds(min_threshold, max_threshold, bin_feature_matrix,
+                                       label_name, duration_name, informative_cutoff, scoring_method,
+                                       residuals, covariate_matrix)
 
     # calculating the last thresholds
     # Creating the final amino acid bin scores
-    amino_acid_bin_scores = log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_name,
+    if scoring_method == "log_rank":
+        amino_acid_bin_scores = log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_name,
+                                                                 duration_name, informative_cutoff)
+    if scoring_method == "residuals":
+        amino_acid_bin_scores = residuals_feature_importance(residuals, bin_feature_matrix, amino_acid_bins, label_name,
                                                              duration_name, informative_cutoff)
+    if scoring_method == "AIC":
+        amino_acid_bin_scores = cox_feature_importance(bin_feature_matrix, covariate_matrix, amino_acid_bins,
+                                                       label_name,
+                                                       duration_name, informative_cutoff, random_seed)
 
     return bin_feature_matrix, amino_acid_bins, amino_acid_bin_scores, maf_0_features

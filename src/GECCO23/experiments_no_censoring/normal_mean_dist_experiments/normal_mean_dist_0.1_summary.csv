@@ -1,7 +1,0 @@
-,0
-,Bin 1
-Bin #,"['P_4', 'P_6', 'P_10', 'P_7']"
-Top Bin of Features:,340.2578833377421
-Log-Rank ScoreNumber of Instances with No Mismatches in Bin:,5338
-Number of Instances with Mismatch(es) in Bin:,4662
-p-value from Log Rank Test:,5.606712161699413e-76
