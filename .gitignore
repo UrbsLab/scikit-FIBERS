@@ -39,6 +39,9 @@ target/
 # BIG Datasets
 data/
 src/Data1.csv
+sampledata.csv
+src/sampledata.csv
+src/run_history/
 
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
