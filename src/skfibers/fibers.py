@@ -12,20 +12,21 @@ sns.set_theme(font="Times New Roman")
 
 class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, label_name="Class", duration_name="Duration",
-                 given_starting_point=False, amino_acid_start_point=None, amino_acid_bins_start_point=None,
+                 given_starting_point=False, start_point_feature_list=None, feature_bins_start_point=None,
                  iterations=1000, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=4,
                  informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.4, elitism_parameter=0.8,
-                 random_seed=None, set_threshold=0, evolving_probability=1,
-                 min_threshold=0, max_threshold=3, merge_probability=0.0, adaptable_threshold=False):
+                 mutation_strategy="Regular", random_seed=None, set_threshold=0, evolving_probability=1,
+                 min_threshold=0, max_threshold=3, merge_probability=0.0, adaptable_threshold=False, covariates=None,
+                 scoring_method="log_rank"):
         """
         A Scikit-Learn compatible framework for the FIBERS Algorithm.
 
         :param label_name: label for the class/endpoint column in the dataset (e.g., 'Class')
         :param duration_name: label to omit extra column in the dataset
         :param given_starting_point: whether or not expert knowledge is being inputted (True or False)
-        :param amino_acid_start_point: if FIBERS is starting with expert knowledge, input the list
+        :param start_point_feature_list: if FIBERS is starting with expert knowledge, input the list
                of features here; otherwise None
-        :param amino_acid_bins_start_point: if FIBERS is starting with expert knowledge, input the list of bins of
+        :param feature_bins_start_point: if FIBERS is starting with expert knowledge, input the list of bins of
                features here; otherwise None
         :param iterations: the number of evolutionary cycles FIBERS will run
         :param set_number_of_bins: the population size of candidate bins
@@ -40,6 +41,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
                preserved for the next evolutionary cycle (recommendation: 0.2 to 0.8
                depending on conservativeness of approach and number of iterations run)
         :param random_seed: the seed value needed to generate a random number
+        :param covariates:
+        :param scoring_method:
         """
 
         algorithm = "FIBERS"
@@ -113,13 +116,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not (isinstance(given_starting_point, bool)):
             raise Exception("given_starting_point param must be boolean True or False")
         elif given_starting_point:
-            if amino_acid_start_point is None or amino_acid_bins_start_point is None:
+            if start_point_feature_list is None or feature_bins_start_point is None:
                 raise Exception(
                     "amino_acid_start_point param and amino_acid_bins_start_point param must be a list if expert "
                     "knowledge is being inputted")
-            elif not (isinstance(amino_acid_start_point, list)):
+            elif not (isinstance(start_point_feature_list, list)):
                 raise Exception("amino_acid_start_point param must be a list")
-            elif not (isinstance(amino_acid_bins_start_point, list)):
+            elif not (isinstance(feature_bins_start_point, list)):
                 raise Exception("amino_acid_bins_start_point param must be a list")
 
         # label_name
@@ -136,8 +139,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         self.algorithm = algorithm
         self.given_starting_point = given_starting_point
-        self.amino_acid_start_point = amino_acid_start_point
-        self.amino_acid_bins_start_point = amino_acid_bins_start_point
+        self.start_point_feature_list = start_point_feature_list
+        self.feature_bins_start_point = feature_bins_start_point
         self.iterations = iterations
         self.label_name = label_name
         self.duration_name = duration_name
@@ -148,15 +151,20 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.crossover_probability = crossover_probability
         self.mutation_probability = mutation_probability
         self.elitism_parameter = elitism_parameter
+        self.mutation_strategy = mutation_strategy
         self.random_seed = random_seed
         self.reboot_filename = None
         self.original_feature_matrix = None
-        self.threshold = set_threshold  # SPHIA
-        self.evolving_probability = evolving_probability  # SPHIA
-        self.max_threshold = max_threshold  # SPHIA
-        self.min_threshold = min_threshold  # SPHIA
-        self.merge_probability = merge_probability  # SPHIA
+        self.threshold = set_threshold
+        self.evolving_probability = evolving_probability
+        self.max_threshold = max_threshold
+        self.min_threshold = min_threshold
+        self.merge_probability = merge_probability
         self.adaptable_threshold = adaptable_threshold
+        if covariates is None:
+            covariates = list()
+        self.covariates = covariates
+        self.scoring_method = scoring_method
 
         # Reboot Population
         if self.reboot_filename is not None:
@@ -268,8 +276,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
             bin_scores_internal, maf_0_features = \
             fibers_algorithm(
                 self.given_starting_point,
-                self.amino_acid_start_point,
-                self.amino_acid_bins_start_point,
+                self.start_point_feature_list,
+                self.feature_bins_start_point,
                 self.iterations,
                 self.original_feature_matrix,
                 self.label_name,
@@ -281,13 +289,16 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 self.crossover_probability,
                 self.mutation_probability,
                 self.elitism_parameter,
+                self.mutation_strategy,
                 self.random_seed,
                 self.threshold,
                 self.evolving_probability,
                 self.max_threshold,
                 self.min_threshold,
                 self.merge_probability,
-                self.adaptable_threshold
+                self.adaptable_threshold,
+                self.covariates,
+                self.scoring_method,
             )
         self.bin_feature_matrix = bin_feature_matrix_internal
         self.bins = bins_internal

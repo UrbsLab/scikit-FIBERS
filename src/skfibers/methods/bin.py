@@ -1,4 +1,7 @@
+import numpy as np
+from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
+from scipy.stats import ranksums
 
 
 class BIN:
@@ -84,9 +87,9 @@ class BIN:
 
     # Log rank test used to score the different thresholds and fitness of the BIN
     def log_rank_test(self, bin_feature_matrix, label_name, duration_name,
-                      informative_cutoff, threshold):  # SPHIA
+                      informative_cutoff, threshold):
         score = 0
-        df_0 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] <= threshold]  # SPHIA
+        df_0 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] <= threshold]
         df_1 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] > threshold]
 
         durations_no = df_0[duration_name].to_list()
@@ -102,18 +105,71 @@ class BIN:
 
         return score
 
+    def residuals_score(self, residuals, bin_feature_matrix, label_name, duration_name,
+                        informative_cutoff, threshold):
+        score = 0
+        df_0 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] <= threshold]  # SPHIA
+        df_1 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] > threshold]
+        durations_no = df_0[duration_name].to_list()
+        event_observed_no = df_0[label_name].to_list()
+        durations_mm = df_1[duration_name].to_list()
+        event_observed_mm = df_1[label_name].to_list()
+
+        if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
+                event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
+            bin_residuals = residuals.loc[bin_feature_matrix[self.bin_name] <= threshold]
+            bin_residuals = bin_residuals["deviance"]
+
+            non_bin_residuals = residuals.loc[bin_feature_matrix[self.bin_name] > threshold]
+            non_bin_residuals = non_bin_residuals["deviance"]
+
+            score = abs(ranksums(bin_residuals, non_bin_residuals).statistic)
+        return score
+
+    def aic_score(self, covariate_matrix, bin_feature_matrix, label_name, duration_name,
+                  informative_cutoff, threshold):
+        df_0 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] <= threshold]
+        df_1 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] > threshold]
+
+        event_observed_no = df_0[label_name].to_list()
+        event_observed_mm = df_1[label_name].to_list()
+        if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
+                event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
+            column_values = bin_feature_matrix[self.bin_name].to_list()
+            for r in range(0, len(column_values)):
+                if column_values[r] > 0:
+                    column_values[r] = 1
+            data = covariate_matrix.copy()
+            data['Bin'] = column_values
+            data = data.loc[:, (data != data.iloc[0]).any()]
+            cph = CoxPHFitter()
+            cph.fit(data, duration_name, event_col=label_name)
+
+            score = 0 - cph.AIC_partial_
+        else:
+            score = - np.inf
+        return score
+
     # This method will update the threshold for the bin by try all the thresholds from min to max threshold
     # and uses the threshold that will get the highest score
     def try_all_thresholds(self, min_threshold, max_threshold, bin_feature_matrix,
-                           label_name, duration_name, informative_cutoff):
+                           label_name, duration_name, informative_cutoff, scoring_method="log_rank",
+                           residuals=None, covariate_matrix=None):
         # to avoid unnecessary computations, if they have already tried all the thresholds which is determined by the
         # seen variable, then no need to try all the thresholds
         if not self.seen:
             highest_score = 0
             for threshold in range(min_threshold, max_threshold + 1):
                 # Variable that will store the highest score used to determine the threshold
-                score = self.log_rank_test(bin_feature_matrix, label_name,
+                if scoring_method == "log_rank":
+                    score = self.log_rank_test(bin_feature_matrix, label_name,
+                                               duration_name, informative_cutoff, threshold)
+                elif scoring_method == "AIC":
+                    score = self.aic_score(covariate_matrix, bin_feature_matrix, label_name,
                                            duration_name, informative_cutoff, threshold)
+                elif scoring_method == "residuals":
+                    score = self.residuals_score(residuals, bin_feature_matrix, label_name,
+                                                 duration_name, informative_cutoff, threshold)
                 if score > highest_score:
                     self.score = score
                     self.threshold = threshold

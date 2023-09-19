@@ -38,11 +38,6 @@ target/
 
 # BIG Datasets
 data/
-src/old/
-src/experiments_2/
-src/experimnets_3/
-GECCO'23/FIBERSDatasimTest.ipynb
-src/$Imp1.csv
 src/Data1.csv
 
 
