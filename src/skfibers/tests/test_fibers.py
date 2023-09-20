@@ -81,6 +81,5 @@ def test_regular_fibers():
 
     pipe_fibers = Pipeline(steps=[("FIBERS", fibers_obj)])
     pipe_fibers.fit(data)
-    pipe_fibers, bin_feature_matrix_internal, amino_acid_bins_internal, \
-        amino_acid_bin_scores_internal, maf_0_features = pipe_fibers.transform(data)
-    logging.warning(amino_acid_bins_internal)
+    transformed_df = pipe_fibers.transform(data)
+    assert isinstance(transformed_df, pd.DataFrame)
