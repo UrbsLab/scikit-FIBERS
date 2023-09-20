@@ -644,7 +644,7 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
             covariate_matrix[label_name] = original_feature_matrix[label_name]
             covariate_matrix[duration_name] = original_feature_matrix[duration_name]
     else:
-        covatiate_matrix = None
+        covariate_matrix = None
 
     # Step 0: Deleting Empty Features (MAF = 0)
     feature_matrix_no_empty_variables2, maf_0_features2, nonempty_feature_list2 = remove_empty_variables(
@@ -731,7 +731,7 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
 
         if scoring_method == "AIC":
             cox_feature_importance(bin_feature_matrix, covariate_matrix, amino_acid_bins, label_name,
-                                   duration_name, informative_cutoff, random_seed)
+                                   duration_name, informative_cutoff)
 
         # Given an evolving probability, there is a chance
         # It doesn't try all thresholds but instead evolves the threshold
@@ -758,6 +758,9 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
                                                                 set_threshold,
                                                                 threshold_is_evolving, min_threshold,
                                                                 max_threshold)
+        else:
+            offspring_bins = None
+            raise Exception
 
         # Creating the new generation by preserving some elites and adding the offspring
         feature_bin_list = create_next_generation(amino_acid_bins, set_number_of_bins,
@@ -778,6 +781,7 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
 
     # calculating the last thresholds
     # Creating the final amino acid bin scores
+    amino_acid_bin_scores = None
     if scoring_method == "log_rank":
         amino_acid_bin_scores = log_rank_test_feature_importance(bin_feature_matrix, amino_acid_bins, label_name,
                                                                  duration_name, informative_cutoff)
@@ -787,6 +791,6 @@ def fibers_algorithm(given_starting_point, amino_acid_start_point, amino_acid_bi
     if scoring_method == "AIC":
         amino_acid_bin_scores = cox_feature_importance(bin_feature_matrix, covariate_matrix, amino_acid_bins,
                                                        label_name,
-                                                       duration_name, informative_cutoff, random_seed)
+                                                       duration_name, informative_cutoff)
 
     return bin_feature_matrix, amino_acid_bins, amino_acid_bin_scores, maf_0_features
