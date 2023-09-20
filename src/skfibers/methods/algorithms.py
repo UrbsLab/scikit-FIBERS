@@ -14,6 +14,7 @@ from .bin import BIN
 from .utils import save_scatterplot
 from .feature_importance import log_rank_test_feature_importance, residuals_feature_importance
 from .feature_importance import cox_feature_importance
+pd.options.mode.chained_assignment = None  # default='warn'
 
 simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 simplefilter(action="ignore", category=DeprecationWarning)
