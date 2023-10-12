@@ -36,12 +36,13 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# BIG Datasets
+# BIG Datasets and results
 data/
 src/Data1.csv
 sampledata.csv
 src/sampledata.csv
 src/run_history/
+/src/run_history_old/
 
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
