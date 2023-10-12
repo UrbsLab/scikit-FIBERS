@@ -4,11 +4,13 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def generate_features(row, number_of_features, number_of_features_in_bin, mm_frequency_range, random_seeds=None):
+def generate_features(row, number_of_features, number_of_features_in_bin, mm_frequency_range, random_seeds=None,
+                      threshold=None):
     if random_seeds is not None:
         np.random.seed(random_seeds[row.name])
         random.seed(random_seeds[row.name])
     mm_frequency = np.random.uniform(mm_frequency_range[0], mm_frequency_range[1])
+
     if row['TrueRiskGroup'] == 1:
         indexes = random.sample(list(range(1, number_of_features_in_bin + 1)),
                                 int(mm_frequency * number_of_features_in_bin))
@@ -19,6 +21,13 @@ def generate_features(row, number_of_features, number_of_features_in_bin, mm_fre
         for idx in indexes:
             row['R_' + str(idx)] = 1
     else:
+        if threshold is not None and threshold != 0:
+            random_sum = np.random.randint(0, threshold + 1)
+            indexes = random.sample(list(range(1, number_of_features_in_bin + 1)),
+                                    random_sum)
+            for idx in indexes:
+                row['P_' + str(idx)] = 1
+
         indexes = random.sample(list(range(1, number_of_features - number_of_features_in_bin + 1)),
                                 int(mm_frequency * (number_of_features - number_of_features_in_bin)))
         for idx in indexes:
@@ -51,7 +60,7 @@ def censor(df, censoring_frequency, random_seed=None):
 def create_data_simulation_bin(number_of_instances=10000, number_of_features=50, number_of_features_in_bin=10,
                                no_fail_proportion=0.5, mm_frequency_range=(0.4, 0.5), noise_frequency=0.1,
                                class0_time_to_event_range=(1.5, 0.2), class1_time_to_event_range=(1, 0.2),
-                               censoring_frequency=0.5, random_seed=None, negative=False):
+                               censoring_frequency=0.5, random_seed=None, negative=False, threshold=0):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
     Note: MAF (minor allele frequency) cutoff refers to the threshold
@@ -70,6 +79,7 @@ def create_data_simulation_bin(number_of_instances=10000, number_of_features=50,
     :param censoring_frequency:
     :param random_seed:
     :param negative:
+    :param threshold:
 
     :return: pandas dataframe of generated data
     """
@@ -100,7 +110,7 @@ def create_data_simulation_bin(number_of_instances=10000, number_of_features=50,
     mm_frequency_seeds = np.random.randint(0, number_of_instances * number_of_instances, size=number_of_instances)
     df = df.apply(generate_features,
                   args=(number_of_features, number_of_features_in_bin,
-                        mm_frequency_range, mm_frequency_seeds), axis=1).astype(int)
+                        mm_frequency_range, mm_frequency_seeds, threshold), axis=1).astype(int)
 
     # Assigning Gaussian according to class
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
