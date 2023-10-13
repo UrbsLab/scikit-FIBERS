@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
@@ -476,6 +477,18 @@ class FIBERS(BaseEstimator, TransformerMixin):
         bins_sorted = sorted(self.bins.items(),
                              key=lambda x: len(x[1]), reverse=True)
 
+        bin_name_list, duration_mm_list, duration_no_list = list(), list(), list()
+
+        for i in range(len(bins_sorted)):
+            durations_no, durations_mm, \
+                event_observed_no, event_observed_mm, top_bin = self.get_duration_event(i)
+            duration_mm_list.append(len(durations_mm))
+            duration_no_list.append(len(durations_no))
+            bin_name_list.append(top_bin)
+        duration_mm_list = np.array(duration_mm_list)
+        duration_no_list = np.array(duration_no_list)
+        high_risk_ratio = list(duration_mm_list/(duration_no_list+duration_mm_list))
+        high_risk_tuple = list(zip(bin_name_list, high_risk_ratio))
         tdf1 = pd.DataFrame(bin_scores_sorted, columns=['Bin #', 'Score'])
         tdf2 = pd.DataFrame(bins_sorted, columns=['Bin #', 'Bins'])
 
@@ -483,9 +496,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         tdf3['Threshold'] = tdf3.apply(lambda x: x['Bins'].get_threshold(), axis=1)  # Added column for threshold SPHIA
 
+        tdf4 = pd.DataFrame(high_risk_tuple, columns=['Bin #', 'High Risk Ratio'])
+
+        tdf5 = tdf3.merge(tdf4, on='Bin #', how='inner', suffixes=('_1', '_2'))
+
         if save:
-            tdf3.to_csv(save)
-        return tdf3
+            tdf5.to_csv(save)
+        return tdf5
 
     def print_bins(self, save=None):
         if save:
