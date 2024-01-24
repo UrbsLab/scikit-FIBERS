@@ -11,16 +11,19 @@ from skfibers import FIBERS
 from skfibers.experiments.datagen_evolvable_threshold import create_data_simulation_bin_evolve
 
 
-def save_fibers_object(fibers):
-    if not os.path.exists('run_history/'):
-        os.makedirs('run_history/')
-    with open('run_history/' + 'adaptive_' + str(fibers.adaptable_threshold) +
+def save_fibers_object(fibers, threshold, number_of_features, save_folder, noise_frequency, iterations):
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    with open(save_folder + 'adaptive_' + str(fibers.adaptable_threshold) +
               '_evolving_prob_' + str(fibers.evolving_probability) +
-              '_thresh_' + str(fibers.threshold) + '.pickle', 'wb') as outp:  # Overwrites any existing file.
+              '_thresh_' + str(threshold) + '_NOF_' + str(number_of_features) + 'Noise' 
+              + str(noise_frequency) + '_intrations' + str(iterations) + '.pickle',
+              'wb') as outp:  # Overwrites any existing file.
         pickle.dump(fibers, outp, pickle.HIGHEST_PROTOCOL)
 
 
-def experiment(number_of_instances=10000, number_of_features=750, number_of_features_in_bin=10,
+def experiment(save_folder='run_history/',
+               number_of_instances=10000, number_of_features=100, number_of_features_in_bin=10,
                no_fail_proportion=0.5, mm_frequency_range=(0.4, 0.5), noise_frequency=0.0,
                class0_time_to_event_range=(1.5, 0.2), class1_time_to_event_range=(1, 0.2),
                censoring_frequency=0.5, random_seed=42, negative=False, threshold=2,
@@ -44,10 +47,10 @@ def experiment(number_of_instances=10000, number_of_features=750, number_of_feat
                                              class1_time_to_event_range=class1_time_to_event_range,
                                              censoring_frequency=censoring_frequency, random_seed=random_seed,
                                              negative=negative, threshold=threshold)
-    if not os.path.exists('run_history/'):
-        os.makedirs('run_history/')
-    # data.to_csv('run_history/' + 'sampledata.csv')
-    # data = pd.read_csv('run_history/' + 'sampledata.csv')
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    # data.to_csv(save_folder + 'sampledata.csv')
+    # data = pd.read_csv(save_folder + 'sampledata.csv')
     true_risk_group = data[['TrueRiskGroup']]
     data = data.drop('TrueRiskGroup', axis=1)
 
@@ -67,24 +70,34 @@ def experiment(number_of_instances=10000, number_of_features=750, number_of_feat
     fibers = fibers.fit(data)
 
     # Saving FIBERS Object
-    save_fibers_object(fibers)
+    save_fibers_object(fibers, threshold, number_of_features, save_folder, noise_frequency, iterations)
 
     # Summary of Top Bin Statistics
     bin_summary, logrank_results = fibers.get_bin_summary(
-        save='run_history/' + 'adaptive_' + str(fibers.adaptable_threshold) +
-             '_evolving_prob_' + str(fibers.evolving_probability) + '_thresh_' + str(fibers.threshold)
+        save=save_folder + 'adaptive_' + str(fibers.adaptable_threshold) +
+             '_evolving_prob_' + str(fibers.evolving_probability) + '_thresh_' + str(threshold) + str(
+            number_of_features) + str(noise_frequency) + '_intrations' + str(iterations)
              + '_bin_summary.csv')
     print(logrank_results)
 
-    score_df = fibers.get_bin_scores(save='run_history/' + 'adaptive_' + str(fibers.adaptable_threshold) +
+    score_df = fibers.get_bin_scores(save=save_folder + 'adaptive_' + str(fibers.adaptable_threshold) +
                                           'evolving_prob_' + str(fibers.evolving_probability) + '_thresh_'
-                                          + str(fibers.threshold) + 'bin_scores.csv')
+                                          + str(threshold) + str(number_of_features) + 'bin_scores_old.csv')
+    accuracy_list = [fibers.score(data, true_risk_group, i) for i in range(50)]
+    score_df['Accuracy'] = accuracy_list
+    score_df.to_csv(save_folder + 'adaptive_' + str(fibers.adaptable_threshold) +
+                    'evolving_prob_' + str(fibers.evolving_probability) + '_thresh_'
+                    + str(threshold) + str(number_of_features) + 'Noise' 
+                    + str(noise_frequency) + '_intrations' + str(iterations) + 'bin_scores.csv')
     print(score_df.head(10))
 
-    fibers.get_bin_survival_plot(show=False, save='run_history/' + 'adaptive_' + str(fibers.adaptable_threshold) +
-                                                  'evolving_prob_' + str(fibers.evolving_probability) + '_thresh_'
-                                                  + str(fibers.threshold)
-                                                  + 'survival_plot.png')
+    try:
+        fibers.get_bin_survival_plot(show=False, save=save_folder + 'adaptive_' + str(fibers.adaptable_threshold) +
+                                                      'evolving_prob_' + str(fibers.evolving_probability) + '_thresh_'
+                                                      + str(threshold) + str(number_of_features)
+                                                      + 'Noise' + str(noise_frequency) + '_intrations' + str(iterations) + 'survival_plot.png')
+    except Exception as e:
+        print(e)
 
     print("Accuracy: ", fibers.score(data, true_risk_group))
 
@@ -103,7 +116,8 @@ def parser_function(argv):
                                                  "Evolver for Risk Stratification)",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    default_dict = {'number_of_instances': 10000, 'number_of_features': 750, 'number_of_features_in_bin': 10,
+    default_dict = {'save_folder': 'run_history',
+                    'number_of_instances': 10000, 'number_of_features': 100, 'number_of_features_in_bin': 10,
                     'no_fail_proportion': 0.5, 'noise_frequency': 0.0,
                     'censoring_frequency': 0.5, 'random_seed': 42, 'threshold': 2,
                     'iterations': 1000, 'set_number_of_bins': 50,
@@ -111,16 +125,21 @@ def parser_function(argv):
                     'informative_cutoff': 0.2, 'crossover_probability': 0.5,
                     'mutation_probability': 0.4, 'elitism_parameter': 0.8,
                     'mutation_strategy': "Regular",
-                    'set_threshold': 0, 'evolving_probability': 1,
+                    'set_threshold': 0, 'evolving_probability': 1.0,
                     'min_threshold': 0, 'max_threshold': 3, 'merge_probability': 0.0,
                     'adaptable_threshold': True,
                     'scoring_method': "log_rank"}
 
     for key, value in default_dict.items():
-        parser.add_argument('--' + key.replace('_', '-'), nargs='?', default=value, type=type(value))
+        parser.add_argument('--' + key.replace('_', '-'), nargs='?', default=value)
 
     args, unknown = parser.parse_known_args(argv[1:])
     parse_dict = vars(args)
+    for key in parse_dict:
+        if type(default_dict[key]) != bool:
+            parse_dict[key] = type(default_dict[key])(parse_dict[key])
+        else:
+            parse_dict[key] = eval(parse_dict[key])
     return parse_dict
 
 

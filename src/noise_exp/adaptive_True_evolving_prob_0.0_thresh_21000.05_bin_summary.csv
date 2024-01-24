@@ -1,0 +1,8 @@
+,0
+Bin #,Bin 1
+Top Bin of Features:,"['P_10', 'P_1', 'P_5', 'P_9', 'P_4', 'P_3', 'P_6', 'P_7', 'P_2']"
+Log-Rank Score,3736.60793160728
+Number of Instances with No Mismatches in Bin:,5000
+Number of Instances with Mismatch(es) in Bin:,5000
+p-value from Log Rank Test:,0.0
+Threshold,2

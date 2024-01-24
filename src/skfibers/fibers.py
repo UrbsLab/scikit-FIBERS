@@ -339,32 +339,34 @@ class FIBERS(BaseEstimator, TransformerMixin):
         else:
             raise Exception("Unknown Algorithm")
 
-    def predict(self, x):
+    def predict(self, x, bin_order=0):
         """
         Function to predict risk on the basis of top OR bin.
 
         :param x: array-like {n_samples, n_features} Transform instances.
                 ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
+        :param bin_order: the top nth bin to consider
         :return: y: prediction of risk stratification
         """
         if not self.hasTrained:
             raise Exception("Model must be trained first")
-        _, _, _, _, top_bin = self.get_duration_event(bin_order=0)
+        _, _, _, _, top_bin = self.get_duration_event(bin_order)
         top_or_rule = self.bins[top_bin]
         # check each column if 
         return (x[top_or_rule].sum(axis=1) > self.bins[top_bin].get_threshold()).astype(int)
 
-    def score(self, x, y):
+    def score(self, x, y, bin_order=0):
         """
 
         :param x: array-like {n_samples, n_features} Transform instances.
                 ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
         :param y: True Risk Group, y_true
+        :param bin_order use top nth bin
         :return: accuracy score of the risk stratification.
         """
         if not self.hasTrained:
             raise Exception("Model must be fit first")
-        y_pred = self.predict(x)
+        y_pred = self.predict(x, bin_order)
         return accuracy_score(y, y_pred)
 
     def classification_report(self, x, y, prin=False, save=None):
