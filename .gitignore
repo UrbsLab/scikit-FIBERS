@@ -41,9 +41,7 @@ data/
 src/Data1.csv
 sampledata.csv
 src/sampledata.csv
-src/run_history/
 src/run_history_old/
-src/run_history*
 src/old*
 
 
