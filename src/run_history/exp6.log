@@ -1,0 +1,33 @@
+Run Params:
+{'save_folder': 'run_history/', 'number_of_instances': 10000, 'number_of_features': 100, 'number_of_features_in_bin': 10, 'no_fail_proportion': 0.5, 'noise_frequency': 0.0, 'censoring_frequency': 0.5, 'random_seed': 42, 'threshold': 1, 'iterations': 1000, 'set_number_of_bins': 50, 'min_features_per_group': 2, 'max_number_of_groups_with_feature': 4, 'informative_cutoff': 0.2, 'crossover_probability': 0.5, 'mutation_probability': 0.4, 'elitism_parameter': 0.8, 'mutation_strategy': 'Simple', 'set_threshold': 0, 'evolving_probability': 0.0, 'min_threshold': 0, 'max_threshold': 3, 'merge_probability': 0.0, 'adaptable_threshold': True, 'scoring_method': 'log_rank'}
+                                                                                                0
+Bin #                                                                                       Bin 1
+Top Bin of Features:                            ['P_5', 'P_9', 'P_6', 'P_3', 'P_2', 'P_1', 'P_...
+Log-Rank Score                                                                         5497.67814
+Number of Instances with No Mismatches in Bin:                                               5000
+Number of Instances with Mismatch(es) in Bin:                                                5000
+p-value from Log Rank Test:                                                                   0.0
+Threshold                                                                                       1
+    Bin #       Score  ... High Risk Ratio  Accuracy
+0   Bin 1  5497.67814  ...             0.5       1.0
+1   Bin 2  5497.67814  ...             0.5       1.0
+2   Bin 3  5497.67814  ...             0.5       1.0
+3   Bin 4  5497.67814  ...             0.5       1.0
+4   Bin 5  5497.67814  ...             0.5       1.0
+5   Bin 6  5497.67814  ...             0.5       1.0
+6   Bin 7  5497.67814  ...             0.5       1.0
+7   Bin 8  5497.67814  ...             0.5       1.0
+8   Bin 9  5497.67814  ...             0.5       1.0
+9  Bin 10  5497.67814  ...             0.5       1.0
+
+[10 rows x 6 columns]
+Accuracy:  1.0
+              precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00      5000
+           1       1.00      1.00      1.00      5000
+
+    accuracy                           1.00     10000
+   macro avg       1.00      1.00      1.00     10000
+weighted avg       1.00      1.00      1.00     10000
+
