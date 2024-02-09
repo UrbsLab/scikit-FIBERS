@@ -255,20 +255,25 @@ class FIBERS(BaseEstimator, TransformerMixin):
             # GENETIC ALGORITHM 
             target_offspring_count = int(self.pop_size*self.new_gen) #Determine number of offspring to generate
             while len(self.set.bin_pop) < self.pop_size + target_offspring_count: #Generate offspring until we hit the target number
+                print(len(self.set.bin_pop))
                 # Parent Selection
                 parent_list = self.set.select_parent_pair(self.tournament_prop,self.random_seed)
 
-                # Generate Offspring - clone, crossover, mutation, evaluation
+                # Generate Offspring - clone, crossover, mutation, evaluation, add to population
                 self.set.generate_offspring(self.crossover_prob,self.mutation_prob,iteration,parent_list,self.feature_names,
-                                            threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,self.random_seed)
-
-                # Add Offspring to Population
-        
-        
+                                            threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,
+                                            self.max_thresh,self.feature_df,self.outcome_df,self.censor_df,self.outcome_type,
+                                            self.fitness_metric,self.outcome_label,self.censor_label,self.int_thresh,self.group_thresh,self.random_seed)
             #Bin Deletion
+            if iteration == self.iterations - 1: #Last iteration
+            
+            else:
+                self.set.bin_deletion_probabilistic(self.pop_size)
         
         #Final bin population fitness evaluation (using deterministic adaptive thresholding)
+        #last iteration deletion should be deterministic
 
+        #add code to generate performance tracking of top bin over iterations
 
         print('Made it')
    
