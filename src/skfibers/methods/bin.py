@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
+import copy
 from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
 from scipy.stats import ranksums
@@ -18,20 +19,90 @@ class BIN:
         self.birth_iteration = None
 
 
-    def offspring_initialize(self):
-        self.fitness = None
-        self.metric = None
-        self.bin_size = None
-        self.group_strata_prop = None
-        self.low_risk_count = None
-        self.high_risk_count = None
-        self.birth_iteration = None
+    def copy_parent(self,parent,iteration):
+        #Attributes cloned from parent
+        self.feature_list = sorted(copy.deepcopy(parent.feature_list)) #sorting is for feature list comparison
+        self.group_threshold = copy.deepcopy(parent.group_threshold)
+        self.birth_iteration = iteration
+
+    def uniform_crossover(self,other_offspring,crossover_prob,threshold_evolving,random_seed):
+        #create list of feature names unique to one list or another
+        random.seed(random_seed)  
+
+        # Convert lists to sets for efficient set operations
+        set1 = set(self.feature_list)
+        set2 = set(other_offspring.feature_list)
+        
+        # Find elements unique to list1 and list2
+        unique_to_list1 = set1 - set2
+        unique_to_list2 = set2 - set1
+
+        # Combine unique elements from both lists
+        unique_features = list(unique_to_list1.union(unique_to_list2))
+
+        for feature in unique_features:
+            if random.random() < crossover_prob:
+                if feature in self.feature_list:
+                    self.feature_list.remove(feature)
+                    other_offspring.feature_list.append(feature)
+                else:
+                    other_offspring.feature_list.remove(feature)
+                    self.feature_list.append(feature)
+
+        # Apply crossover to thresholding if threshold_evolving
+        if threshold_evolving:
+            if random.random() < crossover_prob:
+                temp = self.group_threshold
+                self.group_threshold = other_offspring.group_threshold
+                other_offspring.group_threshold = temp
+
+
+    def mutation(self,mutation_prob,feature_names,min_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random_seed):
+
+        random.seed(random_seed) 
+
+        if len(self.feature_list) == 0: #Initialize new bin if empty after crossover
+            feature_count = random.randint(min_bin_size,max_bin_init_size)
+            self.feature_list = random.sample(feature_names,feature_count)
+
+        elif len(self.feature_list) == 1: # Addition and Swap Only (to avoid empy bins)
+            for feature in self.feature_list:
+                if random.random() < mutation_prob:
+                    other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                    random_feature = random.choice(other_features)
+                    if random.random() < 0.5: # Swap
+                        self.feature_list.remove(feature)
+                        self.feature_list.append(random_feature)
+                    else: # Addition
+                        self.feature_list.append(random_feature)
+
+        else: # Addition, Deletion, or Swap 
+            for feature in self.feature_list:
+                if random.random() < mutation_prob:
+                    other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                    random_feature = random.choice(other_features)
+                    random_num = random.random()
+                    if random_num < 0.333: # Swap
+                        self.feature_list.remove(feature)
+                        self.feature_list.append(random_feature)
+                    elif random_num >= 0.333 and random_num < 0.666: # Addition
+                        self.feature_list.append(random_feature)
+                    else: # Deletion
+                        self.feature_list.remove(feature)
+
+        # Apply crossover to thresholding if threshold_evolving
+        if threshold_evolving:
+            if random.random() < mutation_prob:
+                thresh_count = random.randint(min_thresh,max_thresh)
+                other_thresh = [value for value in thresh_count if value != self.group_threshold] #pick a feature not already in the bin
+                random_thresh = random.choice(other_thresh)
+                self.group_threshold = random_thresh
 
 
     def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,random_seed):
         self.birth_iteration = 0
         # Initialize features in bin
-        random.seed(random_seed)  # You can change the seed value as desired
+        random.seed(random_seed)  
         feature_count = random.randint(min_bin_size,max_bin_init_size)
         self.feature_list = random.sample(feature_names,feature_count)
         self.bin_size = len(self.feature_list)
@@ -62,7 +133,6 @@ class BIN:
                     best_score = score
         else: #Use the given group threshold to evaluate the bin
             score = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,self.group_threshold)
-
         self.metric = score
 
 
@@ -78,7 +148,6 @@ class BIN:
         self.low_risk_count = len(low_outcome)
         self.high_risk_count = len(high_outcome)
  
-
         # Apply selected evaluation strategy/metric
         if outcome_type == 'survival':
             if fitness_metric == 'log_rank':
@@ -92,9 +161,7 @@ class BIN:
             print("Classification not yet implemented")
         else:
             print("Specified outcome_type not supported")
-
         return score
-
 
     def calculate_fitness(self,pareto_fitness,group_strata_min,penalty):
         if pareto_fitness: #Apply pareto-front-based multi-objective fitness
