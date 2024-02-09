@@ -1,8 +1,0 @@
-,0
-Bin #,Bin 1
-Top Bin of Features:,"['R_298', 'R_102', 'R_489', 'R_30', 'R_404', 'R_295', 'R_217', 'R_509', 'R_100', 'R_11', 'R_548', 'R_264', 'R_563', 'R_444', 'R_312', 'R_422', 'R_393', 'R_481', 'R_369', 'R_149', 'R_154', 'R_83', 'R_45']"
-Log-Rank Score,0
-Number of Instances with No Mismatches in Bin:,0
-Number of Instances with Mismatch(es) in Bin:,10000
-p-value from Log Rank Test:,
-Threshold,0

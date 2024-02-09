@@ -1,191 +1,175 @@
-import numpy as np
+#import numpy as np
 import pandas as pd
-from lifelines import KaplanMeierFitter
-from lifelines.statistics import logrank_test
+import random
+
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.metrics import classification_report, accuracy_score
-from .methods.algorithms import fibers_algorithm
-from matplotlib import pyplot as plt
-import seaborn as sns
+from .methods.data_handling import prepare_data
+from .methods.data_handling import calculate_residuals
+from .methods.population import BIN_SET
 
-sns.set_theme(font="Times New Roman")
+from tqdm import tqdm
 
+#from sklearn.metrics import classification_report, accuracy_score
+#from lifelines.statistics import logrank_test
+#from lifelines import KaplanMeierFitter
+#from .methods.algorithms import fibers_algorithm
+#from matplotlib import pyplot as plt
+#import seaborn as sns
+#sns.set_theme(font="Times New Roman")
 
 class FIBERS(BaseEstimator, TransformerMixin):
-    def __init__(self, label_name="Class", duration_name="Duration",
-                 given_starting_point=False, start_point_feature_list=None, feature_bins_start_point=None,
-                 iterations=1000, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=4,
-                 informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.4, elitism_parameter=0.8,
-                 mutation_strategy="Regular", random_seed=None, set_threshold=0, evolving_probability=1,
-                 min_threshold=0, max_threshold=3, merge_probability=0.0, adaptable_threshold=False, covariates=None,
-                 scoring_method="log_rank"):
-        """
-        A Scikit-Learn compatible framework for the FIBERS Algorithm.
+    def __init__(self, outcome_label="Duration", outcome_type="survival",iterations=1000,
+                    pop_size = 50, crossover_prob=0.5, mutation_prob=0.05, new_gen=1.0, min_bin_size=1, max_bin_init_size=10,
+                    fitness_metric="log_rank", pareto_fitness=False, censor_label="Censoring", group_strata_min=0.2, penalty=0.5,
+                    group_thresh=0, min_thresh=0, max_thresh=3, int_thresh=True, thresh_evolve_prob=0.5,
+                    manual_bin_init=None, covariates=None, random_seed=None):
 
-        :param label_name: label for the class/endpoint column in the dataset (e.g., 'Class')
-        :param duration_name: label to omit extra column in the dataset
-        :param given_starting_point: whether or not expert knowledge is being inputted (True or False)
-        :param start_point_feature_list: if FIBERS is starting with expert knowledge, input the list
-               of features here; otherwise None
-        :param feature_bins_start_point: if FIBERS is starting with expert knowledge, input the list of bins of
-               features here; otherwise None
+        """
+        A Scikit-Learn compatible implementation of the FIBERS Algorithm.
+        #General Parameters:
+        :param outcome_label: label indicating the outcome column in the dataset (e.g. 'SurvivalTime', 'Class')
+        :param outcome_type: defines the type of outcome in the dataset ['survival','class']
         :param iterations: the number of evolutionary cycles FIBERS will run
-        :param set_number_of_bins: the population size of candidate bins
-        :param min_features_per_group: the minimum number of features in a bin
-        :param max_number_of_groups_with_feature: the maximum number of bins containing a feature
-        :param crossover_probability: the probability of each feature in an offspring bin to crossover
-               to the paired offspring bin (recommendation: 0.5 to 0.8)
-        :param mutation_probability: the probability of each feature in a bin to be deleted (a proportionate
-               probability is automatically applied on each feature outside the bin to be added
-               (recommendation: 0.05 to 0.5 depending on situation and number of iterations run)
-        :param elitism_parameter: the proportion of elite bins in the current generation to be
-               preserved for the next evolutionary cycle (recommendation: 0.2 to 0.8
-               depending on conservativeness of approach and number of iterations run)
+        :param pop_size: the maximum bin population size
+        :param crossover_prob: the probability of each specified feature in a pair of offspring bins to swap between bins
+        :param mutation_prob: the probability of further offspring bin modification (i.e. feature addition, removal or swap)
+        :param new_gen: proportion that determines the number of offspring generated each iteration based new_gen*pop_size
+        :param min_bin_size: minimum number of features to be specified within a bin
+        :param max_bin_init_size: maximum number of features within initialized bins
+        :param fitness_metric: the fitness metric used by FIBERS to evaluate candidate bins ['log_rank','residuals','aic']
+        :param pareto_fitness: boolean determining whether multi-objective pareto-front-based fitness is utilized combining fitness_metric and bin simplicity as objectives)
+
+        #Survival Analysis Parameters:
+        :param censor_label: label indicating the censoring column in the datasets (e.g. 'Censoring')
+        :param group_strata_min: the minimum cuttoff for risk group sizes (instance count) below which bins have fitness penalizaiton applied
+        :param penalty: the penalty multiplier applied to the fitness of bins that go beneith the group_strata_min
+        :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the high-risk group
+
+        #Adaptive Bin Threshold Parameters:
+        :param min_thresh: for adaptive bin thresholding - the minimum group_thresh allowed
+        :param max_thresh: for adaptive bin thresholding - the maximum group_thresh allowed
+        :param int_thresh: boolean indicating that adaptive bin thresholds are limited to positive intergers
+        :param thresh_evolve_prob: probability that adaptive bin thresholding will evolve vs. be selected for the bin deterministically
+
+        #Manual Bin Initialization Parameters:
+        :param manual_bin_init: a dictionary giving bin-name:feature list to manually initialize the bin populaExceptiontion with a specific population of bins
+
+        #Covariate Adjustment Parameters:
+        :param covariates: list of feature names in the data to be treated as covariates (not included in binning)
+
+        #Other Parameters
         :param random_seed: the seed value needed to generate a random number
-        :param covariates:
-        :param scoring_method:
         """
+        #Basic run parameter checks
+        if not isinstance(outcome_label,str):
+            raise Exception("'outcome_label' param must be a str")
+        
+        if outcome_type!="survival" and not outcome_type!="class":
+            raise Exception("'outcome_type' param can only have values of 'survival' or 'class'")
+        
+        if not self.check_is_int(iterations) or iterations < 0:
+            raise Exception("'iterations' param must be a non-negative integer")
 
-        algorithm = "FIBERS"
-        if algorithm not in ["FIBERS"]:
-            raise Exception("Invalid Algorithm")
+        if not self.check_is_int(pop_size) or pop_size < 10:
+            raise Exception("'pop_size' param must be non-negative integer larger than 10")
 
-        if not self.check_is_int(iterations):
-            raise Exception("iterations param must be non-negative integer")
+        if not self.check_is_float(crossover_prob) or crossover_prob < 0 or crossover_prob > 1:
+            raise Exception("'crossover_prob' param must be float from 0 - 1")
 
-        if iterations < 0:
-            raise Exception("iterations param must be non-negative integer")
+        if not self.check_is_float(mutation_prob) or mutation_prob < 0 or mutation_prob > 1:
+            raise Exception("'mutation_prob' param must be float from 0 - 1")
 
-        # set_number_of_bins
-        if not self.check_is_int(set_number_of_bins):
-            raise Exception("set_number_of_bins param must be non-negative integer")
+        if not self.check_is_float(new_gen) or new_gen < 0 or new_gen > 1:
+            raise Exception("'new_gen' param must be float from 0 - 1")
+        
+        if not self.check_is_int(min_bin_size) or min_bin_size < 0:
+            raise Exception("'min_bin_size' param must be non-negative integer (and no larger then the number of features in the dataset)")
 
-        if set_number_of_bins < 1:
-            raise Exception("set_number_of_bins param must be non-negative integer 1 or greater")
+        if not self.check_is_int(max_bin_init_size) or max_bin_init_size < 0:
+            raise Exception("'max_bin_init_size' param must be non-negative integer (and no larger then the number of features in the dataset)")
 
-        # min_features_per_group
-        if not self.check_is_int(min_features_per_group):
-            raise Exception("min_features_per_group param must be non-negative integer")
+        if fitness_metric!="log_rank" and fitness_metric!="residuals" and fitness_metric!="aic":
+            raise Exception("'fitness_metric' param can only have values of 'log_rank', 'residuals', or 'aic'")
+        
+        if fitness_metric == "residuals" or fitness_metric == "aic":
+            if covariates == None:
+                raise Exception("list of covariates must be specified when fitness_metric is 'residuals' or 'aic'")
 
-        if min_features_per_group < 0:
-            raise Exception("min_features_per_group param must be non-negative integer")
+        if not pareto_fitness == True and not pareto_fitness == False and not pareto_fitness == 'True' and not pareto_fitness == 'False':
+            raise Exception("'pareto_fitness' param must be a boolean, i.e. True or False")
 
-        # max_number_of_groups_with_feature
-        if not self.check_is_int(max_number_of_groups_with_feature):
-            raise Exception("max_number_of_groups_with_feature param must be non-negative integer")
+        if not isinstance(censor_label,str) and censor_label != None:
+            raise Exception("'censor_label' param must be a str or None")
+        
+        if not self.check_is_float(group_strata_min) or group_strata_min < 0 or group_strata_min > 0.5:
+            raise Exception("'group_strata_min' param must be float from 0 - 0.5")
 
-        if max_number_of_groups_with_feature < 0:
-            raise Exception("max_number_of_groups_with_feature param must be non-negative integer")
+        if not self.check_is_float(penalty) and not self.check_is_int(penalty):
+            raise Exception("'penalty' param must be an int or float from 0 - 1")
+        if penalty < 0 or penalty > 1:
+            raise Exception("'penalty' param must be an int or float from 0 - 1")
 
-        if max_number_of_groups_with_feature > set_number_of_bins:
-            raise Exception(
-                "max_number_of_groups_with_feature must be less than or equal to population size of candidate bins")
+        if not self.check_is_int(group_thresh) and not self.check_is_float(group_thresh) and group_thresh != None:
+            raise Exception("'group_thresh' param must be a non-negative int or float, or None, for adaptive thresholding")
+        if group_thresh < 0: 
+            raise Exception("'group_thresh' param must be a non-negative int or float, or None, for adaptive thresholding")
+        
+        if not self.check_is_int(min_thresh) and not self.check_is_float(min_thresh) or min_thresh < 0:
+            raise Exception("'min_thresh' param must be a non-negative int or float")
 
-        # informative_cutoff
-        if not self.check_is_float(informative_cutoff):
-            raise Exception("informative_cutoff param must be float from 0 - 0.5")
+        if not self.check_is_int(max_thresh) and not self.check_is_float(max_thresh) or max_thresh < 0 or max_thresh <= min_thresh:
+            raise Exception("'max_thresh' param must be a non-negative int or float")
+        if max_thresh <= min_thresh:
+            raise Exception("'max_thresh' param must be larger than min_thresh param")
+        
+        if not int_thresh == True and not int_thresh == False and not int_thresh == 'True' and not int_thresh == 'False':
+            raise Exception("'int_thresh' param must be a boolean, i.e. True or False")
 
-        if informative_cutoff < 0 or informative_cutoff > 0.5:
-            raise Exception("informative_cutoff param must be float from 0 - 0.5")
+        if not self.check_is_float(thresh_evolve_prob) and not self.check_is_int(thresh_evolve_prob):
+            raise Exception("'thresh_evolve_prob' param must be an int or float from 0 - 1")
+        if thresh_evolve_prob < 0 or thresh_evolve_prob > 1:
+            raise Exception("'thresh_evolve_prob' param must be an int or float from 0 - 1")
+        
+        if not self.check_is_list(manual_bin_init) and not manual_bin_init == None:
+            raise Exception("'manual_bin_init' param must be either None or a list of feature name lists")
+        
+        if not self.check_is_list(covariates) and not covariates == None:
+                raise Exception("'covariates' param must be either None or a list of feature names")
 
-        # crossover_probability
-        if not self.check_is_float(crossover_probability):
-            raise Exception("crossover_probability param must be float from 0 - 1")
-
-        if crossover_probability < 0 or crossover_probability > 1:
-            raise Exception("crossover_probability param must be float from 0 - 1")
-
-        # mutation_probability
-        if not self.check_is_float(mutation_probability):
-            raise Exception("mutation_probability param must be float from 0 - 1")
-
-        if mutation_probability < 0 or mutation_probability > 1:
-            raise Exception("mutation_probability param must be float from 0 - 1")
-
-        # merge probability
-        if merge_probability < 0 or merge_probability > 1:
-            raise Exception("merge_probability param must be float from 0 - 1")
-
-        # elitism_parameter
-        if not self.check_is_float(elitism_parameter):
-            raise Exception("elitism_parameter param must be float from 0 - 1")
-
-        if elitism_parameter < 0 or elitism_parameter > 1:
-            raise Exception("elitism_parameter param must be float from 0 - 1")
-
-        # given_starting_point
-        if not (isinstance(given_starting_point, bool)):
-            raise Exception("given_starting_point param must be boolean True or False")
-        elif given_starting_point:
-            if start_point_feature_list is None or feature_bins_start_point is None:
-                raise Exception(
-                    "amino_acid_start_point param and amino_acid_bins_start_point param must be a list if expert "
-                    "knowledge is being inputted")
-            elif not (isinstance(start_point_feature_list, list)):
-                raise Exception("amino_acid_start_point param must be a list")
-            elif not (isinstance(feature_bins_start_point, list)):
-                raise Exception("amino_acid_bins_start_point param must be a list")
-
-        # label_name
-        if not (isinstance(label_name, str)):
-            raise Exception("label_name param must be str")
-
-        # threshold
-        if set_threshold < 0:
-            raise Exception("threshold param must not be negative")
-
-        # min and max threshold
-        if max_threshold < min_threshold:
-            raise Exception("min threshold must be less than or equal to max_threshold")
-
-        self.algorithm = algorithm
-        self.given_starting_point = given_starting_point
-        self.start_point_feature_list = start_point_feature_list
-        self.feature_bins_start_point = feature_bins_start_point
+        if not self.check_is_int(random_seed) and not random_seed == None:
+            raise Exception("'random_seed' param must be an int")
+        
+        #Initialize global variables
+        self.outcome_label = outcome_label
+        self.outcome_type = outcome_type
         self.iterations = iterations
-        self.label_name = label_name
-        self.duration_name = duration_name
-        self.set_number_of_bins = set_number_of_bins
-        self.min_features_per_group = min_features_per_group
-        self.max_number_of_groups_with_feature = max_number_of_groups_with_feature
-        self.informative_cutoff = informative_cutoff
-        self.crossover_probability = crossover_probability
-        self.mutation_probability = mutation_probability
-        self.elitism_parameter = elitism_parameter
-        self.mutation_strategy = mutation_strategy
-        self.random_seed = random_seed
-        self.reboot_filename = None
-        self.original_feature_matrix = None
-        self.threshold = set_threshold
-        self.evolving_probability = evolving_probability
-        self.max_threshold = max_threshold
-        self.min_threshold = min_threshold
-        self.merge_probability = merge_probability
-        self.adaptable_threshold = adaptable_threshold
-        if covariates is None:
-            covariates = list()
+        self.pop_size = pop_size
+        self.crossover_prob = crossover_prob
+        self.mutation_prob = mutation_prob 
+        self.new_gen = new_gen
+        self.min_bin_size = min_bin_size
+        self.max_bin_init_size = max_bin_init_size
+        self.fitness_metric = fitness_metric
+        self.pareto_fitness = pareto_fitness
+        self.censor_label = censor_label
+        self.group_strata_min = group_strata_min
+        self.penalty = penalty
+        self.group_thresh = group_thresh
+        self.min_thresh = min_thresh 
+        self.max_thresh = max_thresh 
+        self.int_thresh = int_thresh
+        self.thresh_evolve_prob = thresh_evolve_prob
+        self.manual_bin_init = manual_bin_init
         self.covariates = covariates
-        self.scoring_method = scoring_method
+        self.random_seed = random_seed
+        if self.covariates is None:
+            self.covariates = list()
 
-        # Reboot Population
-        if self.reboot_filename is not None:
-            self.reboot_population()
-            self.hasTrained = True
-        else:
-            self.iterationCount = 0
-
-        self.hasTrained = False
-        self.bin_feature_matrix = None
-        self.bins = None
-        self.bin_scores = None
-        self.maf_0_features = None
-
-    def reboot_population(self):
-        """
-        Function to Reboot Population, not Implemented
-        :meta private:
-        """
-        raise NotImplementedError
+        #self.hasTrained = False
+        #self.bin_feature_matrix = None
+        #self.bins = None
+        #self.bin_scores = None
+        #self.maf_0_features = None
 
     @staticmethod
     def check_is_int(num):
@@ -201,45 +185,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
         """
         return isinstance(num, float)
 
-    def check_x_y(self, x, y):
+    @staticmethod
+    def check_is_list(num):
         """
-        Function to check if x and y input to fit are valid.
-        Functionality to support input as both just X as a dataframe
-        similar to lifelines package
-        x and y similar to scikit survival.
-
         :meta private:
         """
-        if y is None:
-            if not (isinstance(x, pd.DataFrame)):
-                raise Exception("x must be pandas dataframe")
-            if not ((self.label_name in x.columns) or (self.duration_name not in x.columns)):
-                raise Exception("x must have column labels as specified")
-            original_feature_matrix = x
-        else:
-            if not (isinstance(x, pd.DataFrame)):
-                raise Exception("x must be pandas dataframe")
-            if not ((self.label_name in x.columns) or (self.duration_name not in x.columns)):
-                labels = pd.DataFrame(y, columns=[self.label_name, self.duration_name])
-                original_feature_matrix = pd.concat([x, labels], axis=1)
-            else:
-                original_feature_matrix = x
-
-        # Check if original_feature_matrix and y are numeric
-        try:
-            original_feature_matrix.copy() \
-                .apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
-        except Exception:
-            raise Exception("X must be fully numeric")
-
-        if not (self.label_name in original_feature_matrix.columns):
-            raise Exception("label_name param must be a column in the dataset")
-
-        if not (self.duration_name in original_feature_matrix.columns):
-            raise Exception("duration_name param must be a column in the dataset")
-
-        return original_feature_matrix
-
+        return isinstance(num, list)
+ 
     def fit(self, x, y=None):
         """
         Scikit-learn required function for Supervised training of FIBERS
@@ -255,24 +207,63 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         :return: self
         """
-        original_feature_matrix = self.check_x_y(x, y)
-        if self.algorithm == "FIBERS":
-            self.fibers_fit(original_feature_matrix)
-            return self
+        
+        self.df = self.check_x_y(x, y)
+        print("Data Shape: "+str(self.df.shape))
+
+        # PREPARE DATA ---------------------------------------
+        self.feature_df,self.outcome_df,self.censor_df,self.covariate_df = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
+
+        # Calculate residuals for covariate adjustment
+        if self.fitness_metric == "residuals":
+            self.residuals = calculate_residuals(self.covariate_df,self.outcome_label,self.censor_label)
         else:
-            raise Exception("Unknown Algorithm")
+            self.residuals = None
 
-    def fibers_fit(self, original_feature_matrix):
+        # Make feature dataframe without covariates
+        self.feature_df = self.feature_df.drop(self.covariates, axis=1)
+        print("Feature Data Shape: "+str(self.feature_df.shape))
+
+        # Creating a list of features
+        self.feature_names = list(self.feature_df.columns)
+        print(len(self.feature_names))
+
+
+        #Initialize bin population
+        threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
+        self.set = BIN_SET(self.manual_bin_init,self.feature_df,self.outcome_df,self.censor_df,self.feature_names,self.pop_size,
+                           self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
+                           self.int_thresh,self.outcome_type,self.fitness_metric,self.pareto_fitness,self.group_strata_min,
+                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.random_seed)
+        self.set.report_pop()
+
+        for i in tqdm(range(0, self.iterations)):
+            random.seed(self.random_seed)  # You can change the seed value as desired
+            evolve = random.random()
+            if self.group_thresh == None and self.thresh_evolve_prob > evolve:
+                threshold_evolving = True
+            else:
+                threshold_evolving = False
+
+
+        #self.feature_df,self.outcome_df,self.censor_df,self.covariate_df
+  
+
+
+        #Evolutionary learning iterations
+
+            #Fitness Evaluation
+
+            #Bin discovery
+        
+            #Bin deletion
+        
+        #Final bin population fitness evaluation (using deterministic adaptive thresholding)
+
+
+        print('Made it')
+   
         """
-        Scikit-learn required function for Supervised training of FIBERS
-
-        :param original_feature_matrix: array-like {n_samples, n_features} Training instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-        :return: self, bin_feature_matrix_internal, amino_acid_bins_internal, \
-            amino_acid_bin_scores_internal, maf_0_features
-        """
-        self.original_feature_matrix = original_feature_matrix
-
         bin_feature_matrix_internal, bins_internal, \
             bin_scores_internal, maf_0_features = \
             fibers_algorithm(
@@ -280,7 +271,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 self.start_point_feature_list,
                 self.feature_bins_start_point,
                 self.iterations,
-                self.original_feature_matrix,
+                self.original_data,
                 self.label_name,
                 self.duration_name,
                 self.set_number_of_bins,
@@ -307,6 +298,47 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.maf_0_features = maf_0_features
         self.hasTrained = True
         return self
+        """
+
+    def check_x_y(self, x, y):
+            """
+            Function to check if x and y input to fit are valid.
+            Functionality to support input as both just X as a dataframe
+            similar to lifelines package
+            x and y similar to scikit survival.
+
+            :meta private:
+            """
+            if y is None:
+                if not (isinstance(x, pd.DataFrame)):
+                    raise Exception("x must be pandas dataframe")
+                if not ((self.outcome_label in x.columns) or (self.censor_label not in x.columns)):
+                    raise Exception("x must have column labels as specified")
+                feature_df = x
+            else:
+                if not (isinstance(x, pd.DataFrame)):
+                    raise Exception("x must be pandas dataframe")
+                if not ((self.outcome_label in x.columns) or (self.censor_label not in x.columns)):
+                    labels = pd.DataFrame(y, columns=[self.outcome_label, self.censor_label])
+                    feature_df = pd.concat([x, labels], axis=1)
+                else:
+                    feature_df = x
+
+            # Check if original_feature_matrix and y are numeric
+            try:
+                feature_df.copy() \
+                    .apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
+            except Exception:
+                raise Exception("X must be fully numeric")
+
+            if not (self.outcome_label in feature_df.columns):
+                raise Exception("label_name param must be a column in the dataset")
+
+            if not (self.censor_label in feature_df.columns):
+                raise Exception("duration_name param must be a column in the dataset")
+
+            return feature_df
+
 
     def transform(self, x):
         """
@@ -322,7 +354,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not self.hasTrained:
             raise Exception("Model must be fit first")
 
-        # if not (self.original_feature_matrix.equals(original_feature_matrix)):
+        # if not (self.original_data.equals(original_feature_matrix)):
         #     raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
 
         if self.algorithm == "FIBERS":

@@ -1,7 +1,3 @@
-
-
-
-"""
 import matplotlib.pyplot as plt
 
 
@@ -16,4 +12,3 @@ def save_scatterplot(duration, residuals, plot_path=None, save=True, show=False)
     if show:
         plt.show()
     plt.close()
-"""
