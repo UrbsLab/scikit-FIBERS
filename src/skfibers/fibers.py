@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, outcome_label="Duration", outcome_type="survival",iterations=1000,
-                    pop_size = 50, crossover_prob=0.5, mutation_prob=0.05, new_gen=1.0, min_bin_size=1, max_bin_init_size=10,
+                    pop_size = 50, tournament_prop=0.5,crossover_prob=0.5, mutation_prob=0.1, new_gen=1.0, min_bin_size=1, max_bin_init_size=10,
                     fitness_metric="log_rank", pareto_fitness=False, censor_label="Censoring", group_strata_min=0.2, penalty=0.5,
                     group_thresh=0, min_thresh=0, max_thresh=3, int_thresh=True, thresh_evolve_prob=0.5,
                     manual_bin_init=None, covariates=None, random_seed=None):
@@ -31,6 +31,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param outcome_type: defines the type of outcome in the dataset ['survival','class']
         :param iterations: the number of evolutionary cycles FIBERS will run
         :param pop_size: the maximum bin population size
+        :param tournament_prop: the proportion of the popultion randomly selected for each parent pair selection
         :param crossover_prob: the probability of each specified feature in a pair of offspring bins to swap between bins
         :param mutation_prob: the probability of further offspring bin modification (i.e. feature addition, removal or swap)
         :param new_gen: proportion that determines the number of offspring generated each iteration based new_gen*pop_size
@@ -72,6 +73,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not self.check_is_int(pop_size) or pop_size < 10:
             raise Exception("'pop_size' param must be non-negative integer larger than 10")
+
+        if not self.check_is_float(tournament_prop) or tournament_prop < 0 or tournament_prop > 1:
+            raise Exception("'tournament_prop' param must be float from 0 - 1")
 
         if not self.check_is_float(crossover_prob) or crossover_prob < 0 or crossover_prob > 1:
             raise Exception("'crossover_prob' param must be float from 0 - 1")
@@ -144,6 +148,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.outcome_type = outcome_type
         self.iterations = iterations
         self.pop_size = pop_size
+        self.tournament_prop = tournament_prop
         self.crossover_prob = crossover_prob
         self.mutation_prob = mutation_prob 
         self.new_gen = new_gen
@@ -237,26 +242,30 @@ class FIBERS(BaseEstimator, TransformerMixin):
                            self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.random_seed)
         self.set.report_pop()
 
-        for i in tqdm(range(0, self.iterations)):
-            random.seed(self.random_seed)  # You can change the seed value as desired
-            evolve = random.random()
-            if self.group_thresh == None and self.thresh_evolve_prob > evolve:
-                threshold_evolving = True
+        #EVOLUTIONARY LEARNING ITERATIONS
+        random.seed(self.random_seed)  # You can change the seed value as desired
+        for iteration in tqdm(range(0, self.iterations)):
+            if self.group_thresh == None:
+                evolve = random.random()
+                if self.thresh_evolve_prob > evolve:
+                    threshold_evolving = True
             else:
                 threshold_evolving = False
 
+            # GENETIC ALGORITHM 
+            target_offspring_count = int(self.pop_size*self.new_gen) #Determine number of offspring to generate
+            while len(self.set.bin_pop) < self.pop_size + target_offspring_count: #Generate offspring until we hit the target number
+                # Parent Selection
+                parent_list = self.set.select_parent_pair(self.tournament_prop,self.random_seed)
 
-        #self.feature_df,self.outcome_df,self.censor_df,self.covariate_df
-  
+                # Generate Offspring - clone, crossover, mutation, evaluation
+                self.set.generate_offspring(self.crossover_prob,self.mutation_prob,iteration,parent_list,self.feature_names,
+                                            threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,self.random_seed)
 
-
-        #Evolutionary learning iterations
-
-            #Fitness Evaluation
-
-            #Bin discovery
+                # Add Offspring to Population
         
-            #Bin deletion
+        
+            #Bin Deletion
         
         #Final bin population fitness evaluation (using deterministic adaptive thresholding)
 
