@@ -1,114 +1,16 @@
 import numpy as np
-import pandas as pd
-import random
 from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
 from scipy.stats import ranksums
 
+
 class BIN:
-    def __init__(self):
-        self.feature_list = []
-        self.group_threshold = None
-        self.fitness = None
-        self.metric = None
-        self.bin_size = None
-        self.group_strata_prop = None
-        self.low_risk_count = None
-        self.high_risk_count = None
-        self.birth_iteration = None
-
-
-    def offspring_initialize(self):
-        self.fitness = None
-        self.metric = None
-        self.bin_size = None
-        self.group_strata_prop = None
-        self.low_risk_count = None
-        self.high_risk_count = None
-        self.birth_iteration = None
-
-
-    def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,random_seed):
-        self.birth_iteration = 0
-        # Initialize features in bin
-        random.seed(random_seed)  # You can change the seed value as desired
-        feature_count = random.randint(min_bin_size,max_bin_init_size)
-        self.feature_list = random.sample(feature_names,feature_count)
-        self.bin_size = len(self.feature_list)
-        if group_thresh != None:
-            self.group_threshold = group_thresh
-
-
-    def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,
-                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving):
-        # Sum instance values across features specified in the bin
-        feature_sums = feature_df[self.feature_list].sum(axis=1)
-        bin_df = pd.DataFrame({'feature_sum':feature_sums})
-        print("Bin Data Shape: "+str(bin_df.shape))
-
-        # Create evaluation dataframe including bin sum feature with 
-        bin_df = pd.concat([bin_df,outcome_df,censor_df],axis=1) #, ignore_index=True
-        print("Bin Data Shape2: "+str(bin_df.shape))
-        print(bin_df.head())
-
-        if group_thresh == None and not threshold_evolving: #Adaptive thresholding activated
-            # Select best threshold by evaluating all considered
-            best_score = 0
-            for threshold in range(min_thresh, max_thresh + 1):
-                score = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,threshold)
-                if score > best_score:
-                    self.metric = score
-                    self.group_threshold = threshold
-                    best_score = score
-        else: #Use the given group threshold to evaluate the bin
-            score = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,self.group_threshold)
-
-        self.metric = score
-
-
-    def evaluate_for_threshold(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,group_threshold):
-        #Create dataframes including instances from either high or low risk groups
-        low_df = bin_df[bin_df['feature_sum'] <= group_threshold]
-        high_df = bin_df[bin_df['feature_sum'] > group_threshold]
-
-        low_outcome = low_df[outcome_label].to_list()
-        high_outcome = high_df[outcome_label].to_list()
-        low_censor = low_df[censor_label].to_list()
-        high_censor =high_df[censor_label].to_list()
-        self.low_risk_count = len(low_outcome)
-        self.high_risk_count = len(high_outcome)
- 
-
-        # Apply selected evaluation strategy/metric
-        if outcome_type == 'survival':
-            if fitness_metric == 'log_rank':
-                results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor)
-                score = results.test_statistic #test all thresholds by default in initial pop.
-            if fitness_metric == 'residuals':
-                pass
-            if fitness_metric == 'aic':
-                pass
-        elif outcome_type == 'class':
-            print("Classification not yet implemented")
-        else:
-            print("Specified outcome_type not supported")
-
-        return score
-
-
-    def calculate_fitness(self,pareto_fitness,group_strata_min,penalty):
-        if pareto_fitness: #Apply pareto-front-based multi-objective fitness
-            print("Pareto-fitness has not yet been implemented")
-            pass
-        else:
-            # Penalize fitness if risk group counts are beyond minimum risk group strata parameter (Ryan Check below)
-            self.group_strata_prop = min(self.low_risk_count/(self.low_risk_count+self.high_risk_count),self.high_risk_count/(self.low_risk_count+self.high_risk_count))
-            if self.group_strata_prop < group_strata_min: 
-            #if self.low_risk_count > (group_strata_min * (self.low_risk_count + self.high_risk_count)) and self.high_risk_count > (group_strata_min * (self.low_risk_count + self.high_risk_count)):
-                self.fitness = penalty * self.metric
-            else:
-                self.fitness = self.metric
-
+    def __init__(self, feature_list, threshold=0, bin_name=None):
+        self.feature_list = feature_list
+        self.score = 0
+        self.threshold = threshold
+        self.seen = False
+        self.bin_name = bin_name
 
     def __iter__(self):
         self.index = 0
