@@ -1,6 +1,7 @@
-#import numpy as np
+import numpy as np
 import pandas as pd
 import random
+import time
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from .methods.data_handling import prepare_data
@@ -19,10 +20,10 @@ from tqdm import tqdm
 
 class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, outcome_label="Duration", outcome_type="survival",iterations=1000,
-                    pop_size = 50, tournament_prop=0.5,crossover_prob=0.5, mutation_prob=0.1, new_gen=1.0, min_bin_size=1, max_bin_init_size=10,
+                    pop_size = 50, tournament_prop=0.5,crossover_prob=0.5, mutation_prob=0.1, new_gen=1.0, elitism=0.1, min_bin_size=1, max_bin_init_size=10,
                     fitness_metric="log_rank", pareto_fitness=False, censor_label="Censoring", group_strata_min=0.2, penalty=0.5,
                     group_thresh=0, min_thresh=0, max_thresh=3, int_thresh=True, thresh_evolve_prob=0.5,
-                    manual_bin_init=None, covariates=None, random_seed=None):
+                    manual_bin_init=None, covariates=None, report=None, random_seed=None):
 
         """
         A Scikit-Learn compatible implementation of the FIBERS Algorithm.
@@ -35,6 +36,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param crossover_prob: the probability of each specified feature in a pair of offspring bins to swap between bins
         :param mutation_prob: the probability of further offspring bin modification (i.e. feature addition, removal or swap)
         :param new_gen: proportion that determines the number of offspring generated each iteration based new_gen*pop_size
+        :param elitism: proportion of pop_size that is protected from deletion each generation
         :param min_bin_size: minimum number of features to be specified within a bin
         :param max_bin_init_size: maximum number of features within initialized bins
         :param fitness_metric: the fitness metric used by FIBERS to evaluate candidate bins ['log_rank','residuals','aic']
@@ -59,6 +61,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param covariates: list of feature names in the data to be treated as covariates (not included in binning)
 
         #Other Parameters
+        :param report: list of integers, indicating iterations where the population will be printed out for viewing
         :param random_seed: the seed value needed to generate a random number
         """
         #Basic run parameter checks
@@ -85,6 +88,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not self.check_is_float(new_gen) or new_gen < 0 or new_gen > 1:
             raise Exception("'new_gen' param must be float from 0 - 1")
+        
+        if not self.check_is_float(elitism) or elitism < 0 or elitism > 1:
+            raise Exception("'elitism' param must be float from 0 - 1")
         
         if not self.check_is_int(min_bin_size) or min_bin_size < 0:
             raise Exception("'min_bin_size' param must be non-negative integer (and no larger then the number of features in the dataset)")
@@ -115,7 +121,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not self.check_is_int(group_thresh) and not self.check_is_float(group_thresh) and group_thresh != None:
             raise Exception("'group_thresh' param must be a non-negative int or float, or None, for adaptive thresholding")
-        if group_thresh < 0: 
+        if group_thresh != None and group_thresh < 0: 
             raise Exception("'group_thresh' param must be a non-negative int or float, or None, for adaptive thresholding")
         
         if not self.check_is_int(min_thresh) and not self.check_is_float(min_thresh) or min_thresh < 0:
@@ -140,8 +146,11 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not self.check_is_list(covariates) and not covariates == None:
                 raise Exception("'covariates' param must be either None or a list of feature names")
 
+        if not self.check_is_list(report) and not report == None:
+            raise Exception("'report' param must be an list of positive integers or None")
+        
         if not self.check_is_int(random_seed) and not random_seed == None:
-            raise Exception("'random_seed' param must be an int")
+            raise Exception("'random_seed' param must be an int or None")
         
         #Initialize global variables
         self.outcome_label = outcome_label
@@ -152,6 +161,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.crossover_prob = crossover_prob
         self.mutation_prob = mutation_prob 
         self.new_gen = new_gen
+        self.elitism = elitism
         self.min_bin_size = min_bin_size
         self.max_bin_init_size = max_bin_init_size
         self.fitness_metric = fitness_metric
@@ -166,15 +176,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.thresh_evolve_prob = thresh_evolve_prob
         self.manual_bin_init = manual_bin_init
         self.covariates = covariates
+        self.report = report
         self.random_seed = random_seed
         if self.covariates is None:
             self.covariates = list()
 
-        #self.hasTrained = False
-        #self.bin_feature_matrix = None
-        #self.bins = None
-        #self.bin_scores = None
-        #self.maf_0_features = None
+        self.hasTrained = False
+
 
     @staticmethod
     def check_is_int(num):
@@ -199,24 +207,24 @@ class FIBERS(BaseEstimator, TransformerMixin):
  
     def fit(self, x, y=None):
         """
-        Scikit-learn required function for Supervised training of FIBERS
+        Scikit-learn required function for supervised training of FIBERS
 
-        :param x: array-like {n_samples, n_features} Training instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-                OR array-like dataframe {n_samples, n_features} Training instances
-                with column name as given in label_name and duration_name.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN when y=None
+        :param x: array-like {n_samples, n_features} training instances.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE, and can include 'covariates'
+                OR array-like dataframe {n_samples, n_features} training instances that can include 'covariates'
+                and with column name as given by outcome_label and censor_label when y=None.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE 
 
         :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.
-                ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE
+                ALL INSTANCE OUTCOMES MUST BE NUMERIC NOT NAN OR OTHER TYPE
 
         :return: self
         """
-        
-        self.df = self.check_x_y(x, y)
-        print("Data Shape: "+str(self.df.shape))
+        self.start_time = time.time() # Record the start time
+        random.seed(self.random_seed) # Set random seed
 
         # PREPARE DATA ---------------------------------------
+        self.df = self.check_x_y(x, y)
         self.feature_df,self.outcome_df,self.censor_df,self.covariate_df = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
 
         # Calculate residuals for covariate adjustment
@@ -231,17 +239,22 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # Creating a list of features
         self.feature_names = list(self.feature_df.columns)
 
-
+        print("Beginning FIBERS Fit:")
         #Initialize bin population
         threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
         self.set = BIN_SET(self.manual_bin_init,self.feature_df,self.outcome_df,self.censor_df,self.feature_names,self.pop_size,
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.pareto_fitness,self.group_strata_min,
                            self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.random_seed)
-        self.set.report_pop()
+        
+        # Initialize training performance tracking
+        self.track_top_bin_performance(True,-1)
+
+        # Report initial population
+        if self.report != None and 0 in self.report: 
+            self.set.report_pop()
 
         #EVOLUTIONARY LEARNING ITERATIONS
-        random.seed(self.random_seed)  # You can change the seed value as desired
         for iteration in tqdm(range(0, self.iterations)):
             if self.group_thresh == None:
                 evolve = random.random()
@@ -266,19 +279,162 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
             #Bin Deletion
             if iteration == self.iterations - 1: #Last iteration
-                self.set.bin_deletion_deterministic(self.pop_size)
+                self.set.bin_deletion_deterministic(self.pop_size) # Elitism not needed
             else:
-                self.set.bin_deletion_probabilistic(self.pop_size)
+                self.set.bin_deletion_probabilistic(self.pop_size,self.elitism)
 
-            if iteration in [5,10,20,50]:
-                print("iteration: "+str(iteration))
-                self.set.report_pop()
+            # Training performance tracking
+            self.track_top_bin_performance(False,iteration)
 
-        self.set.report_pop()
-        #add code to generate performance tracking of top bin over iterations
+            # DEBUGGING FUNCTION - view the population at specified iterations during training
+            if self.report != None and iteration in self.report and iteration != 0:
+                print("ITERATION: "+str(iteration))
+                self.set.report_pop()    
+
+        #Output a final population report
+        if self.report != None: 
+            self.set.report_pop()
+
+        # Time keeping
+        end_time = time.time()
+        self.elapsed_time = end_time - self.start_time
 
         print('FIBERS Run Complete!')
+        print("Elapsed Time (sec): ", self.elapsed_time, "seconds")
+        print("Random Seed Check: "+ str(random.random()))
 
+        self.hasTrained = True
+        return self
+        # check evolve, work out random seed issue, make method to get what's needed for survival curves (ouside this?), implement Gehan-Breslow-Wilcoxon test alternative
+
+    def track_top_bin_performance(self,initialize,iteration):
+        current_time = time.time()
+        self.elapsed_time = current_time - self.start_time
+        self.set.bin_pop = sorted(self.set.bin_pop, key=lambda x: x.fitness,reverse=True)
+        top_bin = self.set.bin_pop[0]
+        if initialize:
+            self.top_perform_df = pd.DataFrame(columns=['Iteration','Top Bin', 'Threshold', 'Fitness', 'Metric', 'Bin Size', 'Group_Ratio', 
+                                                   'Low Risk Count', 'High Risk Count','Birth Iteration','Elapsed Time'])
+
+        tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold,top_bin.fitness,top_bin.metric,top_bin.bin_size,
+                        top_bin.group_strata_prop,top_bin.low_risk_count,top_bin.high_risk_count,top_bin.birth_iteration,self.elapsed_time]
+        # Add the row to the DataFrame
+        self.top_perform_df.loc[len(self.top_perform_df)] = tracking_values
+
+
+    def transform(self, x, y=None):
+        """
+        Scikit-learn required function for Supervised training of FIBERS
+
+        :param x: array-like {n_samples, n_features} training instances.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE, and can include 'covariates'
+                OR array-like dataframe {n_samples, n_features} training instances that can include 'covariates'
+                and with column name as given by outcome_label and censor_label when y=None.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE 
+
+        :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.
+                ALL INSTANCE OUTCOMES MUST BE NUMERIC NOT NAN OR OTHER TYPE
+        :return: Dataset transformed instances into bin-defined features (i.e. value sums of bin-specified features) as a pd.DataFrame
+        """
+        if not self.hasTrained:
+            raise Exception("Model must be fit first")
+
+        print("Beginning FIBERS Transform:")
+        # PREPARE DATA ---------------------------------------
+
+        self.df = self.check_x_y(x, y)
+        self.feature_df,self.outcome_df,self.censor_df,self.covariate_df = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
+        tdf = pd.DataFrame()
+
+        #Create transformed dataset
+        bin_count = 0
+        for bin in self.set.bin_pop: #for each bin in the population - apply it to creating a bin 'feature' in the dataset for each instance
+            # Sum instance values across features specified in the bin
+            feature_sums = self.feature_df[bin.feature_list].sum(axis=1)
+            tdf['Bin_'+str(bin_count)] = feature_sums
+            bin_count += 1
+
+        tdf = pd.concat([tdf,self.outcome_df,self.censor_df],axis=1)
+        return tdf
+
+
+    def predict(self, x, bin_number=None):
+        """
+        Function to predict risk on the basis of top OR bin.
+
+        :param x: array-like {n_samples, n_features} training instances.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE, and can include 'covariates'
+                OR array-like dataframe {n_samples, n_features} training instances that can include 'covariates'
+                and with column name as given by outcome_label and censor_label when y=None.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE 
+
+        :param bin_number: the top nth bin (0 is bin with highest fitness) to consider as the predictor, 
+                or if [None] uses a bin-population weighted voting scheme as the predictor
+
+        :return: y: prediction of group (0 or 1), e.g. risk group --> low vs. high
+        """
+        if not self.hasTrained:
+            raise Exception("Model must be trained first")
+
+        if not self.check_is_int(bin_number) and not bin_number == None:
+            raise Exception("'random_seed' param must be an int")
+        
+        print("Beginning FIBERS Predict:")
+        # PREPARE DATA ---------------------------------------
+        y = None
+        self.df = self.check_x_y(x, y)
+        if self.covariates:
+            try:
+                for covariate in self.covariates:
+                    feature_df = feature_df.drop(columns=covariate)
+            except:
+                pass
+        
+        # Make Predition
+        if bin_number != None: #Make prediction with single selected bin
+            # Sum instance values across features specified in the bin
+            feature_sums = self.df[self.set.bin_pop[bin_number].feature_list].sum(axis=1)
+            print("FIBERS Predict Complete:")
+            return (self.df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) > self.set.bin_pop[bin_number].group_threshold).astype(int).values
+        
+        else: #Make prediction using entire bin population (weighted voting scheme)
+            temp_df = pd.DataFrame()
+            bin_count = 0
+            for bin in self.set.bin_pop: #for each bin in the population 
+                # Sum instance values across features specified in the bin
+                feature_sums = self.feature_df[bin.feature_list].sum(axis=1)
+                temp_df['Bin_'+str(bin_count)] = feature_sums
+                bin_count += 1
+            
+            # Transform values greater than 0 to 1
+            transformed_df = temp_df.applymap(lambda x: 1 if x > 0 else x)
+
+            # Count
+            zero_vote = [0]*len(transformed_df) #votesum stored for each instance
+            one_vote = [0]*len(transformed_df) #votesum stored for each instance
+
+            # Iterate through each row of the DataFrame
+            row_count = 0
+            for index, row in transformed_df.iterrows():
+                bin_count = 0
+                # Iterate through each value in the row
+                for value in row:
+                    if value == 0:
+                        zero_vote[row_count] += self.set.bin_pop[bin_count].fitness
+                    elif value == 1:
+                        one_vote[row_count] += self.set.bin_pop[bin_count].fitness
+                    bin_count += 1
+                row_count += 1
+            # Convert votes into predictions
+            prediction_list = []
+            for i in range(0,len(zero_vote)):
+                if zero_vote[i] < one_vote[i]:
+                    prediction_list.append(1)
+                else:
+                    prediction_list.append(0)
+            print("FIBERS Predict Complete:")
+            return np.array(prediction_list) 
+    
 
     def check_x_y(self, x, y):
             """
@@ -304,7 +460,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 else:
                     feature_df = x
 
-            # Check if original_feature_matrix and y are numeric
+            # Check if original_feature_matrix and y are numeric (Ryan - extend to check if all values > 0)
             try:
                 feature_df.copy() \
                     .apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
@@ -319,136 +475,6 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
             return feature_df
 
-
-    def transform(self, x):
-        """
-        Scikit-learn required function for Supervised training of FIBERS
-
-        :param x: array-like {n_samples, n_features} Transform instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-
-        :return: Top Feature Bin Features as a pd.DataFrame
-        """
-        # x_new = self.check_x_y(x, y)
-
-        if not self.hasTrained:
-            raise Exception("Model must be fit first")
-
-        # if not (self.original_data.equals(original_feature_matrix)):
-        #     raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
-
-        if self.algorithm == "FIBERS":
-            sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
-            sorted_bin_list = list(sorted_bin_scores.keys())
-            tdf = pd.DataFrame()
-            try:
-                for i in range(len(sorted_bin_list)):
-                    tdf[sorted_bin_list[i]] = x[self.bins[sorted_bin_list[i]]].sum(axis=1)
-            except Exception as e:
-                print(e)
-                raise Exception("Bin Feature not present in dataset")
-            return tdf
-        else:
-            raise Exception("Unknown Algorithm")
-
-    def predict(self, x, bin_order=0):
-        """
-        Function to predict risk on the basis of top OR bin.
-
-        :param x: array-like {n_samples, n_features} Transform instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-        :param bin_order: the top nth bin to consider
-        :return: y: prediction of risk stratification
-        """
-        if not self.hasTrained:
-            raise Exception("Model must be trained first")
-        _, _, _, _, top_bin = self.get_duration_event(bin_order)
-        top_or_rule = self.bins[top_bin]
-        # check each column if 
-        return (x[top_or_rule].sum(axis=1) > self.bins[top_bin].get_threshold()).astype(int)
-
-    def score(self, x, y, bin_order=0):
-        """
-
-        :param x: array-like {n_samples, n_features} Transform instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-        :param y: True Risk Group, y_true
-        :param bin_order use top nth bin
-        :return: accuracy score of the risk stratification.
-        """
-        if not self.hasTrained:
-            raise Exception("Model must be fit first")
-        y_pred = self.predict(x, bin_order)
-        return accuracy_score(y, y_pred)
-
-    def classification_report(self, x, y, prin=False, save=None):
-        """
-        :meta private:
-        """
-        y_pred = self.predict(x)
-        report = classification_report(y, y_pred)
-        if prin:
-            print(report)
-        if save:
-            report = classification_report(y, y_pred, output_dict=True)
-            df = pd.DataFrame(report).transpose()
-            df.to_csv(save)
-        return report
-
-    def get_duration_event(self, bin_order=0):
-        """
-        :meta private:
-        """
-        if not self.hasTrained:
-            raise Exception("Model must be fit first")
-        # Ordering the bin scores from best to worst
-        # sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
-
-        sorted_bin_list = dict(sorted(self.bins.items(), key=lambda item: item[1], reverse=True))
-
-        threshold = list(sorted_bin_list.values())[bin_order].get_threshold()
-
-        sorted_bin_list = list(sorted_bin_list.keys())
-
-        top_bin = sorted_bin_list[bin_order]
-
-        df_0 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] <= threshold]  # SPHIA
-        df_1 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] > threshold]
-
-        durations_no = df_0[self.duration_name].to_list()
-        event_observed_no = df_0[self.label_name].to_list()
-        durations_mm = df_1[self.duration_name].to_list()
-        event_observed_mm = df_1[self.label_name].to_list()
-        return durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin
-
-    def get_bin_summary(self, prin=False, save=None, bin_order=0):
-        """
-        Function to print statistics summary of given bin
-
-        :param prin: flag to print statistics summary
-        :param save: filename to save statistics to or None to skip (default=None)
-        :param bin_order: bin index in sorted bins by log rank score (starts from 0, default=0)
-        :return: log_rank_results, summary_dataframe
-        """
-        if not self.hasTrained:
-            raise Exception("Model must be trained first")
-        # Ordering the bin scores from best to worst
-        durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event(bin_order)
-        results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
-                               event_observed_B=event_observed_mm)
-        columns = ["Bin #", "Top Bin of Features:", "Log-Rank Score",
-                   "Number of Instances with No Mismatches in Bin:",
-                   "Number of Instances with Mismatch(es) in Bin:", "p-value from Log Rank Test:", "Threshold"]
-        pdf = pd.DataFrame([[top_bin, self.bins[top_bin],
-                             self.bin_scores[top_bin], len(durations_no),
-                             len(durations_mm), results.p_value, self.bins[top_bin].get_threshold()]],
-                           columns=columns).T  # SPHIA
-        if prin or save is not None:
-            if prin:
-                print(pdf)
-            if save:
-                pdf.to_csv(save)
-        return results, pdf
 
     def get_bin_survival_plot(self, show=False, save=None, bin_order=0):
         """
@@ -479,47 +505,5 @@ class FIBERS(BaseEstimator, TransformerMixin):
             plt.savefig(save, dpi=1200, bbox_inches="tight")
             plt.close()
 
-    def get_bin_scores(self, save=None):
-        """
-        Function to get all bins and their corresponding log-rank scores
 
-        :param save: filename to save bins to or None to skip (default=None)
-        :return: pd.DataFrame of Bins and their corresponding log-rank scores.
-        """
-        bin_scores_sorted = sorted(self.bin_scores.items(),
-                                   key=lambda x: x[1], reverse=True)
-        bins_sorted = sorted(self.bins.items(),
-                             key=lambda x: len(x[1]), reverse=True)
 
-        bin_name_list, duration_mm_list, duration_no_list = list(), list(), list()
-
-        for i in range(len(bins_sorted)):
-            durations_no, durations_mm, \
-                event_observed_no, event_observed_mm, top_bin = self.get_duration_event(i)
-            duration_mm_list.append(len(durations_mm))
-            duration_no_list.append(len(durations_no))
-            bin_name_list.append(top_bin)
-        duration_mm_list = np.array(duration_mm_list)
-        duration_no_list = np.array(duration_no_list)
-        high_risk_ratio = list(duration_mm_list/(duration_no_list+duration_mm_list))
-        high_risk_tuple = list(zip(bin_name_list, high_risk_ratio))
-        tdf1 = pd.DataFrame(bin_scores_sorted, columns=['Bin #', 'Score'])
-        tdf2 = pd.DataFrame(bins_sorted, columns=['Bin #', 'Bins'])
-
-        tdf3 = tdf1.merge(tdf2, on='Bin #', how='inner', suffixes=('_1', '_2'))
-
-        tdf3['Threshold'] = tdf3.apply(lambda x: x['Bins'].get_threshold(), axis=1)  # Added column for threshold SPHIA
-
-        tdf4 = pd.DataFrame(high_risk_tuple, columns=['Bin #', 'High Risk Ratio'])
-
-        tdf5 = tdf3.merge(tdf4, on='Bin #', how='inner', suffixes=('_1', '_2'))
-
-        if save:
-            tdf5.to_csv(save)
-        return tdf5
-
-    def print_bins(self, save=None):
-        if save:
-            self.bins.to_csv(save)
-
-        return self.bin_feature_matrix

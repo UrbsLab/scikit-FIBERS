@@ -20,8 +20,11 @@ def prepare_data(df,outcome_label,censor_label,covariates):
     # Make covariate dataframe
     if covariates:  
         covariate_df = feature_df[covariates]
+        for covariate in covariates:
+            feature_df = feature_df.drop(columns=covariate)
     else:
         covariate_df = None
+
 
     return feature_df,outcome_df,censor_df,covariate_df
 
