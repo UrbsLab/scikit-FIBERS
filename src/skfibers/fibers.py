@@ -227,11 +227,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         # Make feature dataframe without covariates
         self.feature_df = self.feature_df.drop(self.covariates, axis=1)
-        print("Feature Data Shape: "+str(self.feature_df.shape))
 
         # Creating a list of features
         self.feature_names = list(self.feature_df.columns)
-        print(len(self.feature_names))
 
 
         #Initialize bin population
@@ -239,7 +237,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.set = BIN_SET(self.manual_bin_init,self.feature_df,self.outcome_df,self.censor_df,self.feature_names,self.pop_size,
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.pareto_fitness,self.group_strata_min,
-                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.random_seed)
+                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.random_seed)
         self.set.report_pop()
 
         #EVOLUTIONARY LEARNING ITERATIONS
@@ -254,65 +252,33 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
             # GENETIC ALGORITHM 
             target_offspring_count = int(self.pop_size*self.new_gen) #Determine number of offspring to generate
-            while len(self.set.bin_pop) < self.pop_size + target_offspring_count: #Generate offspring until we hit the target number
-                print(len(self.set.bin_pop))
+            while len(self.set.offspring_pop) < target_offspring_count: #Generate offspring until we hit the target number
                 # Parent Selection
                 parent_list = self.set.select_parent_pair(self.tournament_prop,self.random_seed)
 
                 # Generate Offspring - clone, crossover, mutation, evaluation, add to population
-                self.set.generate_offspring(self.crossover_prob,self.mutation_prob,iteration,parent_list,self.feature_names,
+                self.set.generate_offspring(self.crossover_prob,self.mutation_prob,self.iterations,iteration,parent_list,self.feature_names,
                                             threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,
                                             self.max_thresh,self.feature_df,self.outcome_df,self.censor_df,self.outcome_type,
-                                            self.fitness_metric,self.outcome_label,self.censor_label,self.int_thresh,self.group_thresh,self.random_seed)
+                                            self.fitness_metric,self.outcome_label,self.censor_label,self.int_thresh,self.group_thresh,self.pareto_fitness,self.group_strata_min,self.penalty,self.random_seed)
+            # Add Offspring to Population
+            self.set.add_offspring_into_pop()
+
             #Bin Deletion
             if iteration == self.iterations - 1: #Last iteration
-            
+                self.set.bin_deletion_deterministic(self.pop_size)
             else:
                 self.set.bin_deletion_probabilistic(self.pop_size)
-        
-        #Final bin population fitness evaluation (using deterministic adaptive thresholding)
-        #last iteration deletion should be deterministic
 
+            if iteration in [5,10,20,50]:
+                print("iteration: "+str(iteration))
+                self.set.report_pop()
+
+        self.set.report_pop()
         #add code to generate performance tracking of top bin over iterations
 
-        print('Made it')
-   
-        """
-        bin_feature_matrix_internal, bins_internal, \
-            bin_scores_internal, maf_0_features = \
-            fibers_algorithm(
-                self.given_starting_point,
-                self.start_point_feature_list,
-                self.feature_bins_start_point,
-                self.iterations,
-                self.original_data,
-                self.label_name,
-                self.duration_name,
-                self.set_number_of_bins,
-                self.min_features_per_group,
-                self.max_number_of_groups_with_feature,
-                self.informative_cutoff,
-                self.crossover_probability,
-                self.mutation_probability,
-                self.elitism_parameter,
-                self.mutation_strategy,
-                self.random_seed,
-                self.threshold,
-                self.evolving_probability,
-                self.max_threshold,
-                self.min_threshold,
-                self.merge_probability,
-                self.adaptable_threshold,
-                self.covariates,
-                self.scoring_method,
-            )
-        self.bin_feature_matrix = bin_feature_matrix_internal
-        self.bins = bins_internal
-        self.bin_scores = bin_scores_internal
-        self.maf_0_features = maf_0_features
-        self.hasTrained = True
-        return self
-        """
+        print('FIBERS Run Complete!')
+
 
     def check_x_y(self, x, y):
             """

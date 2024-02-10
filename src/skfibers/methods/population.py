@@ -5,10 +5,11 @@ from .bin import BIN
 class BIN_SET:
     def __init__(self,manual_bin_init,feature_df,outcome_df,censor_df,feature_names,pop_size,min_bin_size,max_bin_init_size,
                  group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,pareto_fitness,group_strata_min,
-                 outcome_label,censor_label,threshold_evolving,penalty,random_seed):
+                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,random_seed):
         
         #Initialize bin population
         self.bin_pop = []
+        self.offspring_pop = []
 
         if manual_bin_init != None:
             # Load manually curated or previously trained bin population
@@ -16,15 +17,16 @@ class BIN_SET:
         else:
             #Random bin initialization
             while len(self.bin_pop) < pop_size:
+                #print("pop init: "+str(len(self.bin_pop)))
                 new_bin = BIN()
 
-                new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,random_seed)
+                new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random_seed)
                 # Check for duplicate rules based on feature list and threshold
                 while self.equivalent_bin_in_pop(new_bin): # May slow down evolutionary cycles if new bins aren't found right away
                     new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random_seed)
 
                 new_bin.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,
-                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving)
+                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration)
                 
                 new_bin.calculate_fitness(pareto_fitness,group_strata_min,penalty)
 
@@ -40,15 +42,14 @@ class BIN_SET:
         currentCount = 0
         while currentCount < 2:
             random.shuffle(self.bin_pop)
-            parent_list[currentCount] = max(self.bin_pop.head(tSize), key=lambda x: x.fitness)
-            print("tournament size: "+str(len(self.bin_pop.head(tSize))))
+            parent_list[currentCount] = max(self.bin_pop[:tSize], key=lambda x: x.fitness)
             currentCount += 1
         return parent_list
 
 
-    def generate_offspring(self,crossover_prob,mutation_prob,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,
+    def generate_offspring(self,crossover_prob,mutation_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,
                            max_bin_init_size,min_thresh,max_thresh,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,
-                           outcome_label,censor_label,int_thresh,group_thresh,random_seed):
+                           outcome_label,censor_label,int_thresh,group_thresh,pareto_fitness,group_strata_min,penalty,random_seed):
         # Clone Parents
         offspring_1 = BIN()
         offspring_2 = BIN()
@@ -71,19 +72,27 @@ class BIN_SET:
 
         # Offspring Evalution 
         offspring_1.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving)
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration)
         offspring_2.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving)
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration)
         
-        #Add New Offspring to the Population
-        self.bin_pop.append(offspring_1)
-        self.bin_pop.append(offspring_2)
+        offspring_1.calculate_fitness(pareto_fitness,group_strata_min,penalty)
+        offspring_2.calculate_fitness(pareto_fitness,group_strata_min,penalty)
 
-    def equivalent_bin_in_pop(self,offspring):
-        bin_exists = False
+        #Add New Offspring to the Population
+        self.offspring_pop.append(offspring_1)
+        self.offspring_pop.append(offspring_2)
+
+
+    def equivalent_bin_in_pop(self,new_bin):
         for existing_bin in self.bin_pop:
-            offspring.is_equivalent(existing_bin)
-        return bin_exists
+            if new_bin.is_equivalent(existing_bin):
+                return True
+        for existing_bin in self.offspring_pop:
+            if new_bin.is_equivalent(existing_bin):
+                return True
+        return False
+        
     
     def bin_deletion_probabilistic(self,pop_size):
         # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
@@ -98,34 +107,38 @@ class BIN_SET:
         for index in delete_indexes:
             del self.bin_pop[index]
 
-        # Calculate remaining number of bins to delete
-        bins_to_delete = len(self.bin_pop) - pop_size
-        #Calculate total fitness across all bins
-        total_fitness = sum(1/obj.fitness for obj in self.bin_pop)
-        # Calculate deletion probabilities for each object
-        deletion_probabilities = [(1/obj.fitness) / total_fitness for obj in self.bin_pop]
-        selected_indexes = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities,k=bins_to_delete)
-        selected_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes
-        for index in selected_indexes:
+        while len(self.bin_pop) > pop_size:
+            #Calculate total fitness across all bins
+            total_fitness = sum(1/obj.fitness for obj in self.bin_pop)
+            # Calculate deletion probabilities for each object
+            deletion_probabilities = [(1/obj.fitness) / total_fitness for obj in self.bin_pop]
+            index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
             del self.bin_pop[index]
+
 
 
     def bin_deletion_deterministic(self,pop_size):
         # Calculate number of bins to delete
-        bins_to_delete = len(self.bin_pop) - pop_size
-        self.bin_pop = sorted(self.bin_pop, )
+        self.bin_pop = sorted(self.bin_pop, key=lambda x: x.fitness,reverse=True)
+        self.report_pop()
+        while len(self.bin_pop) > pop_size:
+            del self.bin_pop[-1]
 
 
-        #Calculate total fitness across all bins
-        total_fitness = sum(obj.fitness for obj in self.bin_pop)
-        # Calculate deletion probabilities for each object
-        deletion_probabilities = [obj.fitness / total_fitness for obj in self.bin_pop]
-        selected_index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
+    def add_offspring_into_pop(self):
+        self.bin_pop = self.bin_pop + self.offspring_pop
+        self.offspring_pop = []
 
-        parent_list[currentCount] = max(self.bin_pop.head(tSize), key=lambda x: x.fitness)
-        sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True
+
+    def sort_feature_lists(self):
+        for bin in self.bin_pop:
+            bin.feature_list = sorted(bin.feature_list)
 
 
     def report_pop(self):
+        self.sort_feature_lists()
         pop_df = pd.DataFrame([vars(instance) for instance in self.bin_pop])
         print(pop_df)
+
+    def report_best_bin_in_pop(self):
+        best_bin = max(self.bin_pop, key=lambda x: x.fitness)

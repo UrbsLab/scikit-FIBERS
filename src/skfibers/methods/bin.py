@@ -18,8 +18,8 @@ class BIN:
         self.high_risk_count = None
         self.birth_iteration = None
 
-    def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,random_seed):
-        self.birth_iteration = 0
+    def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random_seed):
+        self.birth_iteration = iteration
         # Initialize features in bin
         random.seed(random_seed)  
         feature_count = random.randint(min_bin_size,max_bin_init_size)
@@ -33,7 +33,7 @@ class BIN:
 
 
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,
-                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving):
+                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration):
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
         bin_df = pd.DataFrame({'feature_sum':feature_sums})
@@ -44,7 +44,7 @@ class BIN:
         #print("Bin Data Shape2: "+str(bin_df.shape))
         #print(bin_df.head())
 
-        if group_thresh == None and not threshold_evolving: #Adaptive thresholding activated
+        if (group_thresh == None and not threshold_evolving) or (group_thresh == None and iteration == iterations-1): #Adaptive thresholding activated (always applied on last iteration)
             # Select best threshold by evaluating all considered
             best_score = 0
             for threshold in range(min_thresh, max_thresh + 1):
@@ -56,6 +56,7 @@ class BIN:
         else: #Use the given group threshold to evaluate the bin
             score = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,self.group_threshold)
         self.metric = score
+        self.bin_size = len(self.feature_list)
 
 
     def evaluate_for_threshold(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,group_threshold):
@@ -88,7 +89,8 @@ class BIN:
 
     def copy_parent(self,parent,iteration):
         #Attributes cloned from parent
-        self.feature_list = sorted(copy.deepcopy(parent.feature_list)) #sorting is for feature list comparison
+        #self.feature_list = sorted(copy.deepcopy(parent.feature_list)) #sorting is for feature list comparison
+        self.feature_list = copy.deepcopy(parent.feature_list) #sorting is for feature list comparison
         self.group_threshold = copy.deepcopy(parent.group_threshold)
         self.birth_iteration = iteration
 
@@ -190,11 +192,11 @@ class BIN:
         self.bin_size = len(self.feature_list)
 
 
-    def is_equivalent(self,other_offspring):
+    def is_equivalent(self,other_bin):
         # Bin equivalence is based on 'feature_list' and 'group_threshold'
         equivalent = False
-        if self.group_threshold == other_offspring.group_threshold: #Same group threshold
-            if sorted(self.feature_list) == sorted(other_offspring.feature_list):
+        if self.group_threshold == other_bin.group_threshold: #Same group threshold
+            if sorted(self.feature_list) == sorted(other_bin.feature_list):
                 equivalent = True
         return equivalent
     
