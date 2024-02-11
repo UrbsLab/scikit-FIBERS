@@ -222,6 +222,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         """
         self.start_time = time.time() # Record the start time
         random.seed(self.random_seed) # Set random seed
+        print("Random Seed Check - STart: "+ str(random.random()))
 
         # PREPARE DATA ---------------------------------------
         self.df = self.check_x_y(x, y)
@@ -245,7 +246,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.set = BIN_SET(self.manual_bin_init,self.feature_df,self.outcome_df,self.censor_df,self.feature_names,self.pop_size,
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.pareto_fitness,self.group_strata_min,
-                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.random_seed)
+                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,random)
         
         # Initialize training performance tracking
         self.track_top_bin_performance(True,-1)
@@ -255,6 +256,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             self.set.report_pop()
 
         #EVOLUTIONARY LEARNING ITERATIONS
+        #print("Random Seed Check - Pre EL: "+ str(random.random()))
         for iteration in tqdm(range(0, self.iterations)):
             if self.group_thresh == None:
                 evolve = random.random()
@@ -262,18 +264,20 @@ class FIBERS(BaseEstimator, TransformerMixin):
                     threshold_evolving = True
             else:
                 threshold_evolving = False
-
+            #print("Random Seed Check - GA START: "+ str(random.random()))
             # GENETIC ALGORITHM 
             target_offspring_count = int(self.pop_size*self.new_gen) #Determine number of offspring to generate
             while len(self.set.offspring_pop) < target_offspring_count: #Generate offspring until we hit the target number
                 # Parent Selection
-                parent_list = self.set.select_parent_pair(self.tournament_prop,self.random_seed)
+                parent_list = self.set.select_parent_pair(self.tournament_prop,random)
+                #print("Random Seed Check - parent select: "+ str(random.random()))
 
                 # Generate Offspring - clone, crossover, mutation, evaluation, add to population
                 self.set.generate_offspring(self.crossover_prob,self.mutation_prob,self.iterations,iteration,parent_list,self.feature_names,
                                             threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,
                                             self.max_thresh,self.feature_df,self.outcome_df,self.censor_df,self.outcome_type,
-                                            self.fitness_metric,self.outcome_label,self.censor_label,self.int_thresh,self.group_thresh,self.pareto_fitness,self.group_strata_min,self.penalty,self.random_seed)
+                                            self.fitness_metric,self.outcome_label,self.censor_label,self.int_thresh,self.group_thresh,self.pareto_fitness,self.group_strata_min,self.penalty,random)
+            #print("Random Seed Check - GA END: "+ str(random.random()))
             # Add Offspring to Population
             self.set.add_offspring_into_pop()
 
@@ -281,7 +285,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             if iteration == self.iterations - 1: #Last iteration
                 self.set.bin_deletion_deterministic(self.pop_size) # Elitism not needed
             else:
-                self.set.bin_deletion_probabilistic(self.pop_size,self.elitism)
+                self.set.bin_deletion_probabilistic(self.pop_size,self.elitism,random)
 
             # Training performance tracking
             self.track_top_bin_performance(False,iteration)
@@ -290,6 +294,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             if self.report != None and iteration in self.report and iteration != 0:
                 print("ITERATION: "+str(iteration))
                 self.set.report_pop()    
+            #print("Random Seed Check - EL END: "+ str(random.random()))
 
         #Output a final population report
         if self.report != None: 
@@ -301,7 +306,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         print('FIBERS Run Complete!')
         print("Elapsed Time (sec): ", self.elapsed_time, "seconds")
-        print("Random Seed Check: "+ str(random.random()))
+        print("Random Seed Check - End: "+ str(random.random()))
 
         self.hasTrained = True
         return self

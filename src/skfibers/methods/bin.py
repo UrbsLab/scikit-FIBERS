@@ -1,6 +1,6 @@
 #import numpy as np
 import pandas as pd
-import random
+#import random
 import copy
 #from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
@@ -19,10 +19,9 @@ class BIN:
         self.birth_iteration = None
 
 
-    def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random_seed):
+    def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random):
         self.birth_iteration = iteration
         # Initialize features in bin
-        random.seed(random_seed)  
         feature_count = random.randint(min_bin_size,max_bin_init_size)
         self.feature_list = random.sample(feature_names,feature_count)
         self.bin_size = len(self.feature_list)
@@ -92,20 +91,13 @@ class BIN:
         self.birth_iteration = iteration
 
 
-    def uniform_crossover(self,other_offspring,crossover_prob,threshold_evolving,random_seed):
-        #create list of feature names unique to one list or another
-        #random.seed(random_seed)  
-
-        # Convert lists to sets for efficient set operations
+    def uniform_crossover(self,other_offspring,crossover_prob,threshold_evolving,random):
+        # Create list of feature names unique to one list or another
         set1 = set(self.feature_list)
         set2 = set(other_offspring.feature_list)
-        
-        # Find elements unique to list1 and list2
         unique_to_list1 = set1 - set2
         unique_to_list2 = set2 - set1
-
-        # Combine unique elements from both lists
-        unique_features = list(unique_to_list1.union(unique_to_list2))
+        unique_features = list(sorted(unique_to_list1.union(unique_to_list2)))
 
         for feature in unique_features:
             if random.random() < crossover_prob:
@@ -124,13 +116,13 @@ class BIN:
                 other_offspring.group_threshold = temp
 
 
-    def mutation(self,mutation_prob,feature_names,min_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random_seed):
-
-        #random.seed(random_seed) 
+    def mutation(self,mutation_prob,feature_names,min_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random):
+        self.feature_list = sorted(self.feature_list)
 
         if len(self.feature_list) == 0: #Initialize new bin if empty after crossover
             feature_count = random.randint(min_bin_size,max_bin_init_size)
             self.feature_list = random.sample(feature_names,feature_count)
+            
 
         elif len(self.feature_list) == 1: # Addition and Swap Only (to avoid empy bins)
             for feature in self.feature_list:
@@ -142,21 +134,31 @@ class BIN:
                         self.feature_list.append(random_feature)
                     else: # Addition
                         self.feature_list.append(random_feature)
+            # Enforce minimum bin size
+            while len(self.feature_list) < min_bin_size: 
+                other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                self.feature_list.append(random.choice(other_features))
 
         else: # Addition, Deletion, or Swap 
+            mutate_options = ['A','D','S'] #Add, delete, swap
             for feature in self.feature_list:
                 if random.random() < mutation_prob:
-                    other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
-                    random_feature = random.choice(other_features)
-                    random_num = random.random()
-                    if random_num < 0.333: # Swap
+                    mutate_type = random.choice(mutate_options)
+                    if mutate_type == 'D' or len(feature_names) == len(self.feature_list): # Deletion - also if bin (i.e. feature_list) is at the maximum possible size
                         self.feature_list.remove(feature)
-                        self.feature_list.append(random_feature)
-                    elif random_num >= 0.333 and random_num < 0.666: # Addition
-                        self.feature_list.append(random_feature)
-                    else: # Deletion
-                        self.feature_list.remove(feature)
-
+                    else:
+                        other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                        random_feature = random.choice(other_features)
+                        if mutate_type == 'S': # Swap
+                            self.feature_list.remove(feature)
+                            self.feature_list.append(random_feature)
+                        elif mutate_type == 'A': # Addition
+                            self.feature_list.append(random_feature)
+            # Enforce minimum bin size
+            while len(self.feature_list) < min_bin_size: 
+                other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                self.feature_list.append(random.choice(other_features))
+                        
         # Apply mutation to thresholding if threshold_evolving
         if threshold_evolving:
             if random.random() < mutation_prob:
@@ -177,16 +179,14 @@ class BIN:
             # Penalize fitness if risk group counts are beyond minimum risk group strata parameter (Ryan Check below)
             self.group_strata_prop = min(self.low_risk_count/(self.low_risk_count+self.high_risk_count),self.high_risk_count/(self.low_risk_count+self.high_risk_count))
             if self.group_strata_prop < group_strata_min: 
-            #if self.low_risk_count > (group_strata_min * (self.low_risk_count + self.high_risk_count)) and self.high_risk_count > (group_strata_min * (self.low_risk_count + self.high_risk_count)):
                 self.fitness = penalty * self.metric
             else:
                 self.fitness = self.metric
 
 
-    def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random_seed):
+    def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):
         """Takes an previously generated offspring bin (that already existed in the pop) and generates an new feature_list """
         # Initialize features in bin
-        #random.seed(random_seed)  
         feature_count = random.randint(min_bin_size,max_bin_init_size)
         self.feature_list = random.sample(feature_names,feature_count)
         self.bin_size = len(self.feature_list)

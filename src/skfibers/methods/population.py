@@ -1,12 +1,11 @@
-import random
+#import random
 import pandas as pd
 from .bin import BIN
 
 class BIN_SET:
     def __init__(self,manual_bin_init,feature_df,outcome_df,censor_df,feature_names,pop_size,min_bin_size,max_bin_init_size,
                  group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,pareto_fitness,group_strata_min,
-                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,random_seed):
-        random.seed(random_seed) # Set random seed
+                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,random):
         #Initialize bin population
         self.bin_pop = []
         self.offspring_pop = []
@@ -18,10 +17,10 @@ class BIN_SET:
             #Random bin initialization
             while len(self.bin_pop) < pop_size:
                 new_bin = BIN()
-                new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random_seed)
+                new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random)
                 # Check for duplicate rules based on feature list and threshold
                 while self.equivalent_bin_in_pop(new_bin): # May slow down evolutionary cycles if new bins aren't found right away
-                    new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random_seed)
+                    new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
 
                 new_bin.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,
                                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration)
@@ -29,11 +28,11 @@ class BIN_SET:
                 new_bin.calculate_fitness(pareto_fitness,group_strata_min,penalty)
 
                 self.bin_pop.append(new_bin)
+        #print("Random Seed Check - Post Bin Init: "+ str(random.random()))
 
 
-    def select_parent_pair(self,tournament_prop,random_seed):
+    def select_parent_pair(self,tournament_prop,random):
         #Tournament Selection
-        #random.seed(random_seed)  # You can change the seed value as desired
         parent_list = [None, None]
         tSize = int(len(self.bin_pop) * tournament_prop) #Tournament Size
 
@@ -47,7 +46,8 @@ class BIN_SET:
 
     def generate_offspring(self,crossover_prob,mutation_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,
                            max_bin_init_size,min_thresh,max_thresh,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,
-                           outcome_label,censor_label,int_thresh,group_thresh,pareto_fitness,group_strata_min,penalty,random_seed):
+                           outcome_label,censor_label,int_thresh,group_thresh,pareto_fitness,group_strata_min,penalty,random):
+        #print("Random Seed Check - genoff: "+ str(random.random()))
         # Clone Parents
         offspring_1 = BIN()
         offspring_2 = BIN()
@@ -55,25 +55,27 @@ class BIN_SET:
         offspring_2.copy_parent(parent_list[1],iteration)
 
         # Crossover
-        offspring_1.uniform_crossover(offspring_2,crossover_prob,threshold_evolving,random_seed)
+        offspring_1.uniform_crossover(offspring_2,crossover_prob,threshold_evolving,random)
+        #print("Random Seed Check - crossover: "+ str(random.random()))
 
         # Mutation - check for duplicate rules
-        offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random_seed)
-        offspring_2.mutation(mutation_prob,feature_names,min_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random_seed)
+        offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
+        offspring_2.mutation(mutation_prob,feature_names,min_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
+        #print("Random Seed Check - mutation: "+ str(random.random()))
 
         # Check for duplicate rules based on feature list and threshold
         while self.equivalent_bin_in_pop(offspring_1): # May slow down evolutionary cycles if new bins arent' found right away
-            offspring_1.random_bin(feature_names,min_bin_size,max_bin_init_size,random_seed)
+            offspring_1.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
 
         while self.equivalent_bin_in_pop(offspring_2): # May slow down evolutionary cycles if new bins arent' found right away
-            offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random_seed)
-
+            offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+        #print("Random Seed Check - duplicate: "+ str(random.random()))
         # Offspring Evalution 
         offspring_1.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration)
         offspring_2.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration)
-        
+        #print("Random Seed Check - evatluate: "+ str(random.random()))
         offspring_1.calculate_fitness(pareto_fitness,group_strata_min,penalty)
         offspring_2.calculate_fitness(pareto_fitness,group_strata_min,penalty)
 
@@ -92,7 +94,7 @@ class BIN_SET:
         return False
         
     
-    def bin_deletion_probabilistic(self,pop_size,elitism):
+    def bin_deletion_probabilistic(self,pop_size,elitism,random):
         # Automatically delete bins with a fitness of 0
         delete_indexes = []
         i = 0
@@ -126,7 +128,6 @@ class BIN_SET:
     def bin_deletion_deterministic(self,pop_size):
         # Calculate number of bins to delete
         self.bin_pop = sorted(self.bin_pop, key=lambda x: x.fitness,reverse=True)
-        self.report_pop()
         while len(self.bin_pop) > pop_size:
             del self.bin_pop[-1]
 

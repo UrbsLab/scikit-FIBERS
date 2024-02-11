@@ -22,11 +22,11 @@ data = pd.read_csv('sampledata.csv')
 true_risk_group = data[['TrueRiskGroup']]
 data = data.drop('TrueRiskGroup', axis=1)
 
-fibers = FIBERS(outcome_label="Duration", outcome_type="survival",iterations=10,
+fibers = FIBERS(outcome_label="Duration", outcome_type="survival",iterations=20,
                     pop_size = 50, crossover_prob=0.5, mutation_prob=0.1, new_gen=1.0, elitism=0.1, min_bin_size=1,
                     fitness_metric="log_rank", censor_label="Censoring", group_strata_min=0.2,
-                    group_thresh=None, min_thresh=0, max_thresh=3, int_thresh=True, thresh_evolve_prob=0.5,
-                    manual_bin_init=None, covariates=None, report=None, random_seed=42)
+                    group_thresh=None, min_thresh=0, max_thresh=3, int_thresh=True, thresh_evolve_prob=0,
+                    manual_bin_init=None, covariates=None, report=[0], random_seed=42)
 
 fibers = fibers.fit(data)
 
