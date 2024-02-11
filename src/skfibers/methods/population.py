@@ -4,7 +4,7 @@ from .bin import BIN
 
 class BIN_SET:
     def __init__(self,manual_bin_init,feature_df,outcome_df,censor_df,feature_names,pop_size,min_bin_size,max_bin_init_size,
-                 group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,pareto_fitness,group_strata_min,
+                 group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,log_rank_weighting,pareto_fitness,group_strata_min,
                  outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,random):
         #Initialize bin population
         self.bin_pop = []
@@ -22,7 +22,7 @@ class BIN_SET:
                 while self.equivalent_bin_in_pop(new_bin): # May slow down evolutionary cycles if new bins aren't found right away
                     new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
 
-                new_bin.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,
+                new_bin.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration)
                 
                 new_bin.calculate_fitness(pareto_fitness,group_strata_min,penalty)
@@ -45,7 +45,7 @@ class BIN_SET:
 
 
     def generate_offspring(self,crossover_prob,mutation_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,
-                           max_bin_init_size,min_thresh,max_thresh,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,
+                           max_bin_init_size,min_thresh,max_thresh,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,
                            outcome_label,censor_label,int_thresh,group_thresh,pareto_fitness,group_strata_min,penalty,random):
         #print("Random Seed Check - genoff: "+ str(random.random()))
         # Clone Parents
@@ -71,9 +71,9 @@ class BIN_SET:
             offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
         #print("Random Seed Check - duplicate: "+ str(random.random()))
         # Offspring Evalution 
-        offspring_1.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,censor_label,min_thresh,max_thresh,
+        offspring_1.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration)
-        offspring_2.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,censor_label,min_thresh,max_thresh,
+        offspring_2.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration)
         #print("Random Seed Check - evatluate: "+ str(random.random()))
         offspring_1.calculate_fitness(pareto_fitness,group_strata_min,penalty)
@@ -146,5 +146,22 @@ class BIN_SET:
         self.sort_feature_lists()
         pop_df = pd.DataFrame([vars(instance) for instance in self.bin_pop])
         print(pop_df)
+
+
+    def get_pop(self):
+        self.sort_feature_lists()
+        pop_df = pd.DataFrame([vars(instance) for instance in self.bin_pop])
+        return pop_df
+
+
+    def get_all_top_bins(self):
+        top_bin_list = [self.bin_pop[0]]
+        highest_fitness = self.bin_pop[0].fitness
+        bin_index = 1
+        while self.bin_pop[bin_index].fitness == highest_fitness:
+            top_bin_list.append(self.bin_pop[bin_index])
+            bin_index += 1
+        return top_bin_list
+
 
 

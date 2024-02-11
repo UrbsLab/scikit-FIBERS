@@ -22,21 +22,23 @@ data = pd.read_csv('sampledata.csv')
 true_risk_group = data[['TrueRiskGroup']]
 data = data.drop('TrueRiskGroup', axis=1)
 
-fibers = FIBERS(outcome_label="Duration", outcome_type="survival",iterations=20,
-                    pop_size = 50, crossover_prob=0.5, mutation_prob=0.1, new_gen=1.0, elitism=0.1, min_bin_size=1,
-                    fitness_metric="log_rank", censor_label="Censoring", group_strata_min=0.2,
-                    group_thresh=None, min_thresh=0, max_thresh=3, int_thresh=True, thresh_evolve_prob=0,
-                    manual_bin_init=None, covariates=None, report=[0], random_seed=42)
+fibers = FIBERS(outcome_label="Duration", outcome_type="survival",iterations=100,
+                    pop_size = 100, crossover_prob=0.5, mutation_prob=0.1, new_gen=1.0, elitism=0.1, min_bin_size=1,
+                    fitness_metric="log_rank", log_rank_weighting=None,censor_label="Censoring", group_strata_min=0.2,
+                    group_thresh=None, min_thresh=0, max_thresh=5, int_thresh=True, thresh_evolve_prob=0.5,
+                    manual_bin_init=None, covariates=None, report=[0], random_seed=None, verbose=True)
 
 fibers = fibers.fit(data)
 
 print(fibers.top_perform_df)
 
-#tdf = fibers.transform(data)
-#print(tdf)
+tdf = fibers.transform(data)
+print(tdf)
 
-#predictions = fibers.predict(data,bin_number=0)
-#print(predictions)
+predictions = fibers.predict(data,bin_number=0)
+print(predictions)
 
-#predictions = fibers.predict(data)
-#print(predictions)
+predictions = fibers.predict(data)
+print(predictions)
+
+low_outcome, high_outcome, low_censor, high_censor = fibers.get_bin_groups(data,0)

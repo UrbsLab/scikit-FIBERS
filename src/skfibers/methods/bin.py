@@ -5,18 +5,20 @@ import copy
 #from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
 #from scipy.stats import ranksums
+from scipy.stats import weightedtau
 
 class BIN:
     def __init__(self):
-        self.feature_list = []
-        self.group_threshold = None
-        self.fitness = None
-        self.metric = None
-        self.bin_size = None
-        self.group_strata_prop = None
-        self.low_risk_count = None
-        self.high_risk_count = None
-        self.birth_iteration = None
+        self.feature_list = [] # List of feature names (across which instance values are summed)
+        self.group_threshold = None # Threshold after which an instance is place in the 'above threshold' group - determines group strata of instances
+        self.fitness = None # Bin fitness (higher fitness is better) - proportional to parent selection probability, and inversely proportional to deletion probability
+        self.metric = None  # Metric score of applied evaluation metric
+        self.p_value = None # p-value of applied evaluation metric (if available)
+        self.bin_size = None # Number of features included in bin
+        self.group_strata_prop = None # Proportion of instances in the smallest group (e.g. 0.5 --> equal number of instances in each group)
+        self.count_bt = None # Instance count at/below threshold
+        self.count_at = None # Instance count above threshold
+        self.birth_iteration = None # Iteration where bin was introduced to population
 
 
     def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random):
@@ -31,7 +33,7 @@ class BIN:
             self.group_threshold = random.randint(min_thresh,max_thresh)
     
 
-    def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,outcome_label,
+    def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration):
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
@@ -44,19 +46,20 @@ class BIN:
             # Select best threshold by evaluating all considered
             best_score = 0
             for threshold in range(min_thresh, max_thresh + 1):
-                score = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,threshold)
+                score, p_value = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,threshold)
                 if score > best_score:
                     self.metric = score
                     self.group_threshold = threshold
                     best_score = score
         else: #Use the given group threshold to evaluate the bin
-            score = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,self.group_threshold)
+            score, p_value = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,self.group_threshold)
         self.metric = score
+        self.p_value = p_value
         self.bin_size = len(self.feature_list)
 
 
-    def evaluate_for_threshold(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,group_threshold):
-        #Create dataframes including instances from either high or low risk groups
+    def evaluate_for_threshold(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,group_threshold):
+        #Create dataframes including instances from either strata-groups
         low_df = bin_df[bin_df['feature_sum'] <= group_threshold]
         high_df = bin_df[bin_df['feature_sum'] > group_threshold]
 
@@ -64,23 +67,27 @@ class BIN:
         high_outcome = high_df[outcome_label].to_list()
         low_censor = low_df[censor_label].to_list()
         high_censor =high_df[censor_label].to_list()
-        self.low_risk_count = len(low_outcome)
-        self.high_risk_count = len(high_outcome)
+        self.count_bt = len(low_outcome)
+        self.count_at = len(high_outcome)
  
         # Apply selected evaluation strategy/metric
         if outcome_type == 'survival':
             if fitness_metric == 'log_rank':
-                results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor)
+                results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
                 score = results.test_statistic #test all thresholds by default in initial pop.
+                p_value = results.p_value
+
             if fitness_metric == 'residuals':
                 pass
+
             if fitness_metric == 'aic':
                 pass
+
         elif outcome_type == 'class':
             print("Classification not yet implemented")
         else:
             print("Specified outcome_type not supported")
-        return score
+        return score,p_value
     
 
     def copy_parent(self,parent,iteration):
@@ -176,8 +183,8 @@ class BIN:
             print("Pareto-fitness has not yet been implemented")
             pass
         else:
-            # Penalize fitness if risk group counts are beyond minimum risk group strata parameter (Ryan Check below)
-            self.group_strata_prop = min(self.low_risk_count/(self.low_risk_count+self.high_risk_count),self.high_risk_count/(self.low_risk_count+self.high_risk_count))
+            # Penalize fitness if group counts are beyond the minimum group strata parameter (Ryan Check below)
+            self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_at),self.count_at/(self.count_bt+self.count_at))
             if self.group_strata_prop < group_strata_min: 
                 self.fitness = penalty * self.metric
             else:
@@ -201,6 +208,19 @@ class BIN:
         return equivalent
     
 
+    def bin_report(self):
+        columns = ['Features in Bin:', 'Threshold:', 'Fitness:', 'Metric Score:', 'p-value:' ,'Bin Size:', 'Group Ratio:', 
+                    'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:']
+        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.metric, self.p_value,
+                                   self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration]],columns=columns,index=None)
+        return report_df
+    
+
+    def bin_short_report(self):
+        columns = ['Features in Bin:', 'Threshold:', 'Fitness:', 'Bin Size:', 'Group Ratio:','Birth Iteration:']
+        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness, self.bin_size, self.group_strata_prop,self.birth_iteration]],columns=columns,index=None).T
+        return report_df
+    
     # non functional
     """
     def residuals_score(self, residuals, bin_feature_matrix, label_name, duration_name,
