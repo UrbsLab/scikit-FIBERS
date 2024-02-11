@@ -29,15 +29,6 @@ def prepare_data(df,outcome_label,censor_label,covariates):
     return feature_df,outcome_df,censor_df,covariate_df
 
 
-def remove_invariant_features(df):
-    cols_to_drop = []
-    for col in df.columns:
-        if len(df[col].unique()) == 1:
-            cols_to_drop.append(col)
-    df.drop(columns=cols_to_drop, inplace=True)
-    return df
-
-
 def calculate_residuals(covariate_df,outcome_label,censor_label):
     # Fit a Cox proportional hazards model to the DataFrame
     logging.info("Fitting COX Model")
