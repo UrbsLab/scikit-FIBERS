@@ -1,11 +1,9 @@
-#import numpy as np
+import numpy as np
 import pandas as pd
-#import random
 import copy
-#from lifelines import CoxPHFitter
+from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
-#from scipy.stats import ranksums
-from scipy.stats import weightedtau
+from scipy.stats import ranksums
 
 class BIN:
     def __init__(self):
@@ -19,6 +17,8 @@ class BIN:
         self.count_bt = None # Instance count at/below threshold
         self.count_at = None # Instance count above threshold
         self.birth_iteration = None # Iteration where bin was introduced to population
+        self.residuals_score = None
+        self.residuals_p_value = None
 
 
     def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random):
@@ -34,7 +34,7 @@ class BIN:
     
 
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration):
+                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df):
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
         bin_df = pd.DataFrame({'feature_sum':feature_sums})
@@ -46,53 +46,95 @@ class BIN:
             # Select best threshold by evaluating all considered
             best_score = 0
             for threshold in range(min_thresh, max_thresh + 1):
-                score, p_value = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,threshold)
+                score, p_value,residuals_score,residuals_p_value = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+                        log_rank_weighting,threshold,residuals,covariate_df)
                 if score > best_score:
                     self.metric = score
                     self.group_threshold = threshold
                     best_score = score
         else: #Use the given group threshold to evaluate the bin
-            score, p_value = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,self.group_threshold)
+            score, p_value,residuals_score,residuals_p_value = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+                        log_rank_weighting,self.group_threshold,residuals,covariate_df)
         self.metric = score
         self.p_value = p_value
+        self.residuals_score = residuals_score
+        self.residuals_p_value = residuals_p_value
         self.bin_size = len(self.feature_list)
 
 
-    def evaluate_for_threshold(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,group_threshold):
-        #Create dataframes including instances from either strata-groups
-        low_df = bin_df[bin_df['feature_sum'] <= group_threshold]
-        high_df = bin_df[bin_df['feature_sum'] > group_threshold]
-
-        low_outcome = low_df[outcome_label].to_list()
-        high_outcome = high_df[outcome_label].to_list()
-        low_censor = low_df[censor_label].to_list()
-        high_censor =high_df[censor_label].to_list()
-        self.count_bt = len(low_outcome)
-        self.count_at = len(high_outcome)
- 
+    def evaluate_for_threshold(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,group_threshold,residuals,covariate_df):
         # Apply selected evaluation strategy/metric
         if outcome_type == 'survival':
+            residuals_score = None
+            residuals_p_value = None
+
             if fitness_metric == 'log_rank':
-                results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
-                score = results.test_statistic #test all thresholds by default in initial pop.
-                p_value = results.p_value
+                #Create dataframes including instances from either strata-groups
+                low_df = bin_df[bin_df['feature_sum'] <= group_threshold]
+                high_df = bin_df[bin_df['feature_sum'] > group_threshold]
+                low_outcome = low_df[outcome_label].to_list()
+                high_outcome = high_df[outcome_label].to_list()
+                low_censor = low_df[censor_label].to_list()
+                high_censor =high_df[censor_label].to_list()
+                self.count_bt = len(low_outcome)
+                self.count_at = len(high_outcome)
+                try:
+                    results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
+                    score = results.test_statistic #test all thresholds by default in initial pop.
+                    p_value = results.p_value
+                except:
+                    score = 0
+                    p_value = None
 
-            if fitness_metric == 'residuals':
-                pass
+                if fitness_metric == 'residuals': # In addition to log_rank, calculate residuals differences between groups
+                    bin_residuals = residuals.loc[bin_df['feature_sum'] <= group_threshold] #Does the threshold work the same way since these are residual? Transformed?
+                    high_residuals_df = residuals.loc[bin_df['feature_sum'] > group_threshold] # or is the residuals data the same and only the duration changed?
 
-            if fitness_metric == 'aic':
-                pass
+                    low_residuals_df = low_residuals_df["deviance"]
+                    high_residuals_df = high_residuals_df["deviance"]
+
+                    results = abs(ranksums(low_residuals_df, high_residuals_df))
+                    residuals_score = results.statistic #test all thresholds by default in initial pop.
+                    residuals_p_value = results.pvalue
+
+            elif fitness_metric == 'aic':
+                 #Create dataframes including instances from either strata-groups
+                low_df = bin_df[bin_df['feature_sum'] <= group_threshold]
+                high_df = bin_df[bin_df['feature_sum'] > group_threshold]
+
+                low_outcome = low_df[outcome_label].to_list()
+                high_outcome = high_df[outcome_label].to_list()
+                low_censor = low_df[censor_label].to_list()
+                high_censor =high_df[censor_label].to_list()
+                self.count_bt = len(low_outcome)
+                self.count_at = len(high_outcome)
+
+                #Original code
+                #def aic_score(self, covariate_matrix, bin_feature_matrix, label_name, duration_name,informative_cutoff, threshold):
+                column_values = bin_df['feature_sum'].to_list()
+                for r in range(0, len(column_values)):
+                    if column_values[r] > 0: # Ryan - Is this still correct?
+                        column_values[r] = 1
+                data = covariate_df.copy()
+                data['Bin'] = column_values
+                data = data.loc[:, (data != data.iloc[0]).any()]
+                cph = CoxPHFitter()
+                cph.fit(data, outcome_label, event_col=censor_label)
+
+                score = 0 - cph.AIC_partial_  #Ryan- can we just use - cph (no zero start?)
+            else:
+                print("Warning: fitness_metric not found.")
 
         elif outcome_type == 'class':
             print("Classification not yet implemented")
         else:
             print("Specified outcome_type not supported")
-        return score,p_value
-    
 
+        return score,p_value,residuals_score,residuals_p_value
+    
+    
     def copy_parent(self,parent,iteration):
         #Attributes cloned from parent
-        #self.feature_list = sorted(copy.deepcopy(parent.feature_list)) #sorting is for feature list comparison
         self.feature_list = copy.deepcopy(parent.feature_list) #sorting is for feature list comparison
         self.group_threshold = copy.deepcopy(parent.group_threshold)
         self.birth_iteration = iteration
@@ -178,7 +220,8 @@ class BIN:
                     self.group_threshold = random_thresh
 
 
-    def calculate_fitness(self,pareto_fitness,group_strata_min,penalty):
+    def calculate_fitness(self,pareto_fitness,group_strata_min,penalty,fitness_metric):
+
         if pareto_fitness: #Apply pareto-front-based multi-objective fitness
             print("Pareto-fitness has not yet been implemented")
             pass
@@ -189,6 +232,12 @@ class BIN:
                 self.fitness = penalty * self.metric
             else:
                 self.fitness = self.metric
+            test = True
+            if test:
+                self.fitness = self.fitness+(self.group_strata_prop/(self.bin_size + self.group_threshold))
+            # Residuals 
+            if fitness_metric == 'residuals':
+                self.fitness = self.fitness*self.residuals_score
 
 
     def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):
@@ -210,9 +259,9 @@ class BIN:
 
     def bin_report(self):
         columns = ['Features in Bin:', 'Threshold:', 'Fitness:', 'Metric Score:', 'p-value:' ,'Bin Size:', 'Group Ratio:', 
-                    'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:']
+                    'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:','Residuals Score:','Residuals p-value']
         report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.metric, self.p_value,
-                                   self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration]],columns=columns,index=None)
+                                   self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration,self.residuals_score,self.residuals_p_value]],columns=columns,index=None)
         return report_df
     
 
@@ -220,51 +269,3 @@ class BIN:
         columns = ['Features in Bin:', 'Threshold:', 'Fitness:', 'Bin Size:', 'Group Ratio:','Birth Iteration:']
         report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness, self.bin_size, self.group_strata_prop,self.birth_iteration]],columns=columns,index=None).T
         return report_df
-    
-    # non functional
-    """
-    def residuals_score(self, residuals, bin_feature_matrix, label_name, duration_name,
-                        informative_cutoff, threshold):
-        score = 0
-        df_0 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] <= threshold]  # SPHIA
-        df_1 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] > threshold]
-        durations_no = df_0[duration_name].to_list()
-        event_observed_no = df_0[label_name].to_list()
-        durations_mm = df_1[duration_name].to_list()
-        event_observed_mm = df_1[label_name].to_list()
-
-        if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
-                event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
-            bin_residuals = residuals.loc[bin_feature_matrix[self.bin_name] <= threshold]
-            bin_residuals = bin_residuals["deviance"]
-
-            non_bin_residuals = residuals.loc[bin_feature_matrix[self.bin_name] > threshold]
-            non_bin_residuals = non_bin_residuals["deviance"]
-
-            score = abs(ranksums(bin_residuals, non_bin_residuals).statistic)
-        return score
-
-    def aic_score(self, covariate_matrix, bin_feature_matrix, label_name, duration_name,
-                  informative_cutoff, threshold):
-        df_0 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] <= threshold]
-        df_1 = bin_feature_matrix.loc[bin_feature_matrix[self.bin_name] > threshold]
-
-        event_observed_no = df_0[label_name].to_list()
-        event_observed_mm = df_1[label_name].to_list()
-        if len(event_observed_no) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)) and len(
-                event_observed_mm) > informative_cutoff * (len(event_observed_no) + len(event_observed_mm)):
-            column_values = bin_feature_matrix[self.bin_name].to_list()
-            for r in range(0, len(column_values)):
-                if column_values[r] > 0:
-                    column_values[r] = 1
-            data = covariate_matrix.copy()
-            data['Bin'] = column_values
-            data = data.loc[:, (data != data.iloc[0]).any()]
-            cph = CoxPHFitter()
-            cph.fit(data, duration_name, event_col=label_name)
-
-            score = 0 - cph.AIC_partial_
-        else:
-            score = - np.inf
-        return score
-    """

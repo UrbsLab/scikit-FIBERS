@@ -296,7 +296,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.set = BIN_SET(self.manual_bin_init,self.feature_df,self.outcome_df,self.censor_df,self.feature_names,self.pop_size,
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.pareto_fitness,self.group_strata_min,
-                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,random)
+                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariate_df,random)
         
         # Initialize training performance tracking
         self.performance_tracking(True,-1)
@@ -325,7 +325,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                                             threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,
                                             self.max_thresh,self.feature_df,self.outcome_df,self.censor_df,self.outcome_type,
                                             self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
-                                            self.group_thresh,self.pareto_fitness,self.group_strata_min,self.penalty,random)
+                                            self.group_thresh,self.pareto_fitness,self.group_strata_min,self.penalty,self.residuals,self.covariate_df,random)
             # Add Offspring to Population
             self.set.add_offspring_into_pop()
 
@@ -475,13 +475,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
         top_bin = self.set.bin_pop[0]
         if initialize:
             col_list = ['Iteration','Top Bin', 'Threshold', 'Fitness', 'Metric', 'p-value', 'Bin Size', 'Group Ratio', 'Count At/Below Threshold', 
-                        'Count Below Threshold','Birth Iteration','Elapsed Time']
+                        'Count Below Threshold','Birth Iteration','Residuals Score','Residuals p-value','Elapsed Time']
             self.top_perform_df = pd.DataFrame(columns=col_list)
             if self.verbose:
                 print(col_list)
 
         tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold,top_bin.fitness,top_bin.metric,top_bin.p_value,top_bin.bin_size,
-                        top_bin.group_strata_prop,top_bin.count_bt,top_bin.count_at,top_bin.birth_iteration,self.elapsed_time]
+                        top_bin.group_strata_prop,top_bin.count_bt,top_bin.count_at,top_bin.birth_iteration,top_bin.residuals_score,
+                        top_bin.residuals_p_value,self.elapsed_time]
         if self.verbose:
             print(tracking_values)
         # Add the row to the DataFrame
@@ -540,3 +541,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         bin_report_df = self.set.bin_pop[bin_index].bin_report().T
 
         return low_outcome, high_outcome, low_censor, high_censor, bin_report_df
+    
+
+    def get_feature_tracking(self):
+        return self.feature_names, self.set.feature_tracking

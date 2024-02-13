@@ -5,10 +5,11 @@ from .bin import BIN
 class BIN_SET:
     def __init__(self,manual_bin_init,feature_df,outcome_df,censor_df,feature_names,pop_size,min_bin_size,max_bin_init_size,
                  group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,log_rank_weighting,pareto_fitness,group_strata_min,
-                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,random):
+                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariate_df,random):
         #Initialize bin population
         self.bin_pop = []
         self.offspring_pop = []
+        self.feature_tracking = [0]*len(feature_names)
 
         if manual_bin_init != None:
             # Load manually curated or previously trained bin population
@@ -21,14 +22,20 @@ class BIN_SET:
                 # Check for duplicate rules based on feature list and threshold
                 while self.equivalent_bin_in_pop(new_bin): # May slow down evolutionary cycles if new bins aren't found right away
                     new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
-
+                # Bin metric score evaluation
                 new_bin.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration)
-                
-                new_bin.calculate_fitness(pareto_fitness,group_strata_min,penalty)
-
+                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
+                # Fitness metric calculation based on bin metric score
+                new_bin.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric)
+                # Update feature tracking
+                self.update_feature_tracking(new_bin,feature_names)
+                #Add new bin to population
                 self.bin_pop.append(new_bin)
-        #print("Random Seed Check - Post Bin Init: "+ str(random.random()))
+
+    def update_feature_tracking(self, new_bin,feature_names):
+        for feature in new_bin.feature_list:
+            index = feature_names.index(feature)
+            self.feature_tracking[index] += new_bin.fitness
 
 
     def select_parent_pair(self,tournament_prop,random):
@@ -46,7 +53,7 @@ class BIN_SET:
 
     def generate_offspring(self,crossover_prob,mutation_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,
                            max_bin_init_size,min_thresh,max_thresh,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,
-                           outcome_label,censor_label,int_thresh,group_thresh,pareto_fitness,group_strata_min,penalty,random):
+                           outcome_label,censor_label,int_thresh,group_thresh,pareto_fitness,group_strata_min,penalty,residuals,covariate_df,random):
         #print("Random Seed Check - genoff: "+ str(random.random()))
         # Clone Parents
         offspring_1 = BIN()
@@ -72,13 +79,16 @@ class BIN_SET:
         #print("Random Seed Check - duplicate: "+ str(random.random()))
         # Offspring Evalution 
         offspring_1.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving,iterations,iteration)
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
         offspring_2.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving,iterations,iteration)
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
         #print("Random Seed Check - evatluate: "+ str(random.random()))
-        offspring_1.calculate_fitness(pareto_fitness,group_strata_min,penalty)
-        offspring_2.calculate_fitness(pareto_fitness,group_strata_min,penalty)
+        offspring_1.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric)
+        offspring_2.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric)
 
+        # Update feature tracking
+        self.update_feature_tracking(offspring_1,feature_names)
+        self.update_feature_tracking(offspring_2,feature_names)
         #Add New Offspring to the Population
         self.offspring_pop.append(offspring_1)
         self.offspring_pop.append(offspring_2)
