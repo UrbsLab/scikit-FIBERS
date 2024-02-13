@@ -1,4 +1,4 @@
-#import random
+import numpy as np
 import pandas as pd
 from .bin import BIN
 
@@ -26,16 +26,35 @@ class BIN_SET:
                 new_bin.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
                 # Fitness metric calculation based on bin metric score
-                new_bin.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric)
-                # Update feature tracking
-                self.update_feature_tracking(new_bin,feature_names)
+                new_bin.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names) #ORIGINAL
                 #Add new bin to population
                 self.bin_pop.append(new_bin)
 
-    def update_feature_tracking(self, new_bin,feature_names):
-        for feature in new_bin.feature_list:
-            index = feature_names.index(feature)
-            self.feature_tracking[index] += new_bin.fitness
+
+    def update_feature_tracking(self, feature_names):
+        for bin in self.bin_pop:
+            for feature in bin.feature_list:
+                index = feature_names.index(feature)
+                self.feature_tracking[index] += bin.fitness
+
+
+    def custom_sort_key(self, obj):
+        return (-obj.pre_fitness,obj.group_threshold,obj.bin_size,-obj.group_strata_prop)
+        
+
+    def global_fitness_update(self):
+
+        #Sort bin population first by metric, then by group_theshold, then by bin_size, then by group_strata_prop (to form a global bin ranking)
+        # Sort DataFrame by maximizing column A (descending) and minimizing column B (ascending) for ties
+        decay = 0.2
+        self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
+        index = 0
+        for bin in self.bin_pop:
+            if bin.pre_fitness == 0:
+                bin.fitness = 0
+            else:
+                bin.fitness = np.exp(-index / (len(self.bin_pop)*decay)) 
+            index += 1
 
 
     def select_parent_pair(self,tournament_prop,random):
@@ -83,12 +102,13 @@ class BIN_SET:
         offspring_2.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
         #print("Random Seed Check - evatluate: "+ str(random.random()))
-        offspring_1.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric)
-        offspring_2.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric)
+        offspring_1.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names)
+        offspring_2.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names)
 
         # Update feature tracking
-        self.update_feature_tracking(offspring_1,feature_names)
-        self.update_feature_tracking(offspring_2,feature_names)
+        #self.update_feature_tracking(offspring_1,feature_names)
+        #self.update_feature_tracking(offspring_2,feature_names)
+
         #Add New Offspring to the Population
         self.offspring_pop.append(offspring_1)
         self.offspring_pop.append(offspring_2)

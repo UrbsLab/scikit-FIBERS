@@ -10,6 +10,7 @@ class BIN:
         self.feature_list = [] # List of feature names (across which instance values are summed)
         self.group_threshold = None # Threshold after which an instance is place in the 'above threshold' group - determines group strata of instances
         self.fitness = None # Bin fitness (higher fitness is better) - proportional to parent selection probability, and inversely proportional to deletion probability
+        self.pre_fitness = None
         self.metric = None  # Metric score of applied evaluation metric
         self.p_value = None # p-value of applied evaluation metric (if available)
         self.bin_size = None # Number of features included in bin
@@ -220,7 +221,7 @@ class BIN:
                     self.group_threshold = random_thresh
 
 
-    def calculate_fitness(self,pareto_fitness,group_strata_min,penalty,fitness_metric):
+    def calculate_fitness(self,pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names):
 
         if pareto_fitness: #Apply pareto-front-based multi-objective fitness
             print("Pareto-fitness has not yet been implemented")
@@ -229,15 +230,20 @@ class BIN:
             # Penalize fitness if group counts are beyond the minimum group strata parameter (Ryan Check below)
             self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_at),self.count_at/(self.count_bt+self.count_at))
             if self.group_strata_prop < group_strata_min: 
-                self.fitness = penalty * self.metric
+                self.pre_fitness = penalty * self.metric
             else:
-                self.fitness = self.metric
-            test = True
-            if test:
-                self.fitness = self.fitness+(self.group_strata_prop/(self.bin_size + self.group_threshold))
+                self.pre_fitness = self.metric
+            #test = False
+            #if test:
+                #self.fitness = self.fitness+(self.group_strata_prop/(self.bin_size + self.group_threshold)) #Works well - PROBALY SAFEST!!, since best fitness should almost always win
+                #self.fitness = self.fitness+(self.fitness*self.group_strata_prop/(self.bin_size + self.group_threshold)) #Also works well
+                #self.fitness = self.fitness*(1 + self.group_strata_prop + (1/self.bin_size) + (1/(self.group_threshold+2))) #Interesting - converges more slowly but consistently
+                #Consider above with normalization of secondary objectivesand equal or explicit weighting
+                #Better yet - rank fitness - (sort by metric,--> Tie--> sort by group thresh --> Tie --> sort by bin size --> Tie --> sort by strata prop (final sort)--place on a log scale, and calculate rank fitness)
+                #self.fitness = self.fitness*self.group_strata_prop+(len(feature_names)/(self.bin_size + self.group_threshold)) #prevents exploration of larger rules
             # Residuals 
             if fitness_metric == 'residuals':
-                self.fitness = self.fitness*self.residuals_score
+                self.pre_fitness = self.pre_fitness*self.residuals_score
 
 
     def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):
@@ -258,14 +264,14 @@ class BIN:
     
 
     def bin_report(self):
-        columns = ['Features in Bin:', 'Threshold:', 'Fitness:', 'Metric Score:', 'p-value:' ,'Bin Size:', 'Group Ratio:', 
+        columns = ['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Metric Score:', 'p-value:' ,'Bin Size:', 'Group Ratio:', 
                     'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:','Residuals Score:','Residuals p-value']
-        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.metric, self.p_value,
+        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.pre_fitness,self.metric, self.p_value,
                                    self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration,self.residuals_score,self.residuals_p_value]],columns=columns,index=None)
         return report_df
     
 
     def bin_short_report(self):
-        columns = ['Features in Bin:', 'Threshold:', 'Fitness:', 'Bin Size:', 'Group Ratio:','Birth Iteration:']
-        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness, self.bin_size, self.group_strata_prop,self.birth_iteration]],columns=columns,index=None).T
+        columns = ['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Bin Size:', 'Group Ratio:','Birth Iteration:']
+        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.pre_fitness, self.bin_size, self.group_strata_prop,self.birth_iteration]],columns=columns,index=None).T
         return report_df
