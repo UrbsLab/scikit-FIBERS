@@ -297,7 +297,12 @@ class FIBERS(BaseEstimator, TransformerMixin):
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.pareto_fitness,self.group_strata_min,
                            self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariate_df,random)
-        
+        #Global fitness update
+        self.set.global_fitness_update() #Exerimental
+
+        # Update feature tracking
+        self.set.update_feature_tracking(self.feature_names)
+
         # Initialize training performance tracking
         self.performance_tracking(True,-1)
 
@@ -329,12 +334,18 @@ class FIBERS(BaseEstimator, TransformerMixin):
             # Add Offspring to Population
             self.set.add_offspring_into_pop()
 
+            #Global fitness update
+            self.set.global_fitness_update() #Exerimental
+
             #Bin Deletion
             if iteration == self.iterations - 1: #Last iteration
                 self.set.bin_deletion_deterministic(self.pop_size) # Elitism not needed
             else:
                 self.set.bin_deletion_probabilistic(self.pop_size,self.elitism,random)
 
+            # Update feature tracking
+            self.set.update_feature_tracking(self.feature_names)
+            
             # Training performance tracking
             self.performance_tracking(False,iteration)
 
@@ -474,13 +485,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.set.bin_pop = sorted(self.set.bin_pop, key=lambda x: x.fitness,reverse=True)
         top_bin = self.set.bin_pop[0]
         if initialize:
-            col_list = ['Iteration','Top Bin', 'Threshold', 'Fitness', 'Metric', 'p-value', 'Bin Size', 'Group Ratio', 'Count At/Below Threshold', 
+            col_list = ['Iteration','Top Bin', 'Threshold', 'Fitness', 'Pre-Fitness', 'Metric', 'p-value', 'Bin Size', 'Group Ratio', 'Count At/Below Threshold', 
                         'Count Below Threshold','Birth Iteration','Residuals Score','Residuals p-value','Elapsed Time']
             self.top_perform_df = pd.DataFrame(columns=col_list)
             if self.verbose:
                 print(col_list)
 
-        tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold,top_bin.fitness,top_bin.metric,top_bin.p_value,top_bin.bin_size,
+        tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold,top_bin.fitness,top_bin.pre_fitness,top_bin.metric,top_bin.p_value,top_bin.bin_size,
                         top_bin.group_strata_prop,top_bin.count_bt,top_bin.count_at,top_bin.birth_iteration,top_bin.residuals_score,
                         top_bin.residuals_p_value,self.elapsed_time]
         if self.verbose:
