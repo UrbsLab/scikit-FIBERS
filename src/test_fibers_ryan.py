@@ -15,7 +15,7 @@ from skfibers.experiments.datagen_evolvable_threshold import create_data_simulat
 data = create_data_simulation_bin_evolve(number_of_instances=10000, number_of_features=100, number_of_features_in_bin=10,
                                   no_fail_proportion=0.5, mm_frequency_range=(0.4, 0.5), noise_frequency=0.0,
                                   class0_time_to_event_range=(1.5, 0.2), class1_time_to_event_range=(1, 0.2),
-                                  censoring_frequency=0.5, random_seed=42, negative=False, threshold=4)
+                                  censoring_frequency=0.5, random_seed=42, negative=False, threshold=1)
 
 data.to_csv('sampledata.csv', index=False)
 data = pd.read_csv('sampledata.csv')
