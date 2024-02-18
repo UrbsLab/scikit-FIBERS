@@ -26,7 +26,7 @@ class BIN_SET:
                 new_bin.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
                 # Fitness metric calculation based on bin metric score
-                new_bin.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names) #ORIGINAL
+                new_bin.calculate_pre_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names) #ORIGINAL
                 #Add new bin to population
                 self.bin_pop.append(new_bin)
 
@@ -35,7 +35,7 @@ class BIN_SET:
         for bin in self.bin_pop:
             for feature in bin.feature_list:
                 index = feature_names.index(feature)
-                self.feature_tracking[index] += bin.fitness
+                self.feature_tracking[index] += bin.pre_fitness
 
 
     def custom_sort_key(self, obj):
@@ -48,13 +48,22 @@ class BIN_SET:
         # Sort DataFrame by maximizing column A (descending) and minimizing column B (ascending) for ties
         decay = 0.2
         self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
-        index = 0
+        previous_objective_list = [None,None,None,None]
+        index = -1
+
         for bin in self.bin_pop:
             if bin.pre_fitness == 0:
                 bin.fitness = 0
+                index += 1 
             else:
+                objective_list = [bin.pre_fitness, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
+                if objective_list != previous_objective_list: 
+                    index += 1 #Only advance bin ranking if next bin is different across at least one objective
+
                 bin.fitness = np.exp(-index / (len(self.bin_pop)*decay)) 
-            index += 1
+                #bin.fitness = np.exp(-index / (len(self.bin_pop)*decay)) 
+
+            previous_objective_list = [bin.pre_fitness, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
 
 
     def select_parent_pair(self,tournament_prop,random):
@@ -102,8 +111,8 @@ class BIN_SET:
         offspring_2.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
         #print("Random Seed Check - evatluate: "+ str(random.random()))
-        offspring_1.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names)
-        offspring_2.calculate_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names)
+        offspring_1.calculate_pre_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names)
+        offspring_2.calculate_pre_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names)
 
         # Update feature tracking
         #self.update_feature_tracking(offspring_1,feature_names)
@@ -138,9 +147,9 @@ class BIN_SET:
 
         # Preseve any proportion of elite bins specified
         elite_count = int(pop_size*(elitism))
-        self.bin_pop = sorted(self.bin_pop, key=lambda x: x.fitness,reverse=True)
-        elite_bins = self.bin_pop[-elite_count:]
-        remaining_bins = self.bin_pop[:-elite_count]
+        #self.bin_pop = sorted(self.bin_pop, key=lambda x: x.fitness,reverse=True)
+        elite_bins = self.bin_pop[:elite_count]
+        remaining_bins = self.bin_pop[elite_count:]
 
         # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
         # Delete remaining bins required (from non-elite set) based on bin selection that is inversely proportional to bin fitness
@@ -157,7 +166,7 @@ class BIN_SET:
 
     def bin_deletion_deterministic(self,pop_size):
         # Calculate number of bins to delete
-        self.bin_pop = sorted(self.bin_pop, key=lambda x: x.fitness,reverse=True)
+        #self.bin_pop = sorted(self.bin_pop, key=lambda x: x.fitness,reverse=True)
         while len(self.bin_pop) > pop_size:
             del self.bin_pop[-1]
 
@@ -178,12 +187,6 @@ class BIN_SET:
         print(pop_df)
 
 
-    def get_pop(self):
-        self.sort_feature_lists()
-        pop_df = pd.DataFrame([vars(instance) for instance in self.bin_pop])
-        return pop_df
-
-
     def get_all_top_bins(self):
         top_bin_list = [self.bin_pop[0]]
         highest_fitness = self.bin_pop[0].fitness
@@ -194,4 +197,11 @@ class BIN_SET:
         return top_bin_list
 
 
-
+    def report_debug_pop(self): #FOR DEBUGGING
+        fitness_list = []
+        metric_list = []
+        for bin in self.bin_pop:
+            fitness_list.append(bin.fitness)
+            metric_list.append(bin.metric)
+        print(fitness_list)
+        print(metric_list)

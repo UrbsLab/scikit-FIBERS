@@ -221,7 +221,7 @@ class BIN:
                     self.group_threshold = random_thresh
 
 
-    def calculate_fitness(self,pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names):
+    def calculate_pre_fitness(self,pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names):
 
         if pareto_fitness: #Apply pareto-front-based multi-objective fitness
             print("Pareto-fitness has not yet been implemented")
@@ -233,14 +233,6 @@ class BIN:
                 self.pre_fitness = penalty * self.metric
             else:
                 self.pre_fitness = self.metric
-            #test = False
-            #if test:
-                #self.fitness = self.fitness+(self.group_strata_prop/(self.bin_size + self.group_threshold)) #Works well - PROBALY SAFEST!!, since best fitness should almost always win
-                #self.fitness = self.fitness+(self.fitness*self.group_strata_prop/(self.bin_size + self.group_threshold)) #Also works well
-                #self.fitness = self.fitness*(1 + self.group_strata_prop + (1/self.bin_size) + (1/(self.group_threshold+2))) #Interesting - converges more slowly but consistently
-                #Consider above with normalization of secondary objectivesand equal or explicit weighting
-                #Better yet - rank fitness - (sort by metric,--> Tie--> sort by group thresh --> Tie --> sort by bin size --> Tie --> sort by strata prop (final sort)--place on a log scale, and calculate rank fitness)
-                #self.fitness = self.fitness*self.group_strata_prop+(len(feature_names)/(self.bin_size + self.group_threshold)) #prevents exploration of larger rules
             # Residuals 
             if fitness_metric == 'residuals':
                 self.pre_fitness = self.pre_fitness*self.residuals_score
