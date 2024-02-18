@@ -150,3 +150,26 @@ def plot_misc_progress(perform_track_df,show=True,save=False,output_folder=None,
         plt.savefig(output_folder+'/'+'Misc_Track_'+data_name+'.png')
     if show:
         plt.show()
+
+
+def cox_prop_hazard():
+    pass
+
+def hazard_ratio(data_without_nan, bin_scores, bins, covariates, index=0):
+    sorted_bin_scores = dict(sorted(bin_scores.items(), key=lambda item: item[1], reverse=True))
+    sorted_bin_list = list(sorted_bin_scores.keys())
+    #sorted_bin_feature_importance_values = list(sorted_bin_scores.values())
+    Bin = bins[sorted_bin_list[index]]
+    d_data = data_without_nan.copy()
+    d_data['Bin'] = d_data[Bin].sum(axis=1)
+    column_values = d_data['Bin'].to_list()
+    for r in range(0, len(column_values)):
+        if column_values[r] > 0:
+            column_values[r] = 1
+    d_data['Bin'] = column_values
+    coxmodeldata =  d_data[covariates + ["grf_fail", "graftyrs", "Bin"]]
+    cat_columns = coxmodeldata.select_dtypes(['object']).columns
+    coxmodeldata[cat_columns] = coxmodeldata[cat_columns].apply(lambda x: pd.factorize(x)[0])
+    cph = CoxPHFitter()
+    cph.fit(coxmodeldata,"graftyrs",event_col="grf_fail", show_progress=True)
+    return cph.summary

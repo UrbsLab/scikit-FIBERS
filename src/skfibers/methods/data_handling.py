@@ -17,7 +17,7 @@ def prepare_data(df,outcome_label,censor_label,covariates):
             cols_to_drop.append(col)
     feature_df.drop(columns=cols_to_drop, inplace=True)
 
-    # Make covariate dataframe
+    # Make covariate dataframe and feature dataframe separate
     if covariates:  
         covariate_df = feature_df[covariates]
         for covariate in covariates:
