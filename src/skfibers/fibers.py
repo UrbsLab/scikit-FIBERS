@@ -281,7 +281,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # PREPARE DATA ---------------------------------------
         self.df = self.check_x_y(x, y)
         self.feature_df,self.outcome_df,self.censor_df,self.covariate_df = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
-
+        print(self.feature_df.shape)
+        print(self.outcome_df.shape)
+        print(self.censor_df.shape)
+        print(self.covariate_df.shape)
         # Calculate residuals for covariate adjustment
         if self.fitness_metric == "residuals":
             self.residuals = calculate_residuals(self.covariate_df,self.outcome_label,self.censor_label)
@@ -289,7 +292,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             self.residuals = None
 
         # Make feature dataframe without covariates
-        self.feature_df = self.feature_df.drop(self.covariates, axis=1)
+        #self.feature_df = self.feature_df.drop(self.covariates, axis=1)
 
         # Creating a list of features
         self.feature_names = list(self.feature_df.columns)
