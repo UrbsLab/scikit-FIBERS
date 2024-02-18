@@ -2,12 +2,16 @@ import numpy as np
 import pandas as pd
 import random
 import time
-
 from sklearn.base import BaseEstimator, TransformerMixin
 from .methods.data_handling import prepare_data
 from .methods.data_handling import calculate_residuals
 from .methods.population import BIN_SET
-
+from .methods.util import plot_pareto
+from .methods.util import plot_feature_tracking
+from .methods.util import plot_kaplan_meir
+from .methods.util import plot_fitness_progress
+from .methods.util import plot_perform_progress
+from .methods.util import plot_misc_progress
 from tqdm import tqdm
 
 #from sklearn.metrics import classification_report, accuracy_score
@@ -449,30 +453,31 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 feature_sums = self.feature_df[bin.feature_list].sum(axis=1)
                 temp_df['Bin_'+str(bin_count)] = feature_sums
                 bin_count += 1
-            
+
             # Transform values greater than 0 to 1
-            transformed_df = temp_df.applymap(lambda x: 1 if x > 0 else x)
+            #transformed_df = temp_df.applymap(lambda x: 1 if x > 0 else x)
 
             # Count
-            zero_vote = [0]*len(transformed_df) #votesum stored for each instance
-            one_vote = [0]*len(transformed_df) #votesum stored for each instance
+            bt_vote = [0]*len(temp_df) #votesum stored for each instance
+            at_vote = [0]*len(temp_df) #votesum stored for each instance
 
             # Iterate through each row of the DataFrame
             row_count = 0
-            for index, row in transformed_df.iterrows():
+            for index, row in temp_df.iterrows():
                 bin_count = 0
                 # Iterate through each value in the row
                 for value in row:
-                    if value == 0:
-                        zero_vote[row_count] += self.set.bin_pop[bin_count].fitness
-                    elif value == 1:
-                        one_vote[row_count] += self.set.bin_pop[bin_count].fitness
+                    if value <= self.set.bin_pop[bin_count].group_threshold:
+                        bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                    else:
+                        at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
                     bin_count += 1
                 row_count += 1
             # Convert votes into predictions
             prediction_list = []
-            for i in range(0,len(zero_vote)):
-                if zero_vote[i] < one_vote[i]:
+
+            for i in range(0,len(bt_vote)):
+                if bt_vote[i] < at_vote[i]:
                     prediction_list.append(1)
                 else:
                     prediction_list.append(0)
@@ -482,12 +487,12 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def performance_tracking(self,initialize,iteration):
         current_time = time.time()
         self.elapsed_time = current_time - self.start_time
-        self.set.bin_pop = sorted(self.set.bin_pop, key=lambda x: x.fitness,reverse=True)
+        #self.set.bin_pop = sorted(self.set.bin_pop, key=lambda x: x.fitness,reverse=True)
         top_bin = self.set.bin_pop[0]
         if initialize:
             col_list = ['Iteration','Top Bin', 'Threshold', 'Fitness', 'Pre-Fitness', 'Metric', 'p-value', 'Bin Size', 'Group Ratio', 'Count At/Below Threshold', 
                         'Count Below Threshold','Birth Iteration','Residuals Score','Residuals p-value','Elapsed Time']
-            self.top_perform_df = pd.DataFrame(columns=col_list)
+            self.perform_track_df = pd.DataFrame(columns=col_list)
             if self.verbose:
                 print(col_list)
 
@@ -497,16 +502,29 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if self.verbose:
             print(tracking_values)
         # Add the row to the DataFrame
-        self.top_perform_df.loc[len(self.top_perform_df)] = tracking_values
+        self.perform_track_df.loc[len(self.perform_track_df)] = tracking_values
 
 
     def get_performance_tracking(self):
-        return self.top_perform_df
+        return self.perform_track_df
     
 
     def get_top_bins(self):
         return self.set.get_all_top_bins()
     
+
+    def report_ties(self):
+        top_bin_list = self.get_top_bins()
+        count = len(top_bin_list)
+        if count > 1:
+            print(str(len(top_bin_list))+" bins were tied for best fitness")
+            for bin in top_bin_list:
+                #print("Features in Bin: "+str(bin.feature_list))
+                report = bin.bin_short_report()
+                print(report)
+        else:
+            print("Only one top performing bin found")
+
 
     def get_bin_groups(self, x, y=None, bin_index=0):
         """
@@ -547,12 +565,45 @@ class FIBERS(BaseEstimator, TransformerMixin):
         high_outcome = high_df[self.outcome_label].to_list()
         low_censor = low_df[self.censor_label].to_list()
         high_censor =high_df[self.censor_label].to_list()
-
-        # Generates a bin summary report as a transposed dataframe
-        bin_report_df = self.set.bin_pop[bin_index].bin_report().T
-
-        return low_outcome, high_outcome, low_censor, high_censor, bin_report_df
+        return low_outcome, high_outcome, low_censor, high_censor
     
+
+    def get_bin_report(self, bin_index):
+        # Generates a bin summary report as a transposed dataframe
+        return self.set.bin_pop[bin_index].bin_report().T
+
 
     def get_feature_tracking(self):
         return self.feature_names, self.set.feature_tracking
+    
+
+    def get_pop(self):
+        self.set.sort_feature_lists()
+        pop_df = pd.DataFrame([vars(instance) for instance in self.set.bin_pop])
+        return pop_df
+
+
+    def get_pareto_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_pareto(self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_feature_tracking_plot(self,max_features=50,show=True,save=False,output_folder=None,data_name=None):
+        feature_names, feature_tracking = self.get_feature_tracking()
+        plot_feature_tracking(feature_names,feature_tracking,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_kaplan_meir(self,data,bin_index,show=True,save=False,output_folder=None,data_name=None):
+        low_outcome, high_outcome, low_censor, high_censor = self.get_bin_groups(data, bin_index)
+        plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_fitness_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_fitness_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_perform_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_perform_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_misc_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_misc_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
