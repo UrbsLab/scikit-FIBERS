@@ -12,6 +12,10 @@ from .methods.util import plot_kaplan_meir
 from .methods.util import plot_fitness_progress
 from .methods.util import plot_perform_progress
 from .methods.util import plot_misc_progress
+from .methods.util import plot_residuals_histogram
+from .methods.util import plot_log_rank_residuals
+from .methods.util import plot_adj_HR_residuals
+from .methods.util import cox_prop_hazard
 from tqdm import tqdm
 
 #from sklearn.metrics import classification_report, accuracy_score
@@ -149,9 +153,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if thresh_evolve_prob < 0 or thresh_evolve_prob > 1:
             raise Exception("'thresh_evolve_prob' param must be an int or float from 0 - 1")
         
-        if not self.check_is_list(manual_bin_init) and not manual_bin_init == None:
-            raise Exception("'manual_bin_init' param must be either None or a list of feature name lists")
-        
+        if not isinstance(manual_bin_init, pd.DataFrame) and not manual_bin_init == None:
+            raise Exception("'manual_bin_init' param must be either None or DataFame that includes columns for 'feature_list' and 'group_threshold' ")
+
         if not self.check_is_list(covariates) and not covariates == None:
                 raise Exception("'covariates' param must be either None or a list of feature names")
 
@@ -234,30 +238,30 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 raise Exception("x must be pandas dataframe")
             if not ((self.outcome_label in x.columns) or (self.censor_label not in x.columns)):
                 raise Exception("x must have column labels as specified")
-            feature_df = x
+            df = x
         else:
             if not (isinstance(x, pd.DataFrame)):
                 raise Exception("x must be pandas dataframe")
             if not ((self.outcome_label in x.columns) or (self.censor_label not in x.columns)):
                 labels = pd.DataFrame(y, columns=[self.outcome_label, self.censor_label])
-                feature_df = pd.concat([x, labels], axis=1)
+                df = pd.concat([x, labels], axis=1)
             else:
-                feature_df = x
+                df = x
 
         # Check if original_feature_matrix and y are numeric (Ryan - extend to check if all values > 0)
         try:
-            feature_df.copy() \
+            df.copy() \
                 .apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
         except Exception:
             raise Exception("X must be fully numeric")
 
-        if not (self.outcome_label in feature_df.columns):
+        if not (self.outcome_label in df.columns):
             raise Exception("label_name param must be a column in the dataset")
 
-        if not (self.censor_label in feature_df.columns):
+        if not (self.censor_label in df.columns):
             raise Exception("duration_name param must be a column in the dataset")
 
-        return feature_df
+        return df
     
 
     def fit(self, x, y=None):
@@ -280,32 +284,23 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         # PREPARE DATA ---------------------------------------
         self.df = self.check_x_y(x, y)
-        self.feature_df,self.outcome_df,self.censor_df,self.covariate_df = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
-        print(self.feature_df.shape)
-        print(self.outcome_df.shape)
-        print(self.censor_df.shape)
-        print(self.covariate_df.shape)
+        self.df,self.feature_names = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
+
         # Calculate residuals for covariate adjustment
         if self.fitness_metric == "residuals":
-            self.residuals = calculate_residuals(self.covariate_df,self.outcome_label,self.censor_label)
+            self.residuals = calculate_residuals(self.df,self.covariates,self.feature_names,self.outcome_label,self.censor_label)
         else:
             self.residuals = None
-
-        # Make feature dataframe without covariates
-        #self.feature_df = self.feature_df.drop(self.covariates, axis=1)
-
-        # Creating a list of features
-        self.feature_names = list(self.feature_df.columns)
 
         print("Beginning FIBERS Fit:")
         #Initialize bin population
         threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
-        self.set = BIN_SET(self.manual_bin_init,self.feature_df,self.outcome_df,self.censor_df,self.feature_names,self.pop_size,
+        self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.pareto_fitness,self.group_strata_min,
-                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariate_df,random)
+                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates,random)
         #Global fitness update
-        self.set.global_fitness_update() #Exerimental
+        self.set.global_fitness_update(self.penalty) #Exerimental
 
         # Update feature tracking
         self.set.update_feature_tracking(self.feature_names)
@@ -317,6 +312,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if self.report != None and 0 in self.report: 
             self.set.report_pop()
 
+        self.min_mutation_prob = self.mutation_prob
+        self.max_mutation_prob = 0.8
         #EVOLUTIONARY LEARNING ITERATIONS
         for iteration in tqdm(range(0, self.iterations)):
             if self.group_thresh == None:
@@ -326,6 +323,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
             else:
                 threshold_evolving = False
 
+            #Experimental - Variable Mutation Rate
+            #self.mutation_prob = ((iteration%10)*(self.max_mutation_prob-self.min_mutation_prob)/9)+self.min_mutation_prob
+
             # GENETIC ALGORITHM 
             target_offspring_count = int(self.pop_size*self.new_gen) #Determine number of offspring to generate
             while len(self.set.offspring_pop) < target_offspring_count: #Generate offspring until we hit the target number
@@ -334,15 +334,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
                 # Generate Offspring - clone, crossover, mutation, evaluation, add to population
                 self.set.generate_offspring(self.crossover_prob,self.mutation_prob,self.iterations,iteration,parent_list,self.feature_names,
-                                            threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,
-                                            self.max_thresh,self.feature_df,self.outcome_df,self.censor_df,self.outcome_type,
-                                            self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
-                                            self.group_thresh,self.pareto_fitness,self.group_strata_min,self.penalty,self.residuals,self.covariate_df,random)
+                                            threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
+                                            self.df,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
+                                            self.group_thresh,self.pareto_fitness,self.group_strata_min,self.penalty,self.residuals,self.covariates,random)
             # Add Offspring to Population
             self.set.add_offspring_into_pop()
 
             #Global fitness update
-            self.set.global_fitness_update() #Exerimental
+            self.set.global_fitness_update(self.penalty) #Exerimental
 
             #Bin Deletion
             if iteration == self.iterations - 1: #Last iteration
@@ -374,6 +373,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         print("Elapsed Time (sec): ", self.elapsed_time, "seconds")
 
         self.hasTrained = True
+        # Memory Cleanup
+        self.df = None
         return self
 
 
@@ -395,19 +396,21 @@ class FIBERS(BaseEstimator, TransformerMixin):
             raise Exception("FIBERS must be fit first")
 
         # PREPARE DATA ---------------------------------------
-        self.df = self.check_x_y(x, y)
-        self.feature_df,self.outcome_df,self.censor_df,self.covariate_df = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+
         tdf = pd.DataFrame()
 
         #Create transformed dataset
         bin_count = 0
         for bin in self.set.bin_pop: #for each bin in the population - apply it to creating a bin 'feature' in the dataset for each instance
             # Sum instance values across features specified in the bin
-            feature_sums = self.feature_df[bin.feature_list].sum(axis=1)
+            feature_sums = df[bin.feature_list].sum(axis=1)
             tdf['Bin_'+str(bin_count)] = feature_sums
             bin_count += 1
 
-        tdf = pd.concat([tdf,self.outcome_df,self.censor_df],axis=1)
+        tdf = pd.concat([tdf,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        df = None
         return tdf
 
 
@@ -434,31 +437,30 @@ class FIBERS(BaseEstimator, TransformerMixin):
         
         # PREPARE DATA ---------------------------------------
         y = None
-        self.df = self.check_x_y(x, y)
-        if self.covariates:
-            try:
-                for covariate in self.covariates:
-                    feature_df = feature_df.drop(columns=covariate)
-            except:
-                pass
+        df = self.check_x_y(x, y)
+        #if self.covariates:
+        #    try:
+        #        for covariate in self.covariates:
+        #            feature_df = feature_df.drop(columns=covariate)
+        #    except:
+        #        pass
         
         # Make Predition
         if bin_number != None: #Make prediction with single selected bin
             # Sum instance values across features specified in the bin
-            feature_sums = self.df[self.set.bin_pop[bin_number].feature_list].sum(axis=1)
-            return (self.df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) > self.set.bin_pop[bin_number].group_threshold).astype(int).values
+            feature_sums = df[self.set.bin_pop[bin_number].feature_list].sum(axis=1)
+            prediction_list = (df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) > self.set.bin_pop[bin_number].group_threshold).astype(int).values
+            df = None
+            return np.array(prediction_list) 
         
         else: #Make prediction using entire bin population (weighted voting scheme)
             temp_df = pd.DataFrame()
             bin_count = 0
             for bin in self.set.bin_pop: #for each bin in the population 
                 # Sum instance values across features specified in the bin
-                feature_sums = self.feature_df[bin.feature_list].sum(axis=1)
+                feature_sums = df[bin.feature_list].sum(axis=1)
                 temp_df['Bin_'+str(bin_count)] = feature_sums
                 bin_count += 1
-
-            # Transform values greater than 0 to 1
-            #transformed_df = temp_df.applymap(lambda x: 1 if x > 0 else x)
 
             # Count
             bt_vote = [0]*len(temp_df) #votesum stored for each instance
@@ -484,6 +486,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
                     prediction_list.append(1)
                 else:
                     prediction_list.append(0)
+            temp_df = None
+            df = None
             return np.array(prediction_list) 
 
 
@@ -551,25 +555,98 @@ class FIBERS(BaseEstimator, TransformerMixin):
             raise Exception("FIBERS must be fit first")
 
         # PREPARE DATA ---------------------------------------
-        self.df = self.check_x_y(x, y)
-        self.feature_df,self.outcome_df,self.censor_df,self.covariate_df = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+        print(df.shape)
 
         # Sum instance values across features specified in the bin
-        feature_sums = self.feature_df[self.set.bin_pop[bin_index].feature_list].sum(axis=1)
-        bin_df = pd.DataFrame({'feature_sum':feature_sums})
+        feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
+        bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
 
         # Create evaluation dataframe including bin sum feature with 
-        bin_df = pd.concat([bin_df,self.outcome_df,self.censor_df],axis=1)
+        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
 
-        low_df = bin_df[bin_df['feature_sum'] <= self.set.bin_pop[bin_index].group_threshold]
-        high_df = bin_df[bin_df['feature_sum'] > self.set.bin_pop[bin_index].group_threshold]
+        low_df = bin_df[bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold]
+        high_df = bin_df[bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold]
 
         low_outcome = low_df[self.outcome_label].to_list()
         high_outcome = high_df[self.outcome_label].to_list()
         low_censor = low_df[self.censor_label].to_list()
         high_censor =high_df[self.censor_label].to_list()
+        df = None
         return low_outcome, high_outcome, low_censor, high_censor
     
+
+    def get_cox_prop_hazard(self,x, y=None, bin_index=0, use_bin_sums=False):
+        if not self.hasTrained:
+            raise Exception("FIBERS must be fit first")
+
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+
+        # Sum instance values across features specified in the bin
+        feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
+        bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
+
+        if not use_bin_sums:
+            # Transform bin feature values according to respective bin threshold
+            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
+
+        # Create evaluation dataframe including bin sum feature with any covariates present
+        bin_df = pd.concat([bin_df,df.loc[:,self.covariates],df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+
+        summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+        df = None
+        return summary
+
+
+    def calculate_cox_prop_hazards(self,x, y=None, use_bin_sums=False):
+        if not self.hasTrained:
+            raise Exception("FIBERS must be fit first")
+        
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+        bin_index = 0
+        for bin in self.set.bin_pop: #For each bin in population
+
+            # Sum instance values across features specified in the bin
+            feature_sums = df.loc[:,self.feature_names][bin.feature_list].sum(axis=1)
+            bin_df = pd.DataFrame({'Bin':feature_sums})
+
+            if not use_bin_sums:
+                # Transform bin feature values according to respective bin threshold
+                bin_df['Bin'] = bin_df['Bin'].apply(lambda x: 0 if x <= bin.group_threshold else 1)
+
+            # Create evaluation dataframe including bin sum feature, outcome, and censoring alone
+            bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+            try:
+                summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+                bin.HR = summary['exp(coef)'].iloc[0]
+                bin.HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+                bin.HR_p_value = summary['p'].iloc[0]
+            except:
+                bin.HR = None
+                bin.HR_CI = None
+                bin.HR_p_value = None
+
+            # Create evaluation dataframe including bin sum feature with covariates
+            if self.covariates != None:                 
+                try:
+                    bin_df = pd.concat([bin_df,df.loc[:,self.covariates]],axis=1)
+                    summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+                    bin.adj_HR = summary['exp(coef)'].iloc[0]
+                    bin.adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+                    bin.adj_HR_p_value = summary['p'].iloc[0]
+                except:
+                    bin.adj_HR = None
+                    bin.adj_HR_CI = None
+                    bin.adj_HR_p_value = None
+            print('Evaluating Bin '+str(bin_index))
+            bin_index += 1
+
+        bin_df = None
 
     def get_bin_report(self, bin_index):
         # Generates a bin summary report as a transposed dataframe
@@ -610,3 +687,15 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def get_misc_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
         plot_misc_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_residuals_histogram(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_residuals_histogram(self.residuals,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_log_rank_residuals_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_log_rank_residuals(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_adj_HR_residuals_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_adj_HR_residuals(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)

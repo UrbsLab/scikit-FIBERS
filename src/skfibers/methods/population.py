@@ -1,34 +1,48 @@
 import numpy as np
 import pandas as pd
+from itertools import combinations
 from .bin import BIN
 
 class BIN_SET:
-    def __init__(self,manual_bin_init,feature_df,outcome_df,censor_df,feature_names,pop_size,min_bin_size,max_bin_init_size,
+    def __init__(self,manual_bin_init,df,feature_names,pop_size,min_bin_size,max_bin_init_size,
                  group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,log_rank_weighting,pareto_fitness,group_strata_min,
-                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariate_df,random):
+                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariates,random):
         #Initialize bin population
         self.bin_pop = []
         self.offspring_pop = []
         self.feature_tracking = [0]*len(feature_names)
 
-        if manual_bin_init != None:
-            # Load manually curated or previously trained bin population
-            print("manual bin intitialization not yet implemented")
-        else:
-            #Random bin initialization
-            while len(self.bin_pop) < pop_size:
+        if isinstance(manual_bin_init, pd.DataFrame): # Load manually curated or previously trained bin population
+            for index, row in manual_bin_init.iterrows():
+                feature_text = row[0]
+                feature_list = eval(feature_text)
+                loaded_bin = [item.strip("[]'") for item in feature_list]
+                loaded_thresh = row[1]
+                birth_iteration = row[10]
                 new_bin = BIN()
-                new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random)
-                # Check for duplicate rules based on feature list and threshold
-                while self.equivalent_bin_in_pop(new_bin): # May slow down evolutionary cycles if new bins aren't found right away
-                    new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+                new_bin.initialize_manual(feature_names,loaded_bin,loaded_thresh,group_thresh,min_thresh,max_thresh,birth_iteration)
                 # Bin metric score evaluation
-                new_bin.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
+                new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
+                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
                 # Fitness metric calculation based on bin metric score
-                new_bin.calculate_pre_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names) #ORIGINAL
+                new_bin.calculate_pre_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names) 
                 #Add new bin to population
                 self.bin_pop.append(new_bin)
+
+        #Random bin initialization
+        while len(self.bin_pop) < pop_size:
+            new_bin = BIN()
+            new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random)
+            # Check for duplicate rules based on feature list and threshold
+            while self.equivalent_bin_in_pop(new_bin): # May slow down evolutionary cycles if new bins aren't found right away
+                new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+            # Bin metric score evaluation
+            new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
+                                censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
+            # Fitness metric calculation based on bin metric score
+            new_bin.calculate_pre_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names) 
+            #Add new bin to population
+            self.bin_pop.append(new_bin)
 
 
     def update_feature_tracking(self, feature_names):
@@ -42,7 +56,10 @@ class BIN_SET:
         return (-obj.pre_fitness,obj.group_threshold,obj.bin_size,-obj.group_strata_prop)
         
 
-    def global_fitness_update(self):
+    def global_fitness_update(self,penalty):
+        self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
+        #Evaluate for bin similarity penalties
+        #self.calculate_similarity_penalty(self.bin_pop[0],penalty)
 
         #Sort bin population first by metric, then by group_theshold, then by bin_size, then by group_strata_prop (to form a global bin ranking)
         # Sort DataFrame by maximizing column A (descending) and minimizing column B (ascending) for ties
@@ -59,12 +76,31 @@ class BIN_SET:
                 objective_list = [bin.pre_fitness, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
                 if objective_list != previous_objective_list: 
                     index += 1 #Only advance bin ranking if next bin is different across at least one objective
-
                 bin.fitness = np.exp(-index / (len(self.bin_pop)*decay)) 
-                #bin.fitness = np.exp(-index / (len(self.bin_pop)*decay)) 
 
             previous_objective_list = [bin.pre_fitness, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
 
+
+    def calculate_similarity_penalty(self,top_bin,penalty):
+        similarity_threshold = 0.5
+        # Calculate similarity metrics 
+        for bin in self.bin_pop:
+            if bin == top_bin:
+                pass
+            else:
+                similarity = self.jaccard_similarity(top_bin.feature_list, bin.feature_list)
+                #bin.pre_fitness = bin.pre_fitness*(1-(1-penalty)*similarity) 
+                if similarity > similarity_threshold:
+                    bin.pre_fitness = bin.pre_fitness*((similarity*(1-penalty)/(similarity_threshold-1))+penalty-((1-penalty)/(similarity_threshold-1)))
+
+    
+    def jaccard_similarity(self, list1, list2): # Function to calculate Jaccard similarity (1 = max similarity, 0 = lowest)
+        set1 = set(list1)
+        set2 = set(list2)
+        intersection = len(set1.intersection(set2))
+        union = len(set1.union(set2))
+        return intersection / union if union != 0 else 0
+    
 
     def select_parent_pair(self,tournament_prop,random):
         #Tournament Selection
@@ -80,8 +116,8 @@ class BIN_SET:
 
 
     def generate_offspring(self,crossover_prob,mutation_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,
-                           max_bin_init_size,min_thresh,max_thresh,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,
-                           outcome_label,censor_label,int_thresh,group_thresh,pareto_fitness,group_strata_min,penalty,residuals,covariate_df,random):
+                           max_bin_init_size,min_thresh,max_thresh,df,outcome_type,fitness_metric,log_rank_weighting,
+                           outcome_label,censor_label,int_thresh,group_thresh,pareto_fitness,group_strata_min,penalty,residuals,covariates,random):
         #print("Random Seed Check - genoff: "+ str(random.random()))
         # Clone Parents
         offspring_1 = BIN()
@@ -106,10 +142,10 @@ class BIN_SET:
             offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
         #print("Random Seed Check - duplicate: "+ str(random.random()))
         # Offspring Evalution 
-        offspring_1.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
-        offspring_2.evaluate(feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df)
+        offspring_1.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
+        offspring_2.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
         #print("Random Seed Check - evatluate: "+ str(random.random()))
         offspring_1.calculate_pre_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names)
         offspring_2.calculate_pre_fitness(pareto_fitness,group_strata_min,penalty,fitness_metric,feature_names)
@@ -138,7 +174,7 @@ class BIN_SET:
         delete_indexes = []
         i = 0
         for bin in self.bin_pop:
-            if bin.fitness == 0:
+            if bin.fitness == 0 and len(delete_indexes)<(len(self.bin_pop)-pop_size):
                 delete_indexes.append(i)
             i += 1
         delete_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes

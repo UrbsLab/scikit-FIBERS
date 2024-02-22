@@ -2,39 +2,35 @@ import logging
 from lifelines import CoxPHFitter
 
 def prepare_data(df,outcome_label,censor_label,covariates):
-    outcome_df = df[outcome_label]
-    feature_df = df.drop(columns=outcome_label)
+    # Make list of feature names (i.e. columns that are not outcome, censor, or covariates)
+    feature_names = list(df.columns)
     if censor_label != None:
-        censor_df = df[censor_label]
-        feature_df = feature_df.drop(columns=censor_label)
+        exclude = covariates + [outcome_label,censor_label]
     else:
-        censor_df = None
+        exclude = [outcome_label,censor_label]
+    feature_names = [item for item in feature_names if item not in exclude]
 
-    # Remove invariant features (data cleaning)
+    # Remove invariant feature columns (data cleaning)
     cols_to_drop = []
-    for col in feature_df.columns:
-        if len(feature_df[col].unique()) == 1:
+    for col in feature_names:
+        if len(df[col].unique()) == 1:
             cols_to_drop.append(col)
-    feature_df.drop(columns=cols_to_drop, inplace=True)
+    df.drop(columns=cols_to_drop, inplace=True)
+    feature_names = [item for item in feature_names if item not in cols_to_drop]
+    print("Dropped "+str(len(cols_to_drop))+" invariant feature columns.")
 
-    # Make covariate dataframe and feature dataframe separate
-    if covariates:  
-        covariate_df = feature_df[covariates]
-        for covariate in covariates:
-            feature_df = feature_df.drop(columns=covariate)
-    else:
-        covariate_df = None
+    return df, feature_names
 
 
-    return feature_df,outcome_df,censor_df,covariate_df
-
-
-def calculate_residuals(covariate_df,outcome_label,censor_label):
+def calculate_residuals(df,covariates,feature_names,outcome_label,censor_label): #Ryan - do we need to handle categorical variables like when calculating Cox PH??
     # Fit a Cox proportional hazards model to the DataFrame
+    var_list = covariates+[outcome_label,censor_label]
     logging.info("Fitting COX Model")
     cph = CoxPHFitter()
-    cph.fit(covariate_df, duration_col=outcome_label, event_col=censor_label, show_progress=True)
+    cph.fit(df.loc[:,var_list], duration_col=outcome_label, event_col=censor_label, show_progress=True)
 
     # Calculate the residuals using the Schoenfeld residuals method
-    residuals = cph.compute_residuals(covariate_df, kind='deviance')
+    residuals = cph.compute_residuals(df.loc[:,var_list], kind='deviance')
     return residuals
+
+
