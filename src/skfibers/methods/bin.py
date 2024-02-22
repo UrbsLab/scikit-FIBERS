@@ -20,6 +20,12 @@ class BIN:
         self.birth_iteration = None # Iteration where bin was introduced to population
         self.residuals_score = None
         self.residuals_p_value = None
+        self.HR = None
+        self.HR_CI = None
+        self.HR_p_value = None
+        self.adj_HR = None
+        self.adj_HR_CI = None
+        self.adj_HR_p_value = None
 
 
     def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random):
@@ -33,6 +39,26 @@ class BIN:
         else: # Adaptive group threshold
             self.group_threshold = random.randint(min_thresh,max_thresh)
     
+
+    def initialize_manual(self,feature_names,loaded_bin,loaded_thresh,group_thresh,min_thresh,max_thresh,birth_iteration):
+        if birth_iteration == None:
+            self.birth_iteration = 0
+        else:
+            self.birth_iteration = birth_iteration
+        for feature in loaded_bin:
+            #Initialize manual feature lists
+            if feature in feature_names:
+                self.feature_list.append(feature)
+            else:
+                print("Warning: feature ("+str(feature)+") not found in dataset for manual bin initialization")
+            if group_thresh != None and loaded_thresh != group_thresh:
+                print("Warning: threshold ("+str(loaded_thresh)+") is not equal to the specified group_thresh")
+            elif loaded_thresh < min_thresh or loaded_thresh > max_thresh:
+                print("Warning: threshold ("+str(loaded_thresh)+") is outside of min and max thresh")
+            else:
+                self.group_threshold = loaded_thresh
+        self.bin_size = len(self.feature_list)
+
 
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df):
@@ -48,14 +74,14 @@ class BIN:
             best_score = 0
             for threshold in range(min_thresh, max_thresh + 1):
                 score, p_value,residuals_score,residuals_p_value = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,threshold,residuals,covariate_df)
+                        log_rank_weighting,residuals,covariate_df)
                 if score > best_score:
                     self.metric = score
                     self.group_threshold = threshold
                     best_score = score
         else: #Use the given group threshold to evaluate the bin
             score, p_value,residuals_score,residuals_p_value = self.evaluate_for_threshold(bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,self.group_threshold,residuals,covariate_df)
+                        log_rank_weighting,residuals,covariate_df)
         self.metric = score
         self.p_value = p_value
         self.residuals_score = residuals_score
@@ -63,16 +89,16 @@ class BIN:
         self.bin_size = len(self.feature_list)
 
 
-    def evaluate_for_threshold(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,group_threshold,residuals,covariate_df):
+    def evaluate_for_threshold(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df):
         # Apply selected evaluation strategy/metric
         if outcome_type == 'survival':
             residuals_score = None
             residuals_p_value = None
 
-            if fitness_metric == 'log_rank':
+            if fitness_metric == 'log_rank' or fitness_metric == 'residuals':
                 #Create dataframes including instances from either strata-groups
-                low_df = bin_df[bin_df['feature_sum'] <= group_threshold]
-                high_df = bin_df[bin_df['feature_sum'] > group_threshold]
+                low_df = bin_df[bin_df['feature_sum'] <= self.group_threshold]
+                high_df = bin_df[bin_df['feature_sum'] > self.group_threshold]
                 low_outcome = low_df[outcome_label].to_list()
                 high_outcome = high_df[outcome_label].to_list()
                 low_censor = low_df[censor_label].to_list()
@@ -88,20 +114,27 @@ class BIN:
                     p_value = None
 
                 if fitness_metric == 'residuals': # In addition to log_rank, calculate residuals differences between groups
-                    bin_residuals = residuals.loc[bin_df['feature_sum'] <= group_threshold] #Does the threshold work the same way since these are residual? Transformed?
-                    high_residuals_df = residuals.loc[bin_df['feature_sum'] > group_threshold] # or is the residuals data the same and only the duration changed?
+                    low_residuals_df = residuals.loc[bin_df['feature_sum'] <= self.group_threshold] #Does the threshold work the same way since these are residual? Transformed?
+                    high_residuals_df = residuals.loc[bin_df['feature_sum'] > self.group_threshold] # or is the residuals data the same and only the duration changed?
 
                     low_residuals_df = low_residuals_df["deviance"]
                     high_residuals_df = high_residuals_df["deviance"]
-
-                    results = abs(ranksums(low_residuals_df, high_residuals_df))
-                    residuals_score = results.statistic #test all thresholds by default in initial pop.
-                    residuals_p_value = results.pvalue
+                    if len(low_residuals_df) == 0 or len(high_residuals_df) == 0:
+                        residuals_score = 0
+                        residuals_p_value = None
+                    else:
+                        try:
+                            results = ranksums(low_residuals_df, high_residuals_df)
+                            residuals_score = abs(results.statistic) 
+                            residuals_p_value = results.pvalue
+                        except:
+                            residuals_score = 0
+                            residuals_p_value = None
 
             elif fitness_metric == 'aic':
                  #Create dataframes including instances from either strata-groups
-                low_df = bin_df[bin_df['feature_sum'] <= group_threshold]
-                high_df = bin_df[bin_df['feature_sum'] > group_threshold]
+                low_df = bin_df[bin_df['feature_sum'] <= self.group_threshold]
+                high_df = bin_df[bin_df['feature_sum'] > self.group_threshold]
 
                 low_outcome = low_df[outcome_label].to_list()
                 high_outcome = high_df[outcome_label].to_list()
@@ -227,15 +260,41 @@ class BIN:
             print("Pareto-fitness has not yet been implemented")
             pass
         else:
+            """
             # Penalize fitness if group counts are beyond the minimum group strata parameter (Ryan Check below)
             self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_at),self.count_at/(self.count_bt+self.count_at))
-            if self.group_strata_prop < group_strata_min: 
-                self.pre_fitness = penalty * self.metric
-            else:
-                self.pre_fitness = self.metric
+            if fitness_metric == 'log_rank' or fitness_metric == 'residuals':
+                if self.group_strata_prop < group_strata_min: 
+                    self.pre_fitness = (1-penalty) * self.metric
+                else:
+                    self.pre_fitness = self.metric
             # Residuals 
             if fitness_metric == 'residuals':
-                self.pre_fitness = self.pre_fitness*self.residuals_score
+                if self.group_strata_prop < group_strata_min: 
+                    self.pre_fitness = (1-penalty) * self.residuals_score
+                else:
+                    #self.pre_fitness = self.residuals_score
+                    self.pre_fitness = self.pre_fitness*self.residuals_score
+            """
+
+            # Penalize fitness if group counts are beyond the minimum group strata parameter (Ryan Check below)
+            self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_at),self.count_at/(self.count_bt+self.count_at))
+            if fitness_metric == 'log_rank':
+                if self.group_strata_prop < group_strata_min: 
+                    self.pre_fitness = (1-penalty) * self.metric
+                else:
+                    self.pre_fitness = self.metric
+            # Residuals 
+            elif fitness_metric == 'residuals':
+                if self.group_strata_prop < group_strata_min: 
+                    self.pre_fitness = (1-penalty) * self.residuals_score
+                else:
+                    self.pre_fitness = self.residuals_score
+                #self.pre_fitness = self.pre_fitness*self.residuals_score
+
+            else:
+                print('Warning metric not yet implmented for pre-fitness')
+ 
 
 
     def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):

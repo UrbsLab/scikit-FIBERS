@@ -1,7 +1,10 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from paretoset import paretoset
 from lifelines import KaplanMeierFitter
+from lifelines import CoxPHFitter
+from scipy.stats import linregress
 
 
 def plot_pareto(bin_pop,show=True,save=False,output_folder=None,data_name=None):
@@ -40,7 +43,7 @@ def plot_pareto(bin_pop,show=True,save=False,output_folder=None,data_name=None):
         plt.show()
 
 
-def plot_feature_tracking(feature_names,feature_tracking,max_features=50,show=True,save=False,output_folder=None,data_name=None): 
+def plot_feature_tracking(feature_names,feature_tracking,max_features=40,show=True,save=False,output_folder=None,data_name=None): 
     # Sort the names and scores based on scores
     sorted_pairs = sorted(zip(feature_tracking, feature_names), reverse=True)
 
@@ -56,7 +59,7 @@ def plot_feature_tracking(feature_names,feature_tracking,max_features=50,show=Tr
     plt.bar(top_names, top_scores, color='skyblue')
     plt.xlabel('Feature')
     plt.ylabel('Feature Tracking Score')
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=90)
     if save:
         plt.savefig(output_folder+'/'+'Feature_Tracking_'+data_name+'.png')
     if show:
@@ -152,24 +155,82 @@ def plot_misc_progress(perform_track_df,show=True,save=False,output_folder=None,
         plt.show()
 
 
-def cox_prop_hazard():
-    pass
+def plot_residuals_histogram(residuals,show=True,save=False,output_folder=None,data_name=None):
+    if isinstance(residuals, pd.DataFrame):
+        # Create a histogram
+        plt.hist(residuals['deviance'], bins=50, color='skyblue', edgecolor='black')
 
-def hazard_ratio(data_without_nan, bin_scores, bins, covariates, index=0):
-    sorted_bin_scores = dict(sorted(bin_scores.items(), key=lambda item: item[1], reverse=True))
-    sorted_bin_list = list(sorted_bin_scores.keys())
-    #sorted_bin_feature_importance_values = list(sorted_bin_scores.values())
-    Bin = bins[sorted_bin_list[index]]
-    d_data = data_without_nan.copy()
-    d_data['Bin'] = d_data[Bin].sum(axis=1)
-    column_values = d_data['Bin'].to_list()
-    for r in range(0, len(column_values)):
-        if column_values[r] > 0:
-            column_values[r] = 1
-    d_data['Bin'] = column_values
-    coxmodeldata =  d_data[covariates + ["grf_fail", "graftyrs", "Bin"]]
-    cat_columns = coxmodeldata.select_dtypes(['object']).columns
-    coxmodeldata[cat_columns] = coxmodeldata[cat_columns].apply(lambda x: pd.factorize(x)[0])
+        # Add labels and title
+        plt.xlabel('Residual Values')
+        plt.ylabel('Frequency')
+        plt.title('Histogram of Cox PH Model Residuals')
+        if save:
+            plt.savefig(output_folder+'/'+'Residuals_Histogram_'+data_name+'.png')
+        if show:
+            plt.show()
+    else:
+        print('Error: No residuals available to plot')
+
+
+def plot_log_rank_residuals(residuals,bin_pop,show=True,save=False,output_folder=None,data_name=None):
+    if isinstance(residuals, pd.DataFrame):
+        metric_list = []
+        residuals_score_list = []
+        for bin in bin_pop:
+            metric_list.append(bin.metric)
+            residuals_score_list.append(bin.residuals_score)
+
+        # Calculate linear regression
+        slope, intercept, r_value, p_value, std_err = linregress(metric_list, residuals_score_list)
+
+        # Create scatter plot with trend line
+        plt.scatter(metric_list, residuals_score_list, label='Data')
+        plt.plot(metric_list, slope*np.array(metric_list) + intercept, color='red', label='Trend Line')
+        plt.xlabel('Log-Rank Score')
+        plt.ylabel('Residuals Score')
+        plt.title('Bin Population: Log-Rank Score vs. Residuals Score')
+        plt.legend()
+
+        # Add correlation coefficient to the plot
+        plt.text(0.63, 0.02, f'Correlation coeff. = {r_value:.2f}', transform=plt.gca().transAxes)
+        if save:
+            plt.savefig(output_folder+'/'+'Log_Rank_Residuals_'+data_name+'.png')
+        if show:
+            plt.show()
+        # Calculate and print correlation
+    else:
+        print('Error: No residuals available to plot')
+
+def plot_adj_HR_residuals(residuals,bin_pop,show=True,save=False,output_folder=None,data_name=None):
+    if isinstance(residuals, pd.DataFrame):
+        residuals_score_list = []
+        adj_HR_list = []
+        for bin in bin_pop:
+            residuals_score_list.append(bin.residuals_score)
+            adj_HR_list.append(bin.adj_HR)
+
+        # Calculate linear regression
+        slope, intercept, r_value, p_value, std_err = linregress(adj_HR_list,residuals_score_list)
+
+        # Create scatter plot with trend line
+        plt.scatter(adj_HR_list, residuals_score_list, label='Data')
+        plt.plot(adj_HR_list, slope*np.array(adj_HR_list) + intercept, color='red', label='Trend Line')
+        plt.xlabel('Adjusted HR')
+        plt.ylabel('Residuals Score')
+        plt.title('Bin Population: Adjusted HR vs. Residuals Score')
+        plt.legend()
+
+        # Add correlation coefficient to the plot
+        plt.text(0.63, 0.02, f'Correlation coeff. = {r_value:.2f}', transform=plt.gca().transAxes)
+        if save:
+            plt.savefig(output_folder+'/'+'Adj_HR_Residuals_'+data_name+'.png')
+        if show:
+            plt.show()
+    else:
+        print('Error: No residuals available to plot')
+
+
+def cox_prop_hazard(bin_df, outcome_label, censor_label): #make bin variable beetween 0 and 1
     cph = CoxPHFitter()
-    cph.fit(coxmodeldata,"graftyrs",event_col="grf_fail", show_progress=True)
+    cph.fit(bin_df,outcome_label,event_col=censor_label, show_progress=True)
     return cph.summary
