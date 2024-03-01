@@ -15,23 +15,17 @@ from .methods.util import plot_misc_progress
 from .methods.util import plot_residuals_histogram
 from .methods.util import plot_log_rank_residuals
 from .methods.util import plot_adj_HR_residuals
+from .methods.util import plot_log_rank_adj_HR
+from .methods.util import plot_adj_HR_metric_product
 from .methods.util import cox_prop_hazard
+from .methods.util import transform_value
 from tqdm import tqdm
 
-#from sklearn.metrics import classification_report, accuracy_score
-#from lifelines.statistics import logrank_test
-#from lifelines import KaplanMeierFitter
-#from .methods.algorithms import fibers_algorithm
-#from matplotlib import pyplot as plt
-#import seaborn as sns
-#sns.set_theme(font="Times New Roman")
-
 class FIBERS(BaseEstimator, TransformerMixin):
-    def __init__(self, outcome_label="Duration", outcome_type="survival",iterations=1000,
-                    pop_size = 50, tournament_prop=0.5,crossover_prob=0.5, mutation_prob=0.1, new_gen=1.0, elitism=0.1, min_bin_size=1, max_bin_init_size=10,
-                    fitness_metric="log_rank", log_rank_weighting=None, pareto_fitness=False, censor_label="Censoring", group_strata_min=0.2, penalty=0.5,
-                    group_thresh=0, min_thresh=0, max_thresh=3, int_thresh=True, thresh_evolve_prob=0.5,
-                    manual_bin_init=None, covariates=None, report=None, random_seed=None,verbose=False):
+    def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=50,pop_size=50,tournament_prop=0.5,crossover_prob=0.5,min_mutation_prob=0.1, 
+                 max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=3,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
+                 log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=0,min_thresh=0,max_thresh=3, 
+                 int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,report=None,random_seed=None,verbose=False):
 
         """
         A Scikit-Learn compatible implementation of the FIBERS Algorithm.
@@ -42,14 +36,17 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param pop_size: the maximum bin population size
         :param tournament_prop: the proportion of the popultion randomly selected for each parent pair selection
         :param crossover_prob: the probability of each specified feature in a pair of offspring bins to swap between bins
-        :param mutation_prob: the probability of further offspring bin modification (i.e. feature addition, removal or swap)
+        :param min_mutation_prob: the minimum probability of further offspring bin modification (i.e. feature addition, removal or swap)
+        :param max_mutation_prob: the maximum probability of further offspring bin modification (i.e. feature addition, removal or swap)
+        :param merge_prob: the probability of two parent bins merging to create a single novel offspring, separate from mutation and crossover
         :param new_gen: proportion that determines the number of offspring generated each iteration based new_gen*pop_size
         :param elitism: proportion of pop_size that is protected from deletion each generation
+        :param diversity_pressure: number of bin similarity clusters used to drive bin deletion by maintaining bin diversity
         :param min_bin_size: minimum number of features to be specified within a bin
+        :param max_bin_size: maximum number of features to be specified within a bin
         :param max_bin_init_size: maximum number of features within initialized bins
-        :param fitness_metric: the fitness metric used by FIBERS to evaluate candidate bins ['log_rank','residuals','aic']
+        :param fitness_metric: the pre-fitness metric used by FIBERS to evaluate candidate bins ['log_rank','residuals','log_rank_residuals']
         :param log_rank_weighting: an optional weighting of the log-rank test ['wilcoxon','tarone-ware','peto','fleming-harrington'] 
-        :param pareto_fitness: boolean determining whether multi-objective pareto-front-based fitness is utilized combining fitness_metric and bin simplicity as objectives)
 
         #Survival Analysis Parameters:
         :param censor_label: label indicating the censoring column in the datasets (e.g. 'Censoring')
@@ -93,8 +90,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not self.check_is_float(crossover_prob) or crossover_prob < 0 or crossover_prob > 1:
             raise Exception("'crossover_prob' param must be float from 0 - 1")
 
-        if not self.check_is_float(mutation_prob) or mutation_prob < 0 or mutation_prob > 1:
-            raise Exception("'mutation_prob' param must be float from 0 - 1")
+        if not self.check_is_float(min_mutation_prob) or min_mutation_prob < 0 or min_mutation_prob > 1:
+            raise Exception("'min_mutation_prob' param must be float from 0 - 1")
+
+        if not self.check_is_float(max_mutation_prob) or max_mutation_prob < 0 or max_mutation_prob > 1 or min_mutation_prob > max_mutation_prob:
+            raise Exception("'max_mutation_prob' param must be float from 0 - 1 that is greater than or equal to min_mutation_prob")
+        
+        if not self.check_is_float (merge_prob) or merge_prob < 0 or merge_prob > 1:
+            raise Exception("'merge_prob' param must be float from 0 - 1")
 
         if not self.check_is_float(new_gen) or new_gen < 0 or new_gen > 1:
             raise Exception("'new_gen' param must be float from 0 - 1")
@@ -102,24 +105,27 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not self.check_is_float(elitism) or elitism < 0 or elitism > 1:
             raise Exception("'elitism' param must be float from 0 - 1")
         
+        if not self.check_is_int(diversity_pressure) or diversity_pressure < 0:
+            raise Exception("'diversity_pressure' param must be a non-negative integer")
+        
         if not self.check_is_int(min_bin_size) or min_bin_size < 0:
-            raise Exception("'min_bin_size' param must be non-negative integer (and no larger then the number of features in the dataset)")
+            raise Exception("'min_bin_size' param must be non-negative integer (and no larger then the number of features in the dataset and <= than max_bin_size)")
+
+        if max_bin_size != None and (not self.check_is_int(max_bin_size) or max_bin_size < 0 or min_bin_size > max_bin_size):
+            raise Exception("'max_bin_size' param must 'None' or a non-negative integer (and no larger then the number of features in the dataset and >= than min_bin_size)")
 
         if not self.check_is_int(max_bin_init_size) or max_bin_init_size < 0:
             raise Exception("'max_bin_init_size' param must be non-negative integer (and no larger then the number of features in the dataset)")
 
-        if fitness_metric!="log_rank" and fitness_metric!="residuals" and fitness_metric!="aic":
-            raise Exception("'fitness_metric' param can only have values of 'log_rank', 'residuals', or 'aic'")
+        if fitness_metric!="log_rank" and fitness_metric!="residuals" and fitness_metric!="log_rank_residuals":
+            raise Exception("'fitness_metric' param can only have values of 'log_rank', 'residuals', or 'log_rank_residuals'")
         
         if log_rank_weighting!="wilcoxon" and log_rank_weighting!="tarone-ware" and log_rank_weighting!="peto" and log_rank_weighting!='fleming-harrington'and log_rank_weighting != None:
             raise Exception("'log_rank_weighting' param can only have values of 'wilcoxon', 'tarone-wares', 'peto' or 'fleming-harrington'")
 
-        if fitness_metric == "residuals" or fitness_metric == "aic":
+        if fitness_metric == "residuals" or fitness_metric == "log_rank_residuals":
             if covariates == None:
-                raise Exception("list of covariates must be specified when fitness_metric is 'residuals' or 'aic'")
-
-        if not pareto_fitness == True and not pareto_fitness == False and not pareto_fitness == 'True' and not pareto_fitness == 'False':
-            raise Exception("'pareto_fitness' param must be a boolean, i.e. True or False")
+                raise Exception("list of covariates must be specified when fitness_metric is 'residuals' or 'log_rank_residuals'")
 
         if not isinstance(censor_label,str) and censor_label != None:
             raise Exception("'censor_label' param must be a str or None")
@@ -175,14 +181,17 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.pop_size = pop_size
         self.tournament_prop = tournament_prop
         self.crossover_prob = crossover_prob
-        self.mutation_prob = mutation_prob 
+        self.min_mutation_prob = min_mutation_prob 
+        self.max_mutation_prob = max_mutation_prob
+        self.merge_prob = merge_prob
         self.new_gen = new_gen
         self.elitism = elitism
+        self.diversity_pressure = diversity_pressure
         self.min_bin_size = min_bin_size
+        self.max_bin_size = max_bin_size
         self.max_bin_init_size = max_bin_init_size
         self.fitness_metric = fitness_metric
         self.log_rank_weighting = log_rank_weighting
-        self.pareto_fitness = pareto_fitness
         self.censor_label = censor_label
         self.group_strata_min = group_strata_min
         self.penalty = penalty
@@ -285,9 +294,11 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # PREPARE DATA ---------------------------------------
         self.df = self.check_x_y(x, y)
         self.df,self.feature_names = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
+        if self.max_bin_size == None:
+            self.max_bin_size = len(self.feature_names)
 
         # Calculate residuals for covariate adjustment
-        if self.fitness_metric == "residuals":
+        if self.fitness_metric == "residuals" or self.fitness_metric == "log_rank_residuals":
             self.residuals = calculate_residuals(self.df,self.covariates,self.feature_names,self.outcome_label,self.censor_label)
         else:
             self.residuals = None
@@ -296,8 +307,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         #Initialize bin population
         threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
         self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
-                           self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
-                           self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.pareto_fitness,self.group_strata_min,
+                           self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
+                           self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
                            self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates,random)
         #Global fitness update
         self.set.global_fitness_update(self.penalty) #Exerimental
@@ -312,8 +323,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if self.report != None and 0 in self.report: 
             self.set.report_pop()
 
-        self.min_mutation_prob = self.mutation_prob
-        self.max_mutation_prob = 0.8
+        cycle_length = 9 #Hard coded mutation occellation length (i.e. mutation climbs for 10 iterations then drops for 10 iterations)
         #EVOLUTIONARY LEARNING ITERATIONS
         for iteration in tqdm(range(0, self.iterations)):
             if self.group_thresh == None:
@@ -323,8 +333,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
             else:
                 threshold_evolving = False
 
-            #Experimental - Variable Mutation Rate
-            #self.mutation_prob = ((iteration%10)*(self.max_mutation_prob-self.min_mutation_prob)/9)+self.min_mutation_prob
+            #Occelating Mutation Rate
+            mutation_prob =  (transform_value(iteration,cycle_length)*(self.max_mutation_prob-self.min_mutation_prob)/cycle_length)+self.min_mutation_prob
 
             # GENETIC ALGORITHM 
             target_offspring_count = int(self.pop_size*self.new_gen) #Determine number of offspring to generate
@@ -333,10 +343,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 parent_list = self.set.select_parent_pair(self.tournament_prop,random)
 
                 # Generate Offspring - clone, crossover, mutation, evaluation, add to population
-                self.set.generate_offspring(self.crossover_prob,self.mutation_prob,self.iterations,iteration,parent_list,self.feature_names,
-                                            threshold_evolving,self.min_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
+                self.set.generate_offspring(self.crossover_prob,mutation_prob,self.merge_prob,self.iterations,iteration,parent_list,self.feature_names,
+                                            threshold_evolving,self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
                                             self.df,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
-                                            self.group_thresh,self.pareto_fitness,self.group_strata_min,self.penalty,self.residuals,self.covariates,random)
+                                            self.group_thresh,self.group_strata_min,self.penalty,self.residuals,self.covariates,random)
             # Add Offspring to Population
             self.set.add_offspring_into_pop()
 
@@ -344,10 +354,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
             self.set.global_fitness_update(self.penalty) #Exerimental
 
             #Bin Deletion
-            if iteration == self.iterations - 1: #Last iteration
-                self.set.bin_deletion_deterministic(self.pop_size) # Elitism not needed
+            if self.diversity_pressure == 0:
+                if iteration == self.iterations - 1: #Last iteration
+                    self.set.deterministic_bin_deletion(self.pop_size)
+                else:
+                    self.set.probabilistic_bin_deletion(self.pop_size,self.elitism,random)
             else:
-                self.set.bin_deletion_probabilistic(self.pop_size,self.elitism,random)
+                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,random)
 
             # Update feature tracking
             self.set.update_feature_tracking(self.feature_names)
@@ -378,7 +391,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         return self
 
 
-    def transform(self, x, y=None):
+    def transform(self, x, y=None, full_sums=False):
         """
         Scikit-learn required function for Supervised training of FIBERS
 
@@ -407,6 +420,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
             # Sum instance values across features specified in the bin
             feature_sums = df[bin.feature_list].sum(axis=1)
             tdf['Bin_'+str(bin_count)] = feature_sums
+            if not full_sums:
+                tdf['Bin_'+str(bin_count)] = tdf['Bin_'+str(bin_count)].apply(lambda x: 0 if x <= bin.group_threshold else 1)
             bin_count += 1
 
         tdf = pd.concat([tdf,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
@@ -627,7 +642,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 bin.HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
                 bin.HR_p_value = summary['p'].iloc[0]
             except:
-                bin.HR = None
+                bin.HR = 0
                 bin.HR_CI = None
                 bin.HR_p_value = None
 
@@ -640,7 +655,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                     bin.adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
                     bin.adj_HR_p_value = summary['p'].iloc[0]
                 except:
-                    bin.adj_HR = None
+                    bin.adj_HR = 0
                     bin.adj_HR_CI = None
                     bin.adj_HR_p_value = None
             print('Evaluating Bin '+str(bin_index))
@@ -699,3 +714,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def get_adj_HR_residuals_plot(self,show=True,save=False,output_folder=None,data_name=None):
         plot_adj_HR_residuals(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_log_rank_adj_HR_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_log_rank_adj_HR(self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+    def get_adj_HR_metric_product_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_adj_HR_metric_product(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
