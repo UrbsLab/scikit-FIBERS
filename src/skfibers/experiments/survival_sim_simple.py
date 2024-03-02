@@ -199,29 +199,34 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     # Simulation of Covariates ---------------------------------------------
     if covariates_to_sim > 0: #Simulate covariates as separate dataframe
         # Create Covariate Dataframe
-        df_covariate = pd.DataFrame({f'C_{i}': df['TrueRiskGroup'].copy() for i in range(1, covariates_to_sim+1)})
+        max_duration = max(df['Duration'])
+        min_duration = min(df['Duration'])
+        df_covariate = pd.DataFrame({f'C_{i}': df['Duration'].copy() for i in range(1, covariates_to_sim+1)})
+        #df_covariate = pd.DataFrame({f'C_{i}': df['TrueRiskGroup'].copy() for i in range(1, covariates_to_sim+1)})
+        #df_covariate = pd.DataFrame({f'C_{i}': df[predictive_names[i-1]].copy() for i in range(1, covariates_to_sim+1)})
 
         covariate_associations = [random.uniform(covariates_signal_range[0], covariates_signal_range[1]) for _ in range(covariates_to_sim)]
         print(covariate_associations)
 
-        swap_count_list = [int(x * instances) for x in covariate_associations]
+        swap_count_list = [int(instances-(x * instances)) for x in covariate_associations]
 
         i = 0
         for covariate in df_covariate.columns:
             change_index_list = random.sample(range(instances), swap_count_list[i])
             for index in change_index_list:
-                if int(df_covariate.at[index,covariate]) == 1:
-                    df_covariate.at[index,covariate] = 0
-                else:
-                    df_covariate.at[index,covariate] = 1
+                df_covariate.at[index,covariate] = random.uniform(min_duration,max_duration)
+                #if int(df_covariate.at[index,covariate]) == 1:
+                #    df_covariate.at[index,covariate] = 0
+                #else:
+                #    df_covariate.at[index,covariate] = 1
             i+= 1
 
-        for covariate in df_covariate.columns:
-            for index in range(0,instances): 
-                if int(df_covariate.at[index,covariate]) == 1:
-                    df_covariate.at[index,covariate] = random.uniform(0.51, 1)
-                else:
-                    df_covariate.at[index,covariate] = random.uniform(0, 0.5)
+        #for covariate in df_covariate.columns:
+        #    for index in range(0,instances): 
+        #        if int(df_covariate.at[index,covariate]) == 1:
+        #            df_covariate.at[index,covariate] = random.uniform(0.51, 1)
+        #        else:
+        #            df_covariate.at[index,covariate] = random.uniform(0, 0.5)
         df = pd.concat([df, df_covariate], axis=1)
         print("Simulated covariates generated and added to dataframe.")
 
