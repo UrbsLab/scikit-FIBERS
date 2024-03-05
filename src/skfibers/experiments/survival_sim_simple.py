@@ -6,7 +6,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, threshold = 0, 
-                             feature_frequency_range=(0.1, 0.5), noise_frequency=0.1, class0_time_to_event_range=(1.5, 0.2), 
+                             feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
                              class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
@@ -17,6 +17,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     :param total_features: total number of features in dataset
     :param predictive_features: total number of predictive features in the ideal bin
     :param low_risk_proportion: the proportion of instances to be labeled as (no fail class)
+    :param threshold: The threshold used to deterimine simulated high vs. low risk instance. Any bin sum higher than threshold is high risk.
     :param feature_frequency_range: the max and min freature frequency for a given column in data. (e.g. 0.1 to 0.4)
     :param noise_frequency: Value from 0 to 0.5 representing the proportion of class 0/class 1 instance pairs that \
                             have their outcome switched from 0 to 1
@@ -273,7 +274,7 @@ def check_parameters(predictive_features, threshold, hr_count, lr_count):
     return high_binary_list,low_binary_list
 
 
-def censor(df, censoring_frequency, random_seed=None): # May need simplification!!!!!!!!! Ryan - 3/1/24
+def censor(df, censoring_frequency, random_seed=None): # May need simplification!!!!!!!!! Ryan - 3/1/24 (random sampling) - also check random feature MAF 
     df['Censoring'] = 1
     inst_to_censor = int(censoring_frequency * len(df))
     max_duration = max(df['Duration'])
