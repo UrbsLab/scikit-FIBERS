@@ -11,8 +11,8 @@ class BIN:
         self.group_threshold = None # Threshold after which an instance is place in the 'above threshold' group - determines group strata of instances
         self.fitness = None # Bin fitness (higher fitness is better) - proportional to parent selection probability, and inversely proportional to deletion probability
         self.pre_fitness = None
-        self.metric = None  # Metric score of applied evaluation metric
-        self.p_value = None # p-value of applied evaluation metric (if available)
+        self.log_rank_score = None  # Log-rank Score
+        self.log_rank_p_value = None # p-value of log rank test 
         self.bin_size = None # Number of features included in bin
         self.group_strata_prop = None # Proportion of instances in the smallest group (e.g. 0.5 --> equal number of instances in each group)
         self.count_bt = None # Instance count at/below threshold
@@ -93,8 +93,8 @@ class BIN:
                     thresh_score = log_rank_score * residuals_score
 
                 if best_score == None or thresh_score > best_score:
-                    self.metric = log_rank_score
-                    self.p_value = p_value
+                    self.log_rank_score = log_rank_score
+                    self.log_rank_p_value = p_value
                     self.residuals_score = residuals_score
                     self.residuals_p_value = residuals_p_value
                     self.group_threshold = threshold
@@ -105,8 +105,8 @@ class BIN:
         else: #Use the given group threshold to evaluate the bin
             log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
                         log_rank_weighting,residuals,covariate_df)
-            self.metric = log_rank_score
-            self.p_value = p_value
+            self.log_rank_score = log_rank_score
+            self.log_rank_p_value = p_value
             self.residuals_score = residuals_score
             self.residuals_p_value = residuals_p_value
             self.count_bt = count_bt
@@ -115,7 +115,7 @@ class BIN:
 
 
     def evaluate_for_threshold(self,threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df):
-        # Apply selected evaluation strategy/metric
+        # Apply selected evaluation strategy/metric(s)
         if outcome_type == 'survival':
             residuals_score = None
             residuals_p_value = None
@@ -290,9 +290,9 @@ class BIN:
         else:
             if fitness_metric == 'log_rank':
                 if self.group_strata_prop < group_strata_min: 
-                    self.pre_fitness = (1-penalty) * self.metric
+                    self.pre_fitness = (1-penalty) * self.log_rank_score
                 else:
-                    self.pre_fitness = self.metric
+                    self.pre_fitness = self.log_rank_score
 
             if fitness_metric == 'residuals':
                 if self.group_strata_prop < group_strata_min: 
@@ -302,9 +302,9 @@ class BIN:
 
             if fitness_metric == 'log_rank_residuals':
                 if self.group_strata_prop < group_strata_min: 
-                    self.pre_fitness = (1-penalty) * self.metric * self.residuals_score
+                    self.pre_fitness = (1-penalty) * self.log_rank_score * self.residuals_score
                 else:
-                    self.pre_fitness = self.metric * self.residuals_score
+                    self.pre_fitness = self.log_rank_score * self.residuals_score
 
 
     def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):
@@ -325,9 +325,9 @@ class BIN:
     
 
     def bin_report(self):
-        columns = ['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Metric Score:', 'p-value:' ,'Bin Size:', 'Group Ratio:', 
+        columns = ['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Log-Rank Score:', 'Log-Rank p-value:' ,'Bin Size:', 'Group Ratio:', 
                     'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:','Residuals Score:','Residuals p-value']
-        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.pre_fitness,self.metric, self.p_value,
+        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.pre_fitness,self.log_rank_score, self.log_rank_p_value,
                                    self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration,self.residuals_score,self.residuals_p_value]],columns=columns,index=None)
         return report_df
     

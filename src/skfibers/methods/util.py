@@ -185,23 +185,23 @@ def plot_residuals_histogram(residuals,show=True,save=False,output_folder=None,d
 
 def plot_log_rank_residuals(residuals,bin_pop,show=True,save=False,output_folder=None,data_name=None):
     if isinstance(residuals, pd.DataFrame):
-        metric_list = []
+        log_rank_list = []
         residuals_score_list = []
         group_strata_prop = []
         group_threshold = []
         for bin in bin_pop:
-            metric_list.append(bin.metric)
+            log_rank_list.append(bin.log_rank_score)
             residuals_score_list.append(bin.residuals_score)
             group_strata_prop.append(bin.group_strata_prop)
             group_threshold.append(bin.group_threshold)
         group_threshold = [(x+1)*5 for x in group_threshold]
 
         # Calculate linear regression
-        slope, intercept, r_value, p_value, std_err = linregress(metric_list, residuals_score_list)
+        slope, intercept, r_value, p_value, std_err = linregress(log_rank_list, residuals_score_list)
 
         # Create scatter plot with trend line
-        plt.scatter(metric_list, residuals_score_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
-        plt.plot(metric_list, slope*np.array(metric_list) + intercept, color='red', label='Trend Line')
+        plt.scatter(log_rank_list, residuals_score_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
+        plt.plot(log_rank_list, slope*np.array(log_rank_list) + intercept, color='red', label='Trend Line')
         plt.xlabel('Log-Rank Score')
         plt.ylabel('Residuals Score')
         plt.title('Bin Population: Log-Rank Score vs. Residuals Score')
@@ -255,23 +255,23 @@ def plot_adj_HR_residuals(residuals,bin_pop,show=True,save=False,output_folder=N
 
 
 def plot_log_rank_adj_HR(bin_pop,show=True,save=False,output_folder=None,data_name=None):
-    metric_list = []
+    log_rank_list = []
     adj_HR_list = []
     group_strata_prop = []
     group_threshold = []
     for bin in bin_pop:
-        metric_list.append(bin.metric)
+        log_rank_list.append(bin.log_rank_score)
         adj_HR_list.append(bin.adj_HR)
         group_strata_prop.append(bin.group_strata_prop)
         group_threshold.append(bin.group_threshold)
     group_threshold = [(x+1)*5 for x in group_threshold]
 
     # Calculate linear regression
-    slope, intercept, r_value, p_value, std_err = linregress(metric_list, adj_HR_list)
+    slope, intercept, r_value, p_value, std_err = linregress(log_rank_list, adj_HR_list)
 
     # Create scatter plot with trend line
-    plt.scatter(metric_list, adj_HR_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
-    plt.plot(metric_list, slope*np.array(metric_list) + intercept, color='red', label='Trend Line')
+    plt.scatter(log_rank_list, adj_HR_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
+    plt.plot(log_rank_list, slope*np.array(log_rank_list) + intercept, color='red', label='Trend Line')
     plt.xlabel('Log-Rank Score')
     plt.ylabel('Adjusted HR')
     plt.title('Bin Population: Log-Rank Score vs. Adjusted HR')
@@ -288,23 +288,23 @@ def plot_log_rank_adj_HR(bin_pop,show=True,save=False,output_folder=None,data_na
 
 def plot_adj_HR_metric_product(residuals,bin_pop,show=True,save=False,output_folder=None,data_name=None):
     if isinstance(residuals, pd.DataFrame):
-        metric_residuals_list = []
+        log_rank_residuals_list = []
         adj_HR_list = []
         group_strata_prop = []
         group_threshold = []
         for bin in bin_pop:
-            metric_residuals_list.append(bin.metric*bin.residuals_score)
+            log_rank_residuals_list.append(bin.log_rank_score*bin.residuals_score)
             adj_HR_list.append(bin.adj_HR)
             group_strata_prop.append(bin.group_strata_prop)
             group_threshold.append(bin.group_threshold)
         group_threshold = [(x+1)*5 for x in group_threshold]
 
         # Calculate linear regression
-        slope, intercept, r_value, p_value, std_err = linregress(metric_residuals_list, adj_HR_list)
+        slope, intercept, r_value, p_value, std_err = linregress(log_rank_residuals_list, adj_HR_list)
 
         # Create scatter plot with trend line
-        plt.scatter(metric_residuals_list, adj_HR_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
-        plt.plot(metric_residuals_list, slope*np.array(metric_residuals_list) + intercept, color='red', label='Trend Line')
+        plt.scatter(log_rank_residuals_list, adj_HR_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
+        plt.plot(log_rank_residuals_list, slope*np.array(log_rank_residuals_list) + intercept, color='red', label='Trend Line')
         plt.xlabel('Log-Rank*Residuals Score')
         plt.ylabel('Adjusted HR')
         plt.title('Bin Population: Log-Rank*Residuals Score vs. Adjusted HR')

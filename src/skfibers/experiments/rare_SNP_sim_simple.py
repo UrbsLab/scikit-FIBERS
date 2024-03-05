@@ -5,8 +5,8 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def rare_SNP_data_simulation(instances=10000, total_features=50, predictive_features=10, class0_proportion=0.5, threshold = 0, 
-                             feature_frequency_range=(0.1, 0.5), noise_frequency=0.1, random_seed=None):
+def rare_SNP_data_simulation(instances=10000, total_features=100, predictive_features=10, class0_proportion=0.5, threshold = 0, 
+                             feature_frequency_range=(0.1, 0.5), noise_frequency=0.1, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
     Note: MAF (minor allele frequency) cutoff refers to the threshold
@@ -15,16 +15,14 @@ def rare_SNP_data_simulation(instances=10000, total_features=50, predictive_feat
     :param instances: dataset size
     :param total_features: total number of features in dataset
     :param predictive_features: total number of predictive features in the ideal bin
-    :param class0_proportion: the proportion of instances to be labeled as class 0
-    :param feature_frequency_range: the max and min feature frequency for a given column in data. (e.g. 0.001 to 0.05)
+    :param low_risk_proportion: the proportion of instances to be labeled as (no fail class)
+    :param threshold: The threshold used to deterimine simulated high vs. low risk instance. Any bin sum higher than threshold is high risk.
+    :param feature_frequency_range: the max and min freature frequency for a given column in data. (e.g. 0.1 to 0.4)
     :param noise_frequency: Value from 0 to 0.5 representing the proportion of class 0/class 1 instance pairs that \
                             have their outcome switched from 0 to 1
-    :param class0_time_to_event_range: (min, max) time to event as a tuple (should be larger (e.g. 100 to 200)
-    :param class1_time_to_event_range: (min, max) time to event as a tuple (should be smaller but a bit overlapping \
-                                        with above range (e.g. 20 to 150)
-    :param censoring_frequency:
+    :param covariates_to_sim: number of covariates to simulate - that are each partially correlated with outcome
+    :param covariates_signal_range: range of values determining covariate correlation with True Risk Group
     :param random_seed:
-    :param negative:
 
     :return: pandas dataframe of generated data
     """
@@ -35,6 +33,43 @@ def rare_SNP_data_simulation(instances=10000, total_features=50, predictive_feat
 
     class_0_count = int(instances*class0_proportion)
     class_1_count = instances - class_0_count
+
+    class_1_binary_list,class_0_binary_list = check_parameters(predictive_features, threshold, class_1_count, class_0_count)
+
+    # Creating an empty dataframe to use as a starting point for the eventual feature matrix
+    df = pd.DataFrame(np.zeros((instances, total_features + 2)))
+    predictive_names = ["P_" + str(i + 1) for i in range(predictive_features)]
+    random_names = ["R_" + str(i + 1) for i in range(total_features - predictive_features)]
+    df.columns = predictive_names + random_names + ['Class']
+
+    # Assigning class according to low_risk_proportion parameter
+    class_list = [1] * class_1_count + [0] * class_0_count
+    df['Class'] = class_list
+
+    # Identify target MAF for each feature in the dataset.
+    MAF_list = [random.uniform(feature_frequency_range[0], feature_frequency_range[1]) for _ in range(instances)]
+    non_zero_count_list = [int(x * instances) for x in MAF_list]
+
+    # Generate Predictive Feature Values -------------------------------
+    for i in range(len(class_1_binary_list)): #for each unique binary combo for class 1
+        binary_string = class_1_binary_list[i]
+        for col, value in zip(predictive_names, [int(bit) for bit in binary_string]):
+            df.at[i, col] = value
+
+
+    #now use 0s, 1s, and 2s to fill in rest based on threshold setting
+    #how to randomly pick values to ensure high threshold, but also keep HWE probs randomly preserved. 
+    for i in range(len(class_1_binary_list),class_1_count): #random assignment
+        one_count = random.randint(threshold+1,predictive_features) #Get random count of 1's
+        sampled_cols = random.sample(predictive_names,one_count) # Get columns to add 1's
+        for col in sampled_cols:
+            df.at[i,col] = 1
+
+
+
+
+
+    #can start with binary numbers but later switch 1's to 2's within initial binary configuration based on MAF (get one's count and adjust as needed to 2's to get correct counts)
     #generate MAFs for every feature in dataset
     #Calculate HWE counts for each
 
@@ -240,8 +275,8 @@ def count_ones(binary):
 
 
 def generate_binary_numbers(predictive_features, threshold):
-    high_binary_list = []
-    low_binary_list = []
+    class_1_binary_list = []
+    class_0_binary_list = []
     unique_count = 0
     for i in range(2 ** predictive_features):
         unique_count +=1
@@ -249,30 +284,30 @@ def generate_binary_numbers(predictive_features, threshold):
         # Ensure the binary number has n digits by padding with zeros if necessary
         padded_binary = binary.zfill(predictive_features)
         if count_ones(padded_binary) > threshold:
-            high_binary_list.append(padded_binary)
+            class_1_binary_list.append(padded_binary)
         else:
-            low_binary_list.append(padded_binary)
+            class_0_binary_list.append(padded_binary)
     print("Unique binary numbers: "+str(unique_count))
           
-    return high_binary_list,low_binary_list
+    return class_1_binary_list,class_0_binary_list
 
 
-def check_parameters(predictive_features, threshold, hr_count, lr_count):
+def check_parameters(predictive_features, threshold, class_1_count, class_0_count):
     #calculate number of  P binary combos with 1sum > threshold (high risk)
-    high_binary_list,low_binary_list = generate_binary_numbers(predictive_features, threshold)
-    hr_unique = len(high_binary_list)
-    print("Unique HR Combos: "+str(hr_unique))
+    class_1_binary_list,class_0_binary_list = generate_binary_numbers(predictive_features, threshold)
+    class_1_unique = len(class_1_binary_list)
+    print("Unique HR Combos: "+str(class_1_unique))
     #check that number of unique combinations isn't > (high risk instances)
-    if hr_unique > hr_count:
+    if class_1_unique > class_1_count:
         print("Warning: not enough high risk instances to include all unique predictive feature combinations")
     #calculate the number of P binary comabos with 1sum <= threshold
-    lr_unique = len(low_binary_list)
-    print("Unique LR Combos: "+str(lr_unique))
+    class_0_unique = len(class_0_binary_list)
+    print("Unique LR Combos: "+str(class_0_unique))
     #check that the number of unique combinations isnt't > (low risk instances)
-    if lr_unique > lr_count:
+    if class_0_unique > class_0_count:
         print("Warning: not enough low risk instances to include all unique predictive feature combinations")
 
-    return high_binary_list,low_binary_list
+    return class_1_binary_list,class_0_binary_list
 
 
 def censor(df, censoring_frequency, random_seed=None):

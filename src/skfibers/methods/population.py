@@ -64,10 +64,7 @@ class BIN_SET:
 
     def global_fitness_update(self,penalty):
         self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
-        #Evaluate for bin similarity penalties
-        #self.calculate_similarity_penalty(self.bin_pop[0],penalty)
-
-        #Sort bin population first by metric, then by group_theshold, then by bin_size, then by group_strata_prop (to form a global bin ranking)
+        # Sort bin population first by pre-fitness, then by group_theshold, then by bin_size, then by group_strata_prop (to form a global bin ranking)
         # Sort DataFrame by maximizing column A (descending) and minimizing column B (ascending) for ties
         decay = 0.2
         self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
@@ -86,27 +83,6 @@ class BIN_SET:
 
             previous_objective_list = [bin.pre_fitness, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
 
-    """
-    def calculate_similarity_penalty(self,top_bin,penalty):
-        similarity_threshold = 0.5
-        # Calculate similarity metrics 
-        for bin in self.bin_pop:
-            if bin == top_bin or bin.group_threshold != top_bin.group_threshold:
-                pass
-            else:
-                similarity = self.jaccard_similarity(top_bin.feature_list, bin.feature_list)
-                #bin.pre_fitness = bin.pre_fitness*(1-(1-penalty)*similarity) 
-                if similarity > similarity_threshold:
-                    bin.pre_fitness = bin.pre_fitness*((similarity*(1-penalty)/(similarity_threshold-1))+penalty-((1-penalty)/(similarity_threshold-1)))
-
-    
-    def jaccard_similarity(self, list1, list2): # Function to calculate Jaccard similarity (1 = max similarity, 0 = lowest)
-        set1 = set(list1)
-        set2 = set(list2)
-        intersection = len(set1.intersection(set2))
-        union = len(set1.union(set2))
-        return intersection / union if union != 0 else 0
-    """
 
     def select_parent_pair(self,tournament_prop,random):
         #Tournament Selection
@@ -325,13 +301,3 @@ class BIN_SET:
             top_bin_list.append(self.bin_pop[bin_index])
             bin_index += 1
         return top_bin_list
-
-
-    def report_debug_pop(self): #FOR DEBUGGING
-        fitness_list = []
-        metric_list = []
-        for bin in self.bin_pop:
-            fitness_list.append(bin.fitness)
-            metric_list.append(bin.metric)
-        print(fitness_list)
-        print(metric_list)
