@@ -222,6 +222,23 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
                 #    df_covariate.at[index,covariate] = 1
             i+= 1
 
+
+        # Make feature column that alone perfectly discriminates between high and low risk groups
+        #PC_list = []
+        #for index, value in df['TrueRiskGroup'].items():
+        #    if int(value) == 0:
+        #        PC_list.append(random.randint(0,threshold))
+        #    else:
+        #        PC_list.append(random.randint(threshold+1,predictive_features))
+            
+        #df_covariate['PC'] = PC_list
+        # Make a covariate column that is a copy of this feature column (perfectly correlated with it)
+        #df_covariate['C'] = df_covariate['PC']
+        #for index, value in df_covariate['C'].items():
+        #    df_covariate.at[index,'C'] = (10-value)*df.at[index,'Duration']
+
+
+        #make a predictive feature that perfectly captures threshold but is also perfectly correlated with a covariate
         #for covariate in df_covariate.columns:
         #    for index in range(0,instances): 
         #        if int(df_covariate.at[index,covariate]) == 1:
