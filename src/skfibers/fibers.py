@@ -10,6 +10,7 @@ from .methods.util import plot_pareto
 from .methods.util import plot_feature_tracking
 from .methods.util import plot_kaplan_meir
 from .methods.util import plot_fitness_progress
+from .methods.util import plot_threshold_progress
 from .methods.util import plot_perform_progress
 from .methods.util import plot_misc_progress
 from .methods.util import plot_residuals_histogram
@@ -694,6 +695,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def get_fitness_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
         plot_fitness_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_threshold_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_threshold_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
 
 
     def get_perform_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):

@@ -114,10 +114,32 @@ def plot_fitness_progress(perform_track_df,show=True,save=False,output_folder=No
     # Show the plot
     plt.grid(True)
     if save:
-        plt.savefig(output_folder+'/'+'Perform_Track_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+'Fitness_Track_'+data_name+'.png', bbox_inches="tight")
     if show:
         plt.show()
 
+
+def plot_threshold_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
+    # Extract columns for plotting
+    time = perform_track_df['Iteration']
+    df = perform_track_df[['Threshold']]
+
+    # Plot the data
+    plt.figure(figsize=(5, 3))
+    colors = ['blue']  # Manually set colors
+    for i, column in enumerate(df.columns):
+        plt.plot(time, df[column], label=column, color=colors[i])
+
+    # Add labels and title
+    plt.xlabel('Iteration')
+    plt.ylabel('Threshold (Top Bin)')
+
+    # Show the plot
+    plt.grid(True)
+    if save:
+        plt.savefig(output_folder+'/'+'Threshold_Track_'+data_name+'.png', bbox_inches="tight")
+    if show:
+        plt.show()
 
 def plot_perform_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
     # Extract columns for plotting
@@ -137,7 +159,7 @@ def plot_perform_progress(perform_track_df,show=True,save=False,output_folder=No
     # Show the plot
     plt.grid(True)
     if save:
-        plt.savefig(output_folder+'/'+'Perform_Track_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+'Pre-Fitness_Track_'+data_name+'.png', bbox_inches="tight")
     if show:
         plt.show()
 
