@@ -20,6 +20,8 @@ from .methods.util import plot_log_rank_adj_HR
 from .methods.util import plot_adj_HR_metric_product
 from .methods.util import cox_prop_hazard
 from .methods.util import transform_value
+from .methods.util import plot_bin_population_heatmap
+from .methods.util import plot_custom_bin_population_heatmap
 from tqdm import tqdm
 
 class FIBERS(BaseEstimator, TransformerMixin):
@@ -726,3 +728,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def get_adj_HR_metric_product_plot(self,show=True,save=False,output_folder=None,data_name=None):
         plot_adj_HR_metric_product(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+    def get_bin_population_heatmap_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+    def get_custom_bin_population_heatmap_plot(self,group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+        plot_custom_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
