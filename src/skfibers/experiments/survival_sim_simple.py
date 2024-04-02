@@ -52,7 +52,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     df['TrueRiskGroup'] = class_list
 
     # Identify target MAF for each feature in the dataset.
-    MAF_list = [random.uniform(feature_frequency_range[0], feature_frequency_range[1]) for _ in range(instances)]
+    MAF_list = [random.uniform(feature_frequency_range[0], feature_frequency_range[1]) for _ in range(instances)]  #FIX???????? to featuers
     one_count_list = [int(x * instances) for x in MAF_list]
 
     # Generate Predictive Feature Values -------------------------------
