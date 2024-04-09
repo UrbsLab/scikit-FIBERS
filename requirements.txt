@@ -1,0 +1,13 @@
+numpy
+pandas
+scikit-learn
+lifelines
+matplotlib
+pytest
+setuptools
+tqdm
+seaborn
+dask
+dask_jobqueue
+ipykernel
+paretoset
