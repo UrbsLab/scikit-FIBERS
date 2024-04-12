@@ -125,33 +125,47 @@ class BIN_SET:
         offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
         offspring_2.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
 
-        # Check for duplicate rules based on feature list and threshold
+        # Check for duplicate bins based on feature list and threshold
+        print('off1')
         while self.equivalent_bin_in_pop(offspring_1): # May slow down evolutionary cycles if new bins arent' found right away
             offspring_1.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+            print(offspring_1.feature_list)
 
-        while self.equivalent_bin_in_pop(offspring_2): # May slow down evolutionary cycles if new bins arent' found right away
-            offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
-
-        # Offspring Evalution 
+        # Offspring 1 Evalution 
         offspring_1.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
+        offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
+
+        #Add New Offspring 1 to the Population
+        self.offspring_pop.append(offspring_1)
+
+        print('off2')
+        # Check for duplicate bins based on feature list and threshold
+        while self.equivalent_bin_in_pop(offspring_2): # May slow down evolutionary cycles if new bins arent' found right away
+            offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+            print(offspring_2.feature_list)
+
+        # Offspring 2 Evalution 
         offspring_2.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
-
-        offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
         offspring_2.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
-        #Add New Offspring to the Population
-        self.offspring_pop.append(offspring_1)
+        #Add New Offspring 2 to the Population
         self.offspring_pop.append(offspring_2)
 
 
     def equivalent_bin_in_pop(self,new_bin):
         for existing_bin in self.bin_pop:
             if new_bin.is_equivalent(existing_bin):
+                print('duplicate in pop')
+                print(new_bin.feature_list)
+                print(existing_bin.feature_list)
                 return True
         for existing_bin in self.offspring_pop:
             if new_bin.is_equivalent(existing_bin):
+                print('duplicate in offpop')
+                print(new_bin.feature_list)
+                print(existing_bin.feature_list)
                 return True
         return False
         
@@ -278,6 +292,10 @@ class BIN_SET:
 
 
     def add_offspring_into_pop(self):
+        print("---------------------------------------------------------")
+        for each in self.offspring_pop:
+            print(each.feature_list)
+        print("---------------------------------------------------------")
         self.bin_pop = self.bin_pop + self.offspring_pop
         self.offspring_pop = []
 
