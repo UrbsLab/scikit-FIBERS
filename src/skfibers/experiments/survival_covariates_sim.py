@@ -24,6 +24,7 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
     #P1_values = []
     #P2_values = []
     PC1_values = []
+    #PC2_values = [] #test
     patient_censoring_times = []
     administrative_censoring_times = []
     graft_failure_times = []
@@ -47,15 +48,23 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
         #P1 = int(random.random() < 0.3)
         #P2 = int(random.random() < 0.3)
             
-        PC1 = int(random.random() > 0.5 + recipient_factor/2 + donor_factor/2)
+        #PC1 = int(random.random() > 0.5 + recipient_factor/2 + donor_factor/2)
+        #if random.random() > 0.2:
+        #    PC1 = int(random.random() > recipient_factor/2 + donor_factor/2)
+        #else:
+        #    PC1 = int(random.random() > 0.5)
+        PC1 = int(random.random() > recipient_factor/2 + donor_factor/2)
+        #feature_frequency = random.uniform(feature_frequency_range[0], feature_frequency_range[1]) #test
+        #PC2 = int(random.random() < feature_frequency) #test
 
         #Calculate True Graft Failure Time
         predictive_contribution = 0
         for each in feature_list:
-            predictive_contribution += 0.15*each
+            predictive_contribution += 1*each  #0.15
 
         #rate = math.exp(0.2*recipient_factor - 0.3*donor_factor + 0.15*P1 + 0.15*P2- 1)
-        rate = math.exp(0.2*recipient_factor - 0.3*donor_factor + predictive_contribution - 2)
+        rate = math.exp(1*recipient_factor + 1*donor_factor + predictive_contribution - 2)
+        #rate = math.exp(1*recipient_factor*PC2 + 1*donor_factor*PC2 + predictive_contribution - 2) #test
         graft_failure_time = random.expovariate(rate)
 
         #Determine Patient Cencoring Time
@@ -76,6 +85,7 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
         #P1_values.append(P1)
         #P2_values.append(P2)
         PC1_values.append(PC1)
+        #PC2_values.append(PC2) #test
         patient_censoring_times.append(patient_censoring_time)
         administrative_censoring_times.append(administrative_censoring_time)
         graft_failure_times.append(graft_failure_time)
@@ -109,6 +119,7 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
     # Create a DataFrame to store the data
     df = pd.DataFrame({
         'PC_1': PC1_values,
+        #'PC_2': PC2_values, #test
         'C_1': recipient_factors,
         'C_2': donor_factors,
         #'P_1': P1_values,
@@ -124,6 +135,7 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
 
     data = pd.DataFrame({
         'PC_1': PC1_values,
+        #'PC_2': PC2_values, #test
         'C_1': recipient_factors,
         'C_2': donor_factors,
         #'P_1': P1_values,

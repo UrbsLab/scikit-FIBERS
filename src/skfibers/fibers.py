@@ -328,7 +328,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         cycle_length = 9 #Hard coded mutation occellation length (i.e. mutation climbs for 10 iterations then drops for 10 iterations)
         #EVOLUTIONARY LEARNING ITERATIONS
-        for iteration in tqdm(range(0, self.iterations)):
+        for iteration in tqdm(range(1, self.iterations+ 1)):
+            print('Iteration: '+str(iteration))
             if self.group_thresh == None:
                 evolve = random.random()
                 if self.thresh_evolve_prob > evolve:
@@ -337,7 +338,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 threshold_evolving = False
 
             #Occelating Mutation Rate
-            mutation_prob =  (transform_value(iteration,cycle_length)*(self.max_mutation_prob-self.min_mutation_prob)/cycle_length)+self.min_mutation_prob
+            mutation_prob =  (transform_value(iteration-1,cycle_length)*(self.max_mutation_prob-self.min_mutation_prob)/cycle_length)+self.min_mutation_prob
 
             # GENETIC ALGORITHM 
             target_offspring_count = int(self.pop_size*self.new_gen) #Determine number of offspring to generate
@@ -358,7 +359,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
             #Bin Deletion
             if self.diversity_pressure == 0:
-                if iteration == self.iterations - 1: #Last iteration
+                if iteration == self.iterations: #Last iteration
                     self.set.deterministic_bin_deletion(self.pop_size)
                 else:
                     self.set.probabilistic_bin_deletion(self.pop_size,self.elitism,random)

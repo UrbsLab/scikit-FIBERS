@@ -318,7 +318,7 @@ class BIN:
     def is_equivalent(self,other_bin):
         # Bin equivalence is based on 'feature_list' and 'group_threshold'
         equivalent = False
-        if self.group_threshold == other_bin.group_threshold: #Same group threshold
+        if int(self.group_threshold) == int(other_bin.group_threshold): #Same group threshold
             if sorted(self.feature_list) == sorted(other_bin.feature_list):
                 equivalent = True
         return equivalent
