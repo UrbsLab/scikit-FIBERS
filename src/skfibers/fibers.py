@@ -28,7 +28,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=50,pop_size=50,tournament_prop=0.5,crossover_prob=0.5,min_mutation_prob=0.1, 
                  max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=3,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
                  log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=0,min_thresh=0,max_thresh=3, 
-                 int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,report=None,random_seed=None,verbose=False):
+                 int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False):
 
         """
         A Scikit-Learn compatible implementation of the FIBERS Algorithm.
@@ -70,6 +70,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param covariates: list of feature names in the data to be treated as covariates (not included in binning)
 
         #Other Parameters
+        :param pop_clean: optional bin population cleanup phase
         :param report: list of integers, indicating iterations where the population will be printed out for viewing
         :param random_seed: the seed value needed to generate a random number
         :param verbose: Boolean flag to run in 'verbose' mode - display run details
@@ -166,8 +167,11 @@ class FIBERS(BaseEstimator, TransformerMixin):
             raise Exception("'manual_bin_init' param must be either None or DataFame that includes columns for 'feature_list' and 'group_threshold' ")
 
         if not self.check_is_list(covariates) and not covariates == None:
-                raise Exception("'covariates' param must be either None or a list of feature names")
+            raise Exception("'covariates' param must be either None or a list of feature names")
 
+        if pop_clean!= None and pop_clean !="group_strata":
+            raise Exception("'pop_clean' param can only have values of None or 'group_strata'")
+    
         if not self.check_is_list(report) and not report == None:
             raise Exception("'report' param must be an list of positive integers or None")
         
@@ -205,6 +209,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.thresh_evolve_prob = thresh_evolve_prob
         self.manual_bin_init = manual_bin_init
         self.covariates = covariates
+        self.pop_clean = pop_clean
         self.report = report
         self.random_seed = random_seed
         self.verbose = verbose
@@ -310,7 +315,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         #Initialize bin population
         threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
         self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
-                           self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
+                           self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
                            self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates,random)
         #Global fitness update
@@ -352,7 +357,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                                             self.df,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
                                             self.group_thresh,self.group_strata_min,self.penalty,self.residuals,self.covariates,random)
             # Add Offspring to Population
-            self.set.add_offspring_into_pop()
+            self.set.add_offspring_into_pop(iteration)
 
             #Global fitness update
             self.set.global_fitness_update(self.penalty) #Exerimental
@@ -376,6 +381,11 @@ class FIBERS(BaseEstimator, TransformerMixin):
             if self.report != None and iteration in self.report and iteration != 0:
                 print("ITERATION: "+str(iteration))
                 self.set.report_pop()    
+
+        #Optional bin population cleaning phase
+        if self.pop_clean == 'group_strata':
+            self.set.pop_clean_group_thresh(self.group_strata_min)
+
 
         #Output a final population report
         if self.report != None: 
