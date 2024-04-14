@@ -10,7 +10,7 @@ import warnings
 
 
 class BIN_SET:
-    def __init__(self,manual_bin_init,df,feature_names,pop_size,min_bin_size,max_bin_size,max_bin_init_size,
+    def __init__(self,manual_bin_init,df,feature_names,pop_size,min_bin_size,max_bin_init_size,
                  group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,log_rank_weighting,group_strata_min,
                  outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariates,random):
         #Initialize bin population
@@ -40,7 +40,7 @@ class BIN_SET:
             new_bin = BIN()
             new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random)
             # Check for duplicate rules based on feature list and threshold
-            while self.equivalent_bin_in_pop(new_bin): # May slow down evolutionary cycles if new bins aren't found right away
+            while self.equivalent_bin_in_pop(new_bin,iteration): # May slow down evolutionary cycles if new bins aren't found right away
                 new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
             # Bin metric score evaluation
             new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
@@ -86,14 +86,29 @@ class BIN_SET:
 
     def select_parent_pair(self,tournament_prop,random):
         #Tournament Selection
-        parent_list = [None, None]
+        #parent_list = [None, None]
         tSize = int(len(self.bin_pop) * tournament_prop) #Tournament Size
-        currentCount = 0
-        while currentCount < 2:
-            random.shuffle(self.bin_pop)
-            parent_list[currentCount] = max(self.bin_pop[:tSize], key=lambda x: x.fitness)
-            currentCount += 1
-        return parent_list
+        #currentCount = 0
+        #while currentCount < 2:
+        #    random.shuffle(self.bin_pop)
+        #    parent_list[currentCount] = max(self.bin_pop[:tSize], key=lambda x: x.fitness)
+        #    currentCount += 1
+        #return parent_list
+        parent_1 = self.tournament_selection(tSize,random)
+        parent_2 = self.tournament_selection(tSize,random)
+
+        while parent_1 == parent_2:
+            parent_2 = self.tournament_selection(tSize,random)
+
+        return [parent_1,parent_2]
+
+
+    
+
+    def tournament_selection(self,tSize,random):
+        random.shuffle(self.bin_pop)
+        new_parent = max(self.bin_pop[:tSize], key=lambda x: x.fitness)
+        return new_parent
 
 
     def generate_offspring(self,crossover_prob,mutation_prob,merge_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,max_bin_size,
@@ -105,18 +120,28 @@ class BIN_SET:
         offspring_2 = BIN()
         offspring_1.copy_parent(parent_list[0],iteration)
         offspring_2.copy_parent(parent_list[1],iteration)
+        #if iteration == 49:
+        #    print('Parent1:'+str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
+        #    print('Parent2:'+str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
 
         if random.random() < merge_prob: #Generate a single novel bin that is the combination of the two parent bins (yielding 3 total bins created during this mating)
             offspring_3 = BIN()
             offspring_3.copy_parent(parent_list[0],iteration)
-            offspring_3.merge(parent_list[1],feature_names,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
+            offspring_3.merge(parent_list[1],max_bin_size,threshold_evolving,max_thresh,random)
             # Check for duplicate rules based on feature list and threshold
-            while self.equivalent_bin_in_pop(offspring_3): # May slow down evolutionary cycles if new bins arent' found right away
+            #if iteration == 49:
+            #    print('merge')
+            while self.equivalent_bin_in_pop(offspring_3,iteration): # May slow down evolutionary cycles if new bins arent' found right away
                 offspring_3.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+                #if iteration == 49:
+                #    print(str(offspring_3.feature_list)+'_'+str(offspring_3.group_threshold))
             offspring_3.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                                 int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
             offspring_3.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
-            self.offspring_pop.append(offspring_3)
+            #if iteration == 49:
+            #    print(str(offspring_3.feature_list)+'_'+str(offspring_3.group_threshold))
+            if not self.equivalent_bin_in_pop(offspring_3,iteration):
+                self.offspring_pop.append(offspring_3)
 
         # Crossover
         offspring_1.uniform_crossover(offspring_2,crossover_prob,threshold_evolving,random)
@@ -125,11 +150,17 @@ class BIN_SET:
         offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
         offspring_2.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
 
+        #if iteration == 49:
+        #    print('Offspring1:'+str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
+        #    print('Offspring2:'+str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
+
         # Check for duplicate bins based on feature list and threshold
-        print('off1')
-        while self.equivalent_bin_in_pop(offspring_1): # May slow down evolutionary cycles if new bins arent' found right away
+        #if iteration == 49:
+        #    print('off1')
+        while self.equivalent_bin_in_pop(offspring_1,iteration): # May slow down evolutionary cycles if new bins arent' found right away
             offspring_1.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
-            print(offspring_1.feature_list)
+            #if iteration == 49:
+            #    print(str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
 
         # Offspring 1 Evalution 
         offspring_1.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
@@ -137,13 +168,18 @@ class BIN_SET:
         offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
         #Add New Offspring 1 to the Population
-        self.offspring_pop.append(offspring_1)
+        #if iteration == 49:
+        #    print(str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
+        if not self.equivalent_bin_in_pop(offspring_1,iteration):
+            self.offspring_pop.append(offspring_1)
 
-        print('off2')
+        #if iteration == 49:
+        #    print('off2')
         # Check for duplicate bins based on feature list and threshold
-        while self.equivalent_bin_in_pop(offspring_2): # May slow down evolutionary cycles if new bins arent' found right away
+        while self.equivalent_bin_in_pop(offspring_2,iteration): # May slow down evolutionary cycles if new bins arent' found right away
             offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
-            print(offspring_2.feature_list)
+            #if iteration == 49:
+            #    print(str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
 
         # Offspring 2 Evalution 
         offspring_2.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
@@ -151,22 +187,29 @@ class BIN_SET:
         offspring_2.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
         #Add New Offspring 2 to the Population
-        self.offspring_pop.append(offspring_2)
+        #if iteration == 49:
+        #    print(str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
+        if not self.equivalent_bin_in_pop(offspring_2,iteration):
+            self.offspring_pop.append(offspring_2)
 
 
-    def equivalent_bin_in_pop(self,new_bin):
-        for existing_bin in self.bin_pop:
-            if new_bin.is_equivalent(existing_bin):
-                print('duplicate in pop')
-                print(new_bin.feature_list)
-                print(existing_bin.feature_list)
-                return True
+    def equivalent_bin_in_pop(self,new_bin,iteration):
         for existing_bin in self.offspring_pop:
             if new_bin.is_equivalent(existing_bin):
-                print('duplicate in offpop')
-                print(new_bin.feature_list)
-                print(existing_bin.feature_list)
+                #if iteration == 49:
+                #    print('duplicate in offpop')
+                #    print(str(new_bin.feature_list)+'_'+str(new_bin.group_threshold))
+                #    print(str(existing_bin.feature_list)+'_'+str(new_bin.group_threshold))
                 return True
+            
+        for existing_bin in self.bin_pop:
+            if new_bin.is_equivalent(existing_bin):
+                #if iteration == 49:
+                #    print('duplicate in pop')
+                #    print(str(new_bin.feature_list)+'_'+str(new_bin.group_threshold))
+                #    print(str(existing_bin.feature_list)+'_'+str(new_bin.group_threshold))
+                return True
+
         return False
         
 
@@ -291,11 +334,12 @@ class BIN_SET:
             del self.bin_pop[-1]
 
 
-    def add_offspring_into_pop(self):
-        print("---------------------------------------------------------")
-        for each in self.offspring_pop:
-            print(each.feature_list)
-        print("---------------------------------------------------------")
+    def add_offspring_into_pop(self,iteration):
+        #if iteration == 49:
+        #    print("---------------------------------------------------------")
+        #    for each in self.offspring_pop:
+        #        print(str(each.feature_list)+'_'+str(each.group_threshold))
+        #    print("---------------------------------------------------------")
         self.bin_pop = self.bin_pop + self.offspring_pop
         self.offspring_pop = []
 
@@ -319,3 +363,12 @@ class BIN_SET:
             top_bin_list.append(self.bin_pop[bin_index])
             bin_index += 1
         return top_bin_list
+    
+    def pop_clean_group_thresh(self,group_strata_min):
+        temp_pop = []
+        for bin in self.bin_pop:
+            if bin.group_strata_prop >= group_strata_min:
+                temp_pop.append(bin)
+        self.bin_pop = temp_pop
+
+

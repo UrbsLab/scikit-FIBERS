@@ -260,15 +260,16 @@ class BIN:
                     self.group_threshold = random_thresh
 
 
-    def merge(self,other_parent,feature_names,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random):
+    def merge(self,other_parent,max_bin_size,threshold_evolving,max_thresh,random):
         # Merge feature lists of two parents
         # Create list of feature names unique to one list or another
         set1 = set(self.feature_list)
         set2 = set(other_parent.feature_list)
-        unique_to_list1 = set1 - set2
+        #unique_to_list1 = set1 - set2
         unique_to_list2 = set2 - set1
-        unique_features = list(sorted(unique_to_list1.union(unique_to_list2)))        
-        self.feature_list = unique_features
+        #unique_features = list(sorted(unique_to_list1.union(unique_to_list2))) 
+        self.feature_list = self.feature_list + list(unique_to_list2)   
+        #self.feature_list = unique_features
         #Enforce maximum bin size
         while len(self.feature_list) > max_bin_size: 
             self.feature_list.remove(random.choice(self.feature_list))
