@@ -258,7 +258,7 @@ class BIN_SET:
             max_index = bin_indexs[bin_fitness_list.index(max_fitness)] #index of bin from bin_indexs
             for bin_index in bin_indexs: #original bin indexes limited to bins in cluster
                 if bin_index == max_index or self.bin_pop[max_index].fitness == self.bin_pop[bin_index].fitness: # Top bin in cluster and any other bins with same highest fitness
-                    self.bin_pop[bin_index].update_deletion_prop(0.0, cluster) #Top bins have zero chance of deletion
+                    self.bin_pop[bin_index].update_deletion_prop(0.0, cluster) #Top bin s have zero chance of deletion
                 else:
                     # Get similarity score to top bin in cluster
                     similarity = cos_sim[bin_index][max_index] #compare the current bin to the top bin in this cluster
