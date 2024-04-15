@@ -5,6 +5,10 @@ from paretoset import paretoset
 from lifelines import KaplanMeierFitter
 from lifelines import CoxPHFitter
 from scipy.stats import linregress
+import seaborn as sns
+import matplotlib.patches as mpatches
+import collections
+from matplotlib.colors import LinearSegmentedColormap
 
 
 def transform_value(n,cycle_length):
@@ -222,7 +226,7 @@ def plot_log_rank_residuals(residuals,bin_pop,show=True,save=False,output_folder
         slope, intercept, r_value, p_value, std_err = linregress(log_rank_list, residuals_score_list)
 
         # Create scatter plot with trend line
-        plt.scatter(log_rank_list, residuals_score_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
+        plt.scatter(log_rank_list, residuals_score_list, c=group_strata_prop, cmap='viridis', label='Bin',s=group_threshold)
         plt.plot(log_rank_list, slope*np.array(log_rank_list) + intercept, color='red', label='Trend Line')
         plt.xlabel('Log-Rank Score')
         plt.ylabel('Residuals Score')
@@ -258,7 +262,7 @@ def plot_adj_HR_residuals(residuals,bin_pop,show=True,save=False,output_folder=N
         slope, intercept, r_value, p_value, std_err = linregress(adj_HR_list,residuals_score_list)
 
         # Create scatter plot with trend line
-        plt.scatter(adj_HR_list, residuals_score_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
+        plt.scatter(adj_HR_list, residuals_score_list, c=group_strata_prop, cmap='viridis', label='Bin',s=group_threshold)
         plt.plot(adj_HR_list, slope*np.array(adj_HR_list) + intercept, color='red', label='Trend Line')
         plt.xlabel('Adjusted HR')
         plt.ylabel('Residuals Score')
@@ -292,7 +296,7 @@ def plot_log_rank_adj_HR(bin_pop,show=True,save=False,output_folder=None,data_na
     slope, intercept, r_value, p_value, std_err = linregress(log_rank_list, adj_HR_list)
 
     # Create scatter plot with trend line
-    plt.scatter(log_rank_list, adj_HR_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
+    plt.scatter(log_rank_list, adj_HR_list, c=group_strata_prop, cmap='viridis', label='Bin',s=group_threshold)
     plt.plot(log_rank_list, slope*np.array(log_rank_list) + intercept, color='red', label='Trend Line')
     plt.xlabel('Log-Rank Score')
     plt.ylabel('Adjusted HR')
@@ -325,7 +329,7 @@ def plot_adj_HR_metric_product(residuals,bin_pop,show=True,save=False,output_fol
         slope, intercept, r_value, p_value, std_err = linregress(log_rank_residuals_list, adj_HR_list)
 
         # Create scatter plot with trend line
-        plt.scatter(log_rank_residuals_list, adj_HR_list, c=group_strata_prop, cmap='viridis', label='Data',s=group_threshold)
+        plt.scatter(log_rank_residuals_list, adj_HR_list, c=group_strata_prop, cmap='viridis', label='Bin',s=group_threshold)
         plt.plot(log_rank_residuals_list, slope*np.array(log_rank_residuals_list) + intercept, color='red', label='Trend Line')
         plt.xlabel('Log-Rank*Residuals Score')
         plt.ylabel('Adjusted HR')
@@ -345,3 +349,200 @@ def cox_prop_hazard(bin_df, outcome_label, censor_label): #make bin variable bee
     cph = CoxPHFitter()
     cph.fit(bin_df,outcome_label,event_col=censor_label, show_progress=True)
     return cph.summary
+
+
+def match_prefix(feature, locust_names):
+    """
+    :param feature: the feature
+    :param locust_names: the list of locust names, must be exhaustive
+    """
+    for locust_label in locust_names:
+        if feature.startswith(locust_label):
+            return locust_label
+
+    return "None"
+
+
+def plot_bin_population_heatmap(population, feature_names,show=True,save=False,output_folder=None,data_name=None):
+    """
+    :param population: a list where each element is a list of specified features
+    :param feature_list: an alphabetically sorted list containing each of the possible feature
+    """
+    
+    bin_names = []
+    for i in range(len(population)):
+        bin_names.append("Bin " + str(i + 1))
+
+    feature_index_map = {}
+    for i in range(len(feature_names)):
+        feature_index_map[feature_names[i]] = i #create feature to index mapping
+
+    graph_df = []
+    for bin in population:
+        temp_arr = [0] * len(feature_names)
+        for feature in bin:
+            temp_arr[feature_index_map[feature]] = 1
+        graph_df.append(temp_arr)
+
+    graph_df = pd.DataFrame(graph_df, bin_names, feature_names)
+
+    num_bins = len(population) 
+    max_bins = 100
+    max_features = 100
+    # iterate through df columns and adjust values as necessary
+    if num_bins > max_bins:  #
+        if len(feature_names) > max_features: #over max bins and max features - fixed plot with no labels
+            fig_size = (max_features // 2, max_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            sns.heatmap(graph_df, xticklabels=False, yticklabels=False, vmax=1, vmin=0,
+                        square=True, cmap="Blues", cbar_kws={"shrink": .75}, cbar=False)
+        else: #Over max bins, but under max features
+            fig_size = (len(feature_names)// 2, max_bins  // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            sns.heatmap(graph_df, yticklabels=False, vmax=1, vmin=0,
+                        square=True, cmap="Blues", cbar_kws={"shrink": .75}, cbar=False)
+    else:
+        if len(feature_names) > max_features: #under max bins but over max features 
+            fig_size = (max_features // 2, num_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            sns.heatmap(graph_df, xticklabels=False, vmax=1, vmin=0, square=True, cmap="Blues",
+                        cbar_kws={"shrink": .75}, cbar=False)
+        else:
+            fig_size = (num_bins // 2, num_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            sns.heatmap(graph_df, vmax=1, vmin=0, square=True, cmap="Blues",
+                        cbar_kws={"shrink": .75}, cbar=False)
+            
+    legend_elements = [mpatches.Patch(color='aliceblue', label='Not in Bin'),
+                        mpatches.Patch(color='darkblue', label='Included in Bin')]
+    plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.xlabel('Dataset Features')
+    plt.ylabel('Bin Population')
+
+    if save:
+        plt.savefig(output_folder+'/'+'Basic_Pop_Heatmap_'+data_name+'.png', bbox_inches="tight")
+    if show:
+        plt.show()
+
+
+def match_prefix(feature, group_names):
+    """
+    :param feature: the feature
+    :param group_names: the list of group names, must be exhaustive
+    """
+    for group_label in group_names:
+        if feature.startswith(group_label):
+            return group_label
+
+    return "None"
+
+
+def plot_custom_bin_population_heatmap(population, feature_names,group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+    """
+    :param population: a list where each element is a list of specified features
+    :param feature_list: an alphabetically sorted list containing each of the possible feature
+    :param group_names: identifies unique text that identifies unique groups of features to group together in the heatmap separated by vertical lines
+    :param legend_group_info: text for the different heatmap colors in the legend
+    :param color_features: list of lists, where each sublists identifies all feature names in the data to be given a unique color in the heatmap other than default binary coloring
+    :param colors: list of tuple objects identifying additional colors to use in the heatmap beyond the two default colors e.g. (0,0,1) for blue
+    :param default_colors: list of tuple objects identifying the two default colors used in the heatmap for features unspecified and specified in bins e.g. (0,0,1) for blue
+    :param max_bins: maximum number of bins in a population before the heatmap no longer prints these bin name lables on the y-axis
+    :param max_features: maximum number of features in the dataset befor the heatmap no longer prints these feature name lables on the x-axis
+    """
+    # preprocessing of feature_list
+    group_size_counter = collections.defaultdict(int)
+    for feature in feature_names:
+        p = match_prefix(feature, group_names)
+        group_size_counter[p] += 1
+
+    group_counter_sorted = []
+    for name in group_names:
+        group_counter_sorted.append((name,group_size_counter[name]))
+
+    bin_names = []
+    for i in range(len(population)):
+        bin_names.append("Bin " + str(i + 1))
+
+    feature_index_map = {}
+    for i in range(len(feature_names)):
+        feature_index_map[feature_names[i]] = i #create feature to index mapping
+
+    for each in colors: #Add custom colors to color set - order matters
+        default_colors.append(each)
+    custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', default_colors, N=256)
+
+    index_dict = {}
+    count = 2
+    for colorset in color_features:
+        for feature in colorset:
+            index_dict[feature] = count
+        count += 1
+
+    graph_df = []
+    for bin in population:
+        temp_arr = [0] * len(feature_names)
+        for feature in bin:
+            temp_arr[feature_index_map[feature]] = 1
+        graph_df.append(temp_arr)
+
+    graph_df = pd.DataFrame(graph_df, bin_names, feature_names)
+
+    for col in graph_df.columns: #for each feature
+        if col in index_dict:
+            for i in range(len(graph_df[col])):
+                if graph_df[col][i] == 1:
+                    graph_df[col][i] = index_dict[col]
+    num_bins = len(population) #tmp
+
+    # iterate through df columns and adjust values as necessary
+    if num_bins > max_bins:  #
+        if len(feature_names) > max_features: #over max bins and max features - fixed plot with no labels
+            fig_size = (max_features // 2, max_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, xticklabels=False, yticklabels=False,
+                        square=True, cmap=custom_cmap, cbar_kws={"shrink": .75}, cbar=False)
+        else: #Over max bins, but under max features
+            fig_size = (len(feature_names)// 2, max_bins  // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, yticklabels=False,
+                        square=True, cmap=custom_cmap, cbar_kws={"shrink": .75}, cbar=False)
+    else:
+        if len(feature_names) > max_features: #under max bins but over max features 
+            fig_size = (max_features // 2, num_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, xticklabels=False, square=True, cmap=custom_cmap,
+                        cbar_kws={"shrink": .75}, cbar=False)
+        else:
+            fig_size = (num_bins // 2, num_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, square=True, cmap=custom_cmap,
+                        cbar_kws={"shrink": .75}, cbar=False)
+
+    legend_elements = []
+    index = 0
+    for color in default_colors:
+        legend_elements.append(mpatches.Patch(color=color,label=legend_group_info[index]))
+        index += 1
+
+    plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
+
+    running_count = 0
+    for name, count in group_counter_sorted:
+        running_count += count
+        ax.vlines(running_count, colors="Black", *ax.get_ylim())
+
+    plt.xlabel('Features')
+    plt.ylabel('Bin Population')
+
+    if save:
+        plt.savefig(output_folder+'/'+'Basic_Pop_Heatmap_'+data_name+'.png', bbox_inches="tight")
+    if show:
+        plt.show()
