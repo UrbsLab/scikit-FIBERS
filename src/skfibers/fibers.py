@@ -25,7 +25,7 @@ from .methods.util import plot_custom_bin_population_heatmap
 from tqdm import tqdm
 
 class FIBERS(BaseEstimator, TransformerMixin):
-    def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=50,pop_size=50,tournament_prop=0.5,crossover_prob=0.5,min_mutation_prob=0.1, 
+    def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=50,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
                  max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=3,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
                  log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=0,min_thresh=0,max_thresh=3, 
                  int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False):
