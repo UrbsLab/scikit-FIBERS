@@ -359,9 +359,14 @@ class BIN_SET:
         top_bin_list = [self.bin_pop[0]]
         highest_fitness = self.bin_pop[0].fitness
         bin_index = 1
-        while self.bin_pop[bin_index].fitness == highest_fitness:
-            top_bin_list.append(self.bin_pop[bin_index])
-            bin_index += 1
+        try:
+            while self.bin_pop[bin_index].fitness == highest_fitness:
+                top_bin_list.append(self.bin_pop[bin_index])
+                bin_index += 1
+                if bin_index == len(self.bin_pop):
+                    break
+        except Exception: 
+            pass
         return top_bin_list
     
     def pop_clean_group_thresh(self,group_strata_min):
