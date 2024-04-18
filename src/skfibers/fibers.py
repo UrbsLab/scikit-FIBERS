@@ -32,7 +32,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         """
         A Scikit-Learn compatible implementation of the FIBERS Algorithm.
-        #General Parameters:
+
+        ..
+            General Parameters
+
         :param outcome_label: label indicating the outcome column in the dataset (e.g. 'SurvivalTime', 'Class')
         :param outcome_type: defines the type of outcome in the dataset ['survival','class']
         :param iterations: the number of evolutionary cycles FIBERS will run
@@ -51,31 +54,41 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param fitness_metric: the pre-fitness metric used by FIBERS to evaluate candidate bins ['log_rank','residuals','log_rank_residuals']
         :param log_rank_weighting: an optional weighting of the log-rank test ['wilcoxon','tarone-ware','peto','fleming-harrington'] 
 
-        #Survival Analysis Parameters:
+        ..
+            Survival Analysis Parameters
+
         :param censor_label: label indicating the censoring column in the datasets (e.g. 'Censoring')
         :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have pre-fitness penalizaiton applied
         :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
         :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
 
-        #Adaptive Bin Threshold Parameters:
+        ..
+            Adaptive Bin Threshold Parameters
+
         :param min_thresh: for adaptive bin thresholding - the minimum group_thresh allowed
         :param max_thresh: for adaptive bin thresholding - the maximum group_thresh allowed
         :param int_thresh: boolean indicating that adaptive bin thresholds are limited to positive intergers
         :param thresh_evolve_prob: probability that adaptive bin thresholding will evolve vs. be selected for the bin deterministically
 
-        #Manual Bin Initialization Parameters:
+        ..
+            Manual Bin Initialization Parameters
+
         :param manual_bin_init: a dataframe object including a FIBERS formatted bin population for bin initialization
 
-        #Covariate Adjustment Parameters:
+        .. 
+            Covariate Adjustment Parameters
+
         :param covariates: list of feature names in the data to be treated as covariates (not included in binning)
 
-        #Other Parameters
+        .. 
+            Other Parameters
+
         :param pop_clean: optional bin population cleanup phase
         :param report: list of integers, indicating iterations where the population will be printed out for viewing
         :param random_seed: the seed value needed to generate a random number
         :param verbose: Boolean flag to run in 'verbose' mode - display run details
         """
-        #Basic run parameter checks
+        # Basic run parameter checks
         if not isinstance(outcome_label,str):
             raise Exception("'outcome_label' param must be a str")
         

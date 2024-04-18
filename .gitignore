@@ -8,8 +8,7 @@ __pycache__
 *$py.class
 
 # Distribution / packaging
-.Python
-build/
+docs/build/
 develop-eggs/
 dist/
 downloads/
