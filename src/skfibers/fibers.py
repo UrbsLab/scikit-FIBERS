@@ -1,162 +1,223 @@
+import numpy as np
 import pandas as pd
-from lifelines import KaplanMeierFitter
-from lifelines.statistics import logrank_test
+import random
+import time
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.metrics import classification_report, accuracy_score
-from .methods.algorithms import fibers_algorithm
-from matplotlib import pyplot as plt
-import seaborn as sns
-sns.set_theme(font="Times New Roman")
-
+from .methods.data_handling import prepare_data
+from .methods.data_handling import calculate_residuals
+from .methods.population import BIN_SET
+from .methods.util import plot_pareto
+from .methods.util import plot_feature_tracking
+from .methods.util import plot_kaplan_meir
+from .methods.util import plot_fitness_progress
+from .methods.util import plot_threshold_progress
+from .methods.util import plot_perform_progress
+from .methods.util import plot_misc_progress
+from .methods.util import plot_residuals_histogram
+from .methods.util import plot_log_rank_residuals
+from .methods.util import plot_adj_HR_residuals
+from .methods.util import plot_log_rank_adj_HR
+from .methods.util import plot_adj_HR_metric_product
+from .methods.util import cox_prop_hazard
+from .methods.util import transform_value
+from .methods.util import plot_bin_population_heatmap
+from .methods.util import plot_custom_bin_population_heatmap
+from tqdm import tqdm
 
 class FIBERS(BaseEstimator, TransformerMixin):
-    def __init__(self, label_name="Class", duration_name="Duration",
-                 given_starting_point=False, amino_acid_start_point=None, amino_acid_bins_start_point=None,
-                 iterations=1000, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=4,
-                 informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.4, elitism_parameter=0.8,
-                 random_seed=None):
-        """
-        A Scikit-Learn compatible framework for the FIBERS Algorithm.
+    def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=100,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
+                 max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=0,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
+                 log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=0,min_thresh=0,max_thresh=5, 
+                 int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False):
 
-        :param label_name: label for the class/endpoint column in the dataset (e.g., 'Class')
-        :param duration_name: label to omit extra column in the dataset
-        :param given_starting_point: whether or not expert knowledge is being inputted (True or False)
-        :param amino_acid_start_point: if FIBERS is starting with expert knowledge, input the list
-               of features here; otherwise None
-        :param amino_acid_bins_start_point: if FIBERS is starting with expert knowledge, input the list of bins of
-               features here; otherwise None
+        """
+        A Scikit-Learn compatible implementation of the FIBERS Algorithm.
+        #General Parameters:
+        :param outcome_label: label indicating the outcome column in the dataset (e.g. 'SurvivalTime', 'Class')
+        :param outcome_type: defines the type of outcome in the dataset ['survival','class']
         :param iterations: the number of evolutionary cycles FIBERS will run
-        :param set_number_of_bins: the population size of candidate bins
-        :param min_features_per_group: the minimum number of features in a bin
-        :param max_number_of_groups_with_feature: the maximum number of bins containing a feature
-        :param crossover_probability: the probability of each feature in an offspring bin to crossover
-               to the paired offspring bin (recommendation: 0.5 to 0.8)
-        :param mutation_probability: the probability of each feature in a bin to be deleted (a proportionate
-               probability is automatically applied on each feature outside the bin to be added
-               (recommendation: 0.05 to 0.5 depending on situation and number of iterations run)
-        :param elitism_parameter: the proportion of elite bins in the current generation to be
-               preserved for the next evolutionary cycle (recommendation: 0.2 to 0.8
-               depending on conservativeness of approach and number of iterations run)
+        :param pop_size: the maximum bin population size
+        :param tournament_prop: the proportion of the popultion randomly selected for each parent pair selection
+        :param crossover_prob: the probability of each specified feature in a pair of offspring bins to swap between bins
+        :param min_mutation_prob: the minimum probability of further offspring bin modification (i.e. feature addition, removal or swap)
+        :param max_mutation_prob: the maximum probability of further offspring bin modification (i.e. feature addition, removal or swap)
+        :param merge_prob: the probability of two parent bins merging to create a single novel offspring, separate from mutation and crossover
+        :param new_gen: proportion that determines the number of offspring generated each iteration based new_gen*pop_size
+        :param elitism: proportion of pop_size that is protected from deletion each generation
+        :param diversity_pressure: number of bin similarity clusters used to drive bin deletion by maintaining bin diversity
+        :param min_bin_size: minimum number of features to be specified within a bin
+        :param max_bin_size: maximum number of features to be specified within a bin
+        :param max_bin_init_size: maximum number of features within initialized bins
+        :param fitness_metric: the pre-fitness metric used by FIBERS to evaluate candidate bins ['log_rank','residuals','log_rank_residuals']
+        :param log_rank_weighting: an optional weighting of the log-rank test ['wilcoxon','tarone-ware','peto','fleming-harrington'] 
+
+        #Survival Analysis Parameters:
+        :param censor_label: label indicating the censoring column in the datasets (e.g. 'Censoring')
+        :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have pre-fitness penalizaiton applied
+        :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
+        :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
+
+        #Adaptive Bin Threshold Parameters:
+        :param min_thresh: for adaptive bin thresholding - the minimum group_thresh allowed
+        :param max_thresh: for adaptive bin thresholding - the maximum group_thresh allowed
+        :param int_thresh: boolean indicating that adaptive bin thresholds are limited to positive intergers
+        :param thresh_evolve_prob: probability that adaptive bin thresholding will evolve vs. be selected for the bin deterministically
+
+        #Manual Bin Initialization Parameters:
+        :param manual_bin_init: a dataframe object including a FIBERS formatted bin population for bin initialization
+
+        #Covariate Adjustment Parameters:
+        :param covariates: list of feature names in the data to be treated as covariates (not included in binning)
+
+        #Other Parameters
+        :param pop_clean: optional bin population cleanup phase
+        :param report: list of integers, indicating iterations where the population will be printed out for viewing
         :param random_seed: the seed value needed to generate a random number
+        :param verbose: Boolean flag to run in 'verbose' mode - display run details
         """
+        #Basic run parameter checks
+        if not isinstance(outcome_label,str):
+            raise Exception("'outcome_label' param must be a str")
+        
+        if outcome_type!="survival" and not outcome_type!="class":
+            raise Exception("'outcome_type' param can only have values of 'survival' or 'class'")
+        
+        if not self.check_is_int(iterations) or iterations < 0:
+            raise Exception("'iterations' param must be a non-negative integer")
 
-        algorithm = "FIBERS"
-        if algorithm not in ["FIBERS"]:
-            raise Exception("Invalid Algorithm")
+        if not self.check_is_int(pop_size) or pop_size < 10:
+            raise Exception("'pop_size' param must be non-negative integer larger than 10")
 
-        if not self.check_is_int(iterations):
-            raise Exception("iterations param must be non-negative integer")
+        if not self.check_is_float(tournament_prop) or tournament_prop < 0 or tournament_prop > 1:
+            raise Exception("'tournament_prop' param must be float from 0 - 1")
 
-        if iterations < 0:
-            raise Exception("iterations param must be non-negative integer")
+        if not self.check_is_float(crossover_prob) or crossover_prob < 0 or crossover_prob > 1:
+            raise Exception("'crossover_prob' param must be float from 0 - 1")
 
-        # set_number_of_bins
-        if not self.check_is_int(set_number_of_bins):
-            raise Exception("set_number_of_bins param must be non-negative integer")
+        if not self.check_is_float(min_mutation_prob) or min_mutation_prob < 0 or min_mutation_prob > 1:
+            raise Exception("'min_mutation_prob' param must be float from 0 - 1")
 
-        if set_number_of_bins < 1:
-            raise Exception("set_number_of_bins param must be non-negative integer 1 or greater")
+        if not self.check_is_float(max_mutation_prob) or max_mutation_prob < 0 or max_mutation_prob > 1 or min_mutation_prob > max_mutation_prob:
+            raise Exception("'max_mutation_prob' param must be float from 0 - 1 that is greater than or equal to min_mutation_prob")
+        
+        if not self.check_is_float (merge_prob) or merge_prob < 0 or merge_prob > 1:
+            raise Exception("'merge_prob' param must be float from 0 - 1")
 
-        # min_features_per_group
-        if not self.check_is_int(min_features_per_group):
-            raise Exception("min_features_per_group param must be non-negative integer")
+        if not self.check_is_float(new_gen) or new_gen < 0 or new_gen > 1:
+            raise Exception("'new_gen' param must be float from 0 - 1")
+        
+        if not self.check_is_float(elitism) or elitism < 0 or elitism > 1:
+            raise Exception("'elitism' param must be float from 0 - 1")
+        
+        if not self.check_is_int(diversity_pressure) or diversity_pressure < 0:
+            raise Exception("'diversity_pressure' param must be a non-negative integer")
+        
+        if not self.check_is_int(min_bin_size) or min_bin_size < 0:
+            raise Exception("'min_bin_size' param must be non-negative integer (and no larger then the number of features in the dataset and <= than max_bin_size)")
 
-        if min_features_per_group < 0:
-            raise Exception("min_features_per_group param must be non-negative integer")
+        if max_bin_size != None and (not self.check_is_int(max_bin_size) or max_bin_size < 0 or min_bin_size > max_bin_size):
+            raise Exception("'max_bin_size' param must 'None' or a non-negative integer (and no larger then the number of features in the dataset and >= than min_bin_size)")
 
-        # max_number_of_groups_with_feature
-        if not self.check_is_int(max_number_of_groups_with_feature):
-            raise Exception("max_number_of_groups_with_feature param must be non-negative integer")
+        if not self.check_is_int(max_bin_init_size) or max_bin_init_size < 0:
+            raise Exception("'max_bin_init_size' param must be non-negative integer (and no larger then the number of features in the dataset)")
 
-        if max_number_of_groups_with_feature < 0:
-            raise Exception("max_number_of_groups_with_feature param must be non-negative integer")
+        if fitness_metric!="log_rank" and fitness_metric!="residuals" and fitness_metric!="log_rank_residuals":
+            raise Exception("'fitness_metric' param can only have values of 'log_rank', 'residuals', or 'log_rank_residuals'")
+        
+        if log_rank_weighting!="wilcoxon" and log_rank_weighting!="tarone-ware" and log_rank_weighting!="peto" and log_rank_weighting!='fleming-harrington'and log_rank_weighting != None:
+            raise Exception("'log_rank_weighting' param can only have values of 'wilcoxon', 'tarone-wares', 'peto' or 'fleming-harrington'")
 
-        if max_number_of_groups_with_feature > set_number_of_bins:
-            raise Exception(
-                "max_number_of_groups_with_feature must be less than or equal to population size of candidate bins")
+        if fitness_metric == "residuals" or fitness_metric == "log_rank_residuals":
+            if covariates == None:
+                raise Exception("list of covariates must be specified when fitness_metric is 'residuals' or 'log_rank_residuals'")
 
-        # informative_cutoff
-        if not self.check_is_float(informative_cutoff):
-            raise Exception("informative_cutoff param must be float from 0 - 0.5")
+        if not isinstance(censor_label,str) and censor_label != None:
+            raise Exception("'censor_label' param must be a str or None")
+        
+        if not self.check_is_float(group_strata_min) or group_strata_min < 0 or group_strata_min > 0.5:
+            raise Exception("'group_strata_min' param must be float from 0 - 0.5")
 
-        if informative_cutoff < 0 or informative_cutoff > 0.5:
-            raise Exception("informative_cutoff param must be float from 0 - 0.5")
+        if not self.check_is_float(penalty) and not self.check_is_int(penalty):
+            raise Exception("'penalty' param must be an int or float from 0 - 1")
+        if penalty < 0 or penalty > 1:
+            raise Exception("'penalty' param must be an int or float from 0 - 1")
 
-        # crossover_probability
-        if not self.check_is_float(crossover_probability):
-            raise Exception("crossover_probability param must be float from 0 - 1")
+        if not self.check_is_int(group_thresh) and not self.check_is_float(group_thresh) and group_thresh != None:
+            raise Exception("'group_thresh' param must be a non-negative int or float, or None, for adaptive thresholding")
+        if group_thresh != None and group_thresh < 0: 
+            raise Exception("'group_thresh' param must be a non-negative int or float, or None, for adaptive thresholding")
+        
+        if not self.check_is_int(min_thresh) and not self.check_is_float(min_thresh) or min_thresh < 0:
+            raise Exception("'min_thresh' param must be a non-negative int or float")
 
-        if crossover_probability < 0 or crossover_probability > 1:
-            raise Exception("crossover_probability param must be float from 0 - 1")
+        if not self.check_is_int(max_thresh) and not self.check_is_float(max_thresh) or max_thresh < 0 or max_thresh <= min_thresh:
+            raise Exception("'max_thresh' param must be a non-negative int or float")
+        if max_thresh <= min_thresh:
+            raise Exception("'max_thresh' param must be larger than min_thresh param")
+        
+        if not int_thresh == True and not int_thresh == False and not int_thresh == 'True' and not int_thresh == 'False':
+            raise Exception("'int_thresh' param must be a boolean, i.e. True or False")
 
-        # mutation_probability
-        if not self.check_is_float(mutation_probability):
-            raise Exception("mutation_probability param must be float from 0 - 1")
+        if not self.check_is_float(thresh_evolve_prob) and not self.check_is_int(thresh_evolve_prob):
+            raise Exception("'thresh_evolve_prob' param must be an int or float from 0 - 1")
+        if thresh_evolve_prob < 0 or thresh_evolve_prob > 1:
+            raise Exception("'thresh_evolve_prob' param must be an int or float from 0 - 1")
+        
+        if not isinstance(manual_bin_init, pd.DataFrame) and not manual_bin_init == None:
+            raise Exception("'manual_bin_init' param must be either None or DataFame that includes columns for 'feature_list' and 'group_threshold' ")
 
-        if mutation_probability < 0 or mutation_probability > 1:
-            raise Exception("mutation_probability param must be float from 0 - 1")
+        if not self.check_is_list(covariates) and not covariates == None:
+            raise Exception("'covariates' param must be either None or a list of feature names")
 
-        # elitism_parameter
-        if not self.check_is_float(elitism_parameter):
-            raise Exception("elitism_parameter param must be float from 0 - 1")
+        if pop_clean!= None and pop_clean !="group_strata":
+            raise Exception("'pop_clean' param can only have values of None or 'group_strata'")
+    
+        if not self.check_is_list(report) and not report == None:
+            raise Exception("'report' param must be an list of positive integers or None")
+        
+        if not self.check_is_int(random_seed) and not random_seed == None:
+            raise Exception("'random_seed' param must be an int or None")
 
-        if elitism_parameter < 0 or elitism_parameter > 1:
-            raise Exception("elitism_parameter param must be float from 0 - 1")
-
-        # given_starting_point
-        if not (isinstance(given_starting_point, bool)):
-            raise Exception("given_starting_point param must be boolean True or False")
-        elif given_starting_point:
-            if amino_acid_start_point is None or amino_acid_bins_start_point is None:
-                raise Exception(
-                    "amino_acid_start_point param and amino_acid_bins_start_point param must be a list if expert "
-                    "knowledge is being inputted")
-            elif not (isinstance(amino_acid_start_point, list)):
-                raise Exception("amino_acid_start_point param must be a list")
-            elif not (isinstance(amino_acid_bins_start_point, list)):
-                raise Exception("amino_acid_bins_start_point param must be a list")
-
-        # label_name
-        if not (isinstance(label_name, str)):
-            raise Exception("label_name param must be str")
-
-        self.algorithm = algorithm
-        self.given_starting_point = given_starting_point
-        self.amino_acid_start_point = amino_acid_start_point
-        self.amino_acid_bins_start_point = amino_acid_bins_start_point
+        if not verbose == True and not verbose == False and not verbose == 'True' and not verbose == 'False':
+            raise Exception("'verbose' param must be a boolean, i.e. True or False")
+        
+        #Initialize global variables
+        self.outcome_label = outcome_label
+        self.outcome_type = outcome_type
         self.iterations = iterations
-        self.label_name = label_name
-        self.duration_name = duration_name
-        self.set_number_of_bins = set_number_of_bins
-        self.min_features_per_group = min_features_per_group
-        self.max_number_of_groups_with_feature = max_number_of_groups_with_feature
-        self.informative_cutoff = informative_cutoff
-        self.crossover_probability = crossover_probability
-        self.mutation_probability = mutation_probability
-        self.elitism_parameter = elitism_parameter
+        self.pop_size = pop_size
+        self.tournament_prop = tournament_prop
+        self.crossover_prob = crossover_prob
+        self.min_mutation_prob = min_mutation_prob 
+        self.max_mutation_prob = max_mutation_prob
+        self.merge_prob = merge_prob
+        self.new_gen = new_gen
+        self.elitism = elitism
+        self.diversity_pressure = diversity_pressure
+        self.min_bin_size = min_bin_size
+        self.max_bin_size = max_bin_size
+        self.max_bin_init_size = max_bin_init_size
+        self.fitness_metric = fitness_metric
+        self.log_rank_weighting = log_rank_weighting
+        self.censor_label = censor_label
+        self.group_strata_min = group_strata_min
+        self.penalty = penalty
+        self.group_thresh = group_thresh
+        self.min_thresh = min_thresh 
+        self.max_thresh = max_thresh 
+        self.int_thresh = int_thresh
+        self.thresh_evolve_prob = thresh_evolve_prob
+        self.manual_bin_init = manual_bin_init
+        self.covariates = covariates
+        self.pop_clean = pop_clean
+        self.report = report
         self.random_seed = random_seed
-        self.reboot_filename = None
-        self.original_feature_matrix = None
-
-        # Reboot Population
-        if self.reboot_filename is not None:
-            self.reboot_population()
-            self.hasTrained = True
-        else:
-            self.iterationCount = 0
+        self.verbose = verbose
+        if self.covariates is None:
+            self.covariates = list()
 
         self.hasTrained = False
-        self.bin_feature_matrix = None
-        self.bins = None
-        self.bin_scores = None
-        self.maf_0_features = None
 
-    def reboot_population(self):
-        """
-        Function to Reboot Population, not Implemented
-        :meta private:
-        """
-        raise NotImplementedError
 
     @staticmethod
     def check_is_int(num):
@@ -172,6 +233,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
         """
         return isinstance(num, float)
 
+    @staticmethod
+    def check_is_list(num):
+        """
+        :meta private:
+        """
+        return isinstance(num, list)
+ 
+
     def check_x_y(self, x, y):
         """
         Function to check if x and y input to fit are valid.
@@ -184,253 +253,495 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if y is None:
             if not (isinstance(x, pd.DataFrame)):
                 raise Exception("x must be pandas dataframe")
-            if not ((self.label_name in x.columns) or (self.duration_name not in x.columns)):
+            if not ((self.outcome_label in x.columns) or (self.censor_label not in x.columns)):
                 raise Exception("x must have column labels as specified")
-            original_feature_matrix = x
+            df = x
         else:
             if not (isinstance(x, pd.DataFrame)):
                 raise Exception("x must be pandas dataframe")
-            if not ((self.label_name in x.columns) or (self.duration_name not in x.columns)):
-                labels = pd.DataFrame(y, columns=[self.label_name, self.duration_name])
-                original_feature_matrix = pd.concat([x, labels], axis=1)
+            if not ((self.outcome_label in x.columns) or (self.censor_label not in x.columns)):
+                labels = pd.DataFrame(y, columns=[self.outcome_label, self.censor_label])
+                df = pd.concat([x, labels], axis=1)
             else:
-                original_feature_matrix = x
+                df = x
 
-        # Check if original_feature_matrix and y are numeric
+        # Check if original_feature_matrix and y are numeric (Ryan - extend to check if all values > 0)
         try:
-            original_feature_matrix.copy() \
+            df.copy() \
                 .apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
         except Exception:
             raise Exception("X must be fully numeric")
 
-        if not (self.label_name in original_feature_matrix.columns):
+        if not (self.outcome_label in df.columns):
             raise Exception("label_name param must be a column in the dataset")
 
-        if not (self.duration_name in original_feature_matrix.columns):
+        if not (self.censor_label in df.columns):
             raise Exception("duration_name param must be a column in the dataset")
 
-        return original_feature_matrix
+        return df
+    
 
     def fit(self, x, y=None):
         """
-        Scikit-learn required function for Supervised training of FIBERS
+        Scikit-learn required function for supervised training of FIBERS
 
-        :param x: array-like {n_samples, n_features} Training instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-                OR array-like dataframe {n_samples, n_features} Training instances
-                with column name as given in label_name and duration_name.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN when y=None
+        :param x: array-like {n_samples, n_features} training instances.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE, and can include 'covariates'
+                OR array-like dataframe {n_samples, n_features} training instances that can include 'covariates'
+                and with column name as given by outcome_label and censor_label when y=None.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE 
 
         :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.
-                ALL INSTANCE PHENOTYPES MUST BE NUMERIC NOT NAN OR OTHER TYPE
+                ALL INSTANCE OUTCOMES MUST BE NUMERIC NOT NAN OR OTHER TYPE
 
         :return: self
         """
-        original_feature_matrix = self.check_x_y(x, y)
-        if self.algorithm == "FIBERS":
-            self.fibers_fit(original_feature_matrix)
-            return self
+        self.start_time = time.time() # Record the start time
+        random.seed(self.random_seed) # Set random seed
+
+        # PREPARE DATA ---------------------------------------
+        self.df = self.check_x_y(x, y)
+        self.df,self.feature_names = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
+        if self.max_bin_size == None:
+            self.max_bin_size = len(self.feature_names)
+
+        # Calculate residuals for covariate adjustment
+        if self.fitness_metric == "residuals" or self.fitness_metric == "log_rank_residuals":
+            self.residuals = calculate_residuals(self.df,self.covariates,self.feature_names,self.outcome_label,self.censor_label)
         else:
-            raise Exception("Unknown Algorithm")
+            self.residuals = None
 
-    def fibers_fit(self, original_feature_matrix):
-        """
-        Scikit-learn required function for Supervised training of FIBERS
+        print("Beginning FIBERS Fit:")
+        #Initialize bin population
+        threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
+        self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
+                           self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
+                           self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
+                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates,random)
+        #Global fitness update
+        self.set.global_fitness_update(self.penalty) #Exerimental
 
-        :param original_feature_matrix: array-like {n_samples, n_features} Training instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-        :return: self, bin_feature_matrix_internal, amino_acid_bins_internal, \
-            amino_acid_bin_scores_internal, maf_0_features
-        """
-        self.original_feature_matrix = original_feature_matrix
+        # Update feature tracking
+        self.set.update_feature_tracking(self.feature_names)
 
-        bin_feature_matrix_internal, bins_internal, \
-            bin_scores_internal, maf_0_features = \
-            fibers_algorithm(
-                self.given_starting_point,
-                self.amino_acid_start_point,
-                self.amino_acid_bins_start_point,
-                self.iterations,
-                self.original_feature_matrix,
-                self.label_name,
-                self.duration_name,
-                self.set_number_of_bins,
-                self.min_features_per_group,
-                self.max_number_of_groups_with_feature,
-                self.informative_cutoff,
-                self.crossover_probability,
-                self.mutation_probability,
-                self.elitism_parameter,
-                self.random_seed)
-        self.bin_feature_matrix = bin_feature_matrix_internal
-        self.bins = bins_internal
-        self.bin_scores = bin_scores_internal
-        self.maf_0_features = maf_0_features
+        # Initialize training performance tracking
+        self.performance_tracking(True,-1)
+
+        # Report initial population
+        if self.report != None and 0 in self.report: 
+            self.set.report_pop()
+
+        cycle_length = 9 #Hard coded mutation occellation length (i.e. mutation climbs for 10 iterations then drops for 10 iterations)
+        #EVOLUTIONARY LEARNING ITERATIONS
+        for iteration in tqdm(range(1, self.iterations+ 1)):
+            print('Iteration: '+str(iteration))
+            if self.group_thresh == None:
+                evolve = random.random()
+                if self.thresh_evolve_prob > evolve:
+                    threshold_evolving = True
+            else:
+                threshold_evolving = False
+
+            #Occelating Mutation Rate
+            mutation_prob =  (transform_value(iteration-1,cycle_length)*(self.max_mutation_prob-self.min_mutation_prob)/cycle_length)+self.min_mutation_prob
+
+            # GENETIC ALGORITHM 
+            target_offspring_count = int(self.pop_size*self.new_gen) #Determine number of offspring to generate
+            while len(self.set.offspring_pop) < target_offspring_count: #Generate offspring until we hit the target number
+                # Parent Selection
+                parent_list = self.set.select_parent_pair(self.tournament_prop,random)
+
+                # Generate Offspring - clone, crossover, mutation, evaluation, add to population
+                self.set.generate_offspring(self.crossover_prob,mutation_prob,self.merge_prob,self.iterations,iteration,parent_list,self.feature_names,
+                                            threshold_evolving,self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
+                                            self.df,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
+                                            self.group_thresh,self.group_strata_min,self.penalty,self.residuals,self.covariates,random)
+            # Add Offspring to Population
+            self.set.add_offspring_into_pop(iteration)
+
+            #Global fitness update
+            self.set.global_fitness_update(self.penalty) #Exerimental
+
+            #Bin Deletion
+            if self.diversity_pressure == 0:
+                if iteration == self.iterations: #Last iteration
+                    self.set.deterministic_bin_deletion(self.pop_size)
+                else:
+                    self.set.probabilistic_bin_deletion(self.pop_size,self.elitism,random)
+            else:
+                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,random)
+
+            # Update feature tracking
+            self.set.update_feature_tracking(self.feature_names)
+            
+            # Training performance tracking
+            self.performance_tracking(False,iteration)
+
+            # DEBUGGING FUNCTION - view the population at specified iterations during training
+            if self.report != None and iteration in self.report and iteration != 0:
+                print("ITERATION: "+str(iteration))
+                self.set.report_pop()    
+
+        #Optional bin population cleaning phase
+        if self.pop_clean == 'group_strata':
+            self.set.pop_clean_group_thresh(self.group_strata_min)
+
+
+        #Output a final population report
+        if self.report != None: 
+            self.set.report_pop()
+
+        # Time keeping
+        end_time = time.time()
+        self.elapsed_time = end_time - self.start_time
+
+        print("Random Seed Check - End: "+ str(random.random()))
+        print('FIBERS Run Complete!')
+        print("Elapsed Time (sec): ", self.elapsed_time, "seconds")
+
         self.hasTrained = True
+        # Memory Cleanup
+        self.df = None
         return self
 
-    def transform(self, x):
+
+    def transform(self, x, y=None, full_sums=False):
         """
         Scikit-learn required function for Supervised training of FIBERS
 
-        :param x: array-like {n_samples, n_features} Transform instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
+        :param x: array-like {n_samples, n_features} training instances.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE, and can include 'covariates'
+                OR array-like dataframe {n_samples, n_features} training instances that can include 'covariates'
+                and with column name as given by outcome_label and censor_label when y=None.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE 
 
-        :return: Top Feature Bin Features as a pd.DataFrame
+        :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.
+                ALL INSTANCE OUTCOMES MUST BE NUMERIC NOT NAN OR OTHER TYPE
+        :return: Dataset transformed instances into bin-defined features (i.e. value sums of bin-specified features) as a pd.DataFrame
         """
-        # x_new = self.check_x_y(x, y)
-
         if not self.hasTrained:
-            raise Exception("Model must be fit first")
+            raise Exception("FIBERS must be fit first")
 
-        # if not (self.original_feature_matrix.equals(original_feature_matrix)):
-        #     raise Exception("X param does not match fitted matrix. Fit needs to be first called on the same matrix.")
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
 
-        if self.algorithm == "FIBERS":
-            sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
-            sorted_bin_list = list(sorted_bin_scores.keys())
-            tdf = pd.DataFrame()
-            try:
-                for i in range(len(sorted_bin_list)):
-                    tdf[sorted_bin_list[i]] = x[self.bins[sorted_bin_list[i]]].sum(axis=1)
-            except Exception as e:
-                print(e)
-                raise Exception("Bin Feature not present in dataset")
-            return tdf
+        tdf = pd.DataFrame()
+
+        #Create transformed dataset
+        bin_count = 0
+        for bin in self.set.bin_pop: #for each bin in the population - apply it to creating a bin 'feature' in the dataset for each instance
+            # Sum instance values across features specified in the bin
+            feature_sums = df[bin.feature_list].sum(axis=1)
+            tdf['Bin_'+str(bin_count)] = feature_sums
+            if not full_sums:
+                tdf['Bin_'+str(bin_count)] = tdf['Bin_'+str(bin_count)].apply(lambda x: 0 if x <= bin.group_threshold else 1)
+            bin_count += 1
+
+        tdf = pd.concat([tdf,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        df = None
+        return tdf
+
+
+    def predict(self, x, bin_number=None):
+        """
+        Function to predict strata on the basis of top OR bin.
+
+        :param x: array-like {n_samples, n_features} training instances.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE, and can include 'covariates'
+                OR array-like dataframe {n_samples, n_features} training instances that can include 'covariates'
+                and with column name as given by outcome_label and censor_label when y=None.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE 
+
+        :param bin_number: the top nth bin (0 is bin with highest fitness) to consider as the predictor, 
+                or if [None] uses a bin-population weighted voting scheme as the predictor
+
+        :return: y: prediction of group (0 or 1), e.g. strata group --> low vs. high
+        """
+        if not self.hasTrained:
+            raise Exception("FIBERS must be trained first")
+
+        if not self.check_is_int(bin_number) and not bin_number == None:
+            raise Exception("'random_seed' param must be an int")
+        
+        # PREPARE DATA ---------------------------------------
+        y = None
+        df = self.check_x_y(x, y)
+        #if self.covariates:
+        #    try:
+        #        for covariate in self.covariates:
+        #            feature_df = feature_df.drop(columns=covariate)
+        #    except:
+        #        pass
+        
+        # Make Predition
+        if bin_number != None: #Make prediction with single selected bin
+            # Sum instance values across features specified in the bin
+            feature_sums = df[self.set.bin_pop[bin_number].feature_list].sum(axis=1)
+            prediction_list = (df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) > self.set.bin_pop[bin_number].group_threshold).astype(int).values
+            df = None
+            return np.array(prediction_list) 
+        
+        else: #Make prediction using entire bin population (weighted voting scheme)
+            temp_df = pd.DataFrame()
+            bin_count = 0
+            for bin in self.set.bin_pop: #for each bin in the population 
+                # Sum instance values across features specified in the bin
+                feature_sums = df[bin.feature_list].sum(axis=1)
+                temp_df['Bin_'+str(bin_count)] = feature_sums
+                bin_count += 1
+
+            # Count
+            bt_vote = [0]*len(temp_df) #votesum stored for each instance
+            at_vote = [0]*len(temp_df) #votesum stored for each instance
+
+            # Iterate through each row of the DataFrame
+            row_count = 0
+            for index, row in temp_df.iterrows():
+                bin_count = 0
+                # Iterate through each value in the row
+                for value in row:
+                    if value <= self.set.bin_pop[bin_count].group_threshold:
+                        bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                    else:
+                        at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                    bin_count += 1
+                row_count += 1
+            # Convert votes into predictions
+            prediction_list = []
+
+            for i in range(0,len(bt_vote)):
+                if bt_vote[i] < at_vote[i]:
+                    prediction_list.append(1)
+                else:
+                    prediction_list.append(0)
+            temp_df = None
+            df = None
+            return np.array(prediction_list) 
+
+
+    def performance_tracking(self,initialize,iteration):
+        current_time = time.time()
+        self.elapsed_time = current_time - self.start_time
+        #self.set.bin_pop = sorted(self.set.bin_pop, key=lambda x: x.fitness,reverse=True)
+        top_bin = self.set.bin_pop[0]
+        if initialize:
+            col_list = ['Iteration','Top Bin', 'Threshold', 'Fitness', 'Pre-Fitness', 'Log-Rank Score', 'Log-Rank p-value', 'Bin Size', 'Group Ratio', 'Count At/Below Threshold', 
+                        'Count Below Threshold','Birth Iteration','Residuals Score','Residuals p-value','Elapsed Time']
+            self.perform_track_df = pd.DataFrame(columns=col_list)
+            if self.verbose:
+                print(col_list)
+
+        tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold,top_bin.fitness,top_bin.pre_fitness,top_bin.log_rank_score,top_bin.log_rank_p_value,top_bin.bin_size,
+                        top_bin.group_strata_prop,top_bin.count_bt,top_bin.count_at,top_bin.birth_iteration,top_bin.residuals_score,
+                        top_bin.residuals_p_value,self.elapsed_time]
+        if self.verbose:
+            print(tracking_values)
+        # Add the row to the DataFrame
+        self.perform_track_df.loc[len(self.perform_track_df)] = tracking_values
+
+
+    def get_performance_tracking(self):
+        return self.perform_track_df
+    
+
+    def get_top_bins(self):
+        return self.set.get_all_top_bins()
+    
+
+    def report_ties(self):
+        top_bin_list = self.get_top_bins()
+        count = len(top_bin_list)
+        if count > 1:
+            print(str(len(top_bin_list))+" bins were tied for best fitness")
+            for bin in top_bin_list:
+                #print("Features in Bin: "+str(bin.feature_list))
+                report = bin.bin_short_report()
+                print(report)
         else:
-            raise Exception("Unknown Algorithm")
+            print("Only one top performing bin found")
 
-    def predict(self, x):
-        """
-        Function to predict risk on the basis of top OR bin.
 
-        :param x: array-like {n_samples, n_features} Transform instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-        :return: y: prediction of risk stratification
+    def get_bin_groups(self, x, y=None, bin_index=0):
         """
+        Function for FIBERS that returns the variables needed to construct survival curves for the two instance 
+        groups defined by a given bin (low_outcome, high_outcome, low_censor, high_censor)
+
+        :param x: array-like {n_samples, n_features} training instances.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE, and can include 'covariates'
+                OR array-like dataframe {n_samples, n_features} training instances that can include 'covariates'
+                and with column name as given by outcome_label and censor_label when y=None.
+                ALL INSTANCE ATTRIBUTES MUST BE >0 NUMERIC NOT NAN OR OTHER TYPE 
+
+        :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.
+                ALL INSTANCE OUTCOMES MUST BE NUMERIC NOT NAN OR OTHER TYPE
+
+        :param bin_index: population index of the bin to return group information for
+
+        :return: low_outcome, high_outcome, low_censor, and high_censor
+        """   
         if not self.hasTrained:
-            raise Exception("Model must be trained first")
-        _, _, _, _, top_bin = self.get_duration_event(bin_order=0)
-        top_or_rule = self.bins[top_bin]
-        return (x[top_or_rule].sum(axis=1) > 0).astype(int)
+            raise Exception("FIBERS must be fit first")
 
-    def score(self, x, y):
-        """
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+        print(df.shape)
 
-        :param x: array-like {n_samples, n_features} Transform instances.
-                ALL INSTANCE ATTRIBUTES MUST BE NUMERIC or NAN
-        :param y: True Risk Group, y_true
-        :return: accuracy score of the risk stratification.
-        """
+        # Sum instance values across features specified in the bin
+        feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
+        bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
+
+        # Create evaluation dataframe including bin sum feature with 
+        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+
+        low_df = bin_df[bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold]
+        high_df = bin_df[bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold]
+
+        low_outcome = low_df[self.outcome_label].to_list()
+        high_outcome = high_df[self.outcome_label].to_list()
+        low_censor = low_df[self.censor_label].to_list()
+        high_censor =high_df[self.censor_label].to_list()
+        df = None
+        return low_outcome, high_outcome, low_censor, high_censor
+    
+
+    def get_cox_prop_hazard(self,x, y=None, bin_index=0, use_bin_sums=False):
         if not self.hasTrained:
-            raise Exception("Model must be fit first")
-        y_pred = self.predict(x)
-        return accuracy_score(y, y_pred)
+            raise Exception("FIBERS must be fit first")
 
-    def classification_report(self, x, y, prin=False, save=None):
-        """
-        :meta private:
-        """
-        y_pred = self.predict(x)
-        report = classification_report(y, y_pred)
-        if prin:
-            print(report)
-        if save:
-            report = classification_report(y, y_pred, output_dict=True)
-            df = pd.DataFrame(report).transpose()
-            df.to_csv(save)
-        return report
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
 
-    def get_duration_event(self, bin_order=0):
-        """
-        :meta private:
-        """
+        # Sum instance values across features specified in the bin
+        feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
+        bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
+
+        if not use_bin_sums:
+            # Transform bin feature values according to respective bin threshold
+            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
+
+        # Create evaluation dataframe including bin sum feature with any covariates present
+        bin_df = pd.concat([bin_df,df.loc[:,self.covariates],df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+
+        summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+        df = None
+        return summary
+
+
+    def calculate_cox_prop_hazards(self,x, y=None, use_bin_sums=False):
         if not self.hasTrained:
-            raise Exception("Model must be fit first")
-        # Ordering the bin scores from best to worst
-        sorted_bin_scores = dict(sorted(self.bin_scores.items(), key=lambda item: item[1], reverse=True))
-        sorted_bin_list = list(sorted_bin_scores.keys())
-        top_bin = sorted_bin_list[bin_order]
-        df_0 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] == 0]
-        df_1 = self.bin_feature_matrix.loc[self.bin_feature_matrix[top_bin] > 0]
+            raise Exception("FIBERS must be fit first")
+        
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+        bin_index = 0
+        for bin in self.set.bin_pop: #For each bin in population
 
-        durations_no = df_0[self.duration_name].to_list()
-        event_observed_no = df_0[self.label_name].to_list()
-        durations_mm = df_1[self.duration_name].to_list()
-        event_observed_mm = df_1[self.label_name].to_list()
-        return durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin
+            # Sum instance values across features specified in the bin
+            feature_sums = df.loc[:,self.feature_names][bin.feature_list].sum(axis=1)
+            bin_df = pd.DataFrame({'Bin':feature_sums})
 
-    def get_bin_summary(self, prin=False, save=None, bin_order=0):
-        """
-        Function to print statistics summary of given bin
+            if not use_bin_sums:
+                # Transform bin feature values according to respective bin threshold
+                bin_df['Bin'] = bin_df['Bin'].apply(lambda x: 0 if x <= bin.group_threshold else 1)
 
-        :param prin: flag to print statistics summary
-        :param save: filename to save statistics to or None to skip (default=None)
-        :param bin_order: bin index in sorted bins by log rank score (starts from 0, default=0)
-        :return: log_rank_results, summary_dataframe
-        """
-        if not self.hasTrained:
-            raise Exception("Model must be trained first")
-        # Ordering the bin scores from best to worst
-        durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event(bin_order)
-        results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
-                               event_observed_B=event_observed_mm)
-        columns = ["Bin #", "Top Bin of Features:", "Log-Rank Score",
-                   "Number of Instances with No Mismatches in Bin:",
-                   "Number of Instances with Mismatch(es) in Bin:", "p-value from Log Rank Test:"]
-        pdf = pd.DataFrame([[top_bin, self.bins[top_bin],
-                             self.bin_scores[top_bin], len(durations_no),
-                             len(durations_mm), results.p_value]], columns=columns).T
-        if prin or save is not None:
-            if prin:
-                print(pdf)
-            if save:
-                pdf.to_csv(save)
-        return results, pdf
+            # Create evaluation dataframe including bin sum feature, outcome, and censoring alone
+            bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+            try:
+                summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+                bin.HR = summary['exp(coef)'].iloc[0]
+                bin.HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+                bin.HR_p_value = summary['p'].iloc[0]
+            except:
+                bin.HR = 0
+                bin.HR_CI = None
+                bin.HR_p_value = None
 
-    def get_bin_survival_plot(self, show=False, save=None, bin_order=0):
-        """
-        Function to plot Kaplan Meier Survival Plot
+            # Create evaluation dataframe including bin sum feature with covariates
+            if self.covariates != None:                 
+                try:
+                    bin_df = pd.concat([bin_df,df.loc[:,self.covariates]],axis=1)
+                    summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+                    bin.adj_HR = summary['exp(coef)'].iloc[0]
+                    bin.adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+                    bin.adj_HR_p_value = summary['p'].iloc[0]
+                except:
+                    bin.adj_HR = 0
+                    bin.adj_HR_CI = None
+                    bin.adj_HR_p_value = None
+            print('Evaluating Bin '+str(bin_index))
+            bin_index += 1
 
-        :param show: flag to show plot
-        :param save: filename to save plot to or None to skip (default=None)
-        :param bin_order: bin_order: bin index in sorted bins by log rank score (starts from 0, default=0)
-        :return: None
-        """
+        bin_df = None
 
-        kmf1 = KaplanMeierFitter()
+    def get_bin_report(self, bin_index):
+        # Generates a bin summary report as a transposed dataframe
+        return self.set.bin_pop[bin_index].bin_report().T
 
-        durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = self.get_duration_event(bin_order)
 
-        # fit the model for 1st cohort
-        kmf1.fit(durations_no, event_observed_no, label='No Mismatches in Bin')
-        a1 = kmf1.plot_survival_function()
-        a1.set_ylabel('Survival Probability')
+    def get_feature_tracking(self):
+        return self.feature_names, self.set.feature_tracking
+    
 
-        # fit the model for 2nd cohort
-        kmf1.fit(durations_mm, event_observed_mm, label='Mismatch(es) in Bin')
-        kmf1.plot_survival_function(ax=a1)
-        a1.set_xlabel('Time After Event')
-        if show:
-            plt.show()
-        if save:
-            plt.savefig(save, dpi=1200, bbox_inches="tight")
-            plt.close()
+    def get_pop(self):
+        self.set.sort_feature_lists()
+        pop_df = pd.DataFrame([vars(instance) for instance in self.set.bin_pop])
+        return pop_df
 
-    def get_bin_scores(self, save=None):
-        """
-        Function to get all bins and their corresponding log-rank scores
 
-        :param save: filename to save bins to or None to skip (default=None)
-        :return: pd.DataFrame of Bins and their corresponding log-rank scores.
-        """
-        bin_scores_sorted = sorted(self.bin_scores.items(),
-                                   key=lambda x: x[1], reverse=True)
-        bins_sorted = sorted(self.bins.items(),
-                             key=lambda x: len(x[1]), reverse=True)
-        tdf1 = pd.DataFrame(bin_scores_sorted, columns=['Bin #', 'Score'])
-        tdf2 = pd.DataFrame(bins_sorted, columns=['Bin #', 'Bins'])
-        tdf3 = tdf1.merge(tdf2, on='Bin #', how='inner', suffixes=('_1', '_2'))
-        if save:
-            tdf3.to_csv(save)
-        return tdf3
+    def get_pareto_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_pareto(self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_feature_tracking_plot(self,max_features=50,show=True,save=False,output_folder=None,data_name=None):
+        feature_names, feature_tracking = self.get_feature_tracking()
+        plot_feature_tracking(feature_names,feature_tracking,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_kaplan_meir(self,data,bin_index,show=True,save=False,output_folder=None,data_name=None):
+        low_outcome, high_outcome, low_censor, high_censor = self.get_bin_groups(data, bin_index)
+        plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_fitness_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_fitness_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_threshold_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_threshold_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_perform_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_perform_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_misc_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_misc_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_residuals_histogram(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_residuals_histogram(self.residuals,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_log_rank_residuals_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_log_rank_residuals(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_adj_HR_residuals_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_adj_HR_residuals(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+
+    def get_log_rank_adj_HR_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_log_rank_adj_HR(self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+    def get_adj_HR_metric_product_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_adj_HR_metric_product(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+    def get_bin_population_heatmap_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, show=show,save=save,output_folder=output_folder,data_name=data_name)
+
+    def get_custom_bin_population_heatmap_plot(self,group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+        plot_custom_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
