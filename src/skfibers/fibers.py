@@ -25,9 +25,9 @@ from .methods.util import plot_custom_bin_population_heatmap
 from tqdm import tqdm
 
 class FIBERS(BaseEstimator, TransformerMixin):
-    def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=50,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
-                 max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=3,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
-                 log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=0,min_thresh=0,max_thresh=3, 
+    def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=100,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
+                 max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=0,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
+                 log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=0,min_thresh=0,max_thresh=5, 
                  int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False):
 
         """
@@ -53,8 +53,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         #Survival Analysis Parameters:
         :param censor_label: label indicating the censoring column in the datasets (e.g. 'Censoring')
-        :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have fitness penalizaiton applied
-        :param penalty: the penalty multiplier applied to the fitness of bins that go beneith the group_strata_min
+        :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have pre-fitness penalizaiton applied
+        :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
         :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
 
         #Adaptive Bin Threshold Parameters:
@@ -64,7 +64,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param thresh_evolve_prob: probability that adaptive bin thresholding will evolve vs. be selected for the bin deterministically
 
         #Manual Bin Initialization Parameters:
-        :param manual_bin_init: a dictionary giving bin-name:feature list to manually initialize the bin populaExceptiontion with a specific population of bins
+        :param manual_bin_init: a dataframe object including a FIBERS formatted bin population for bin initialization
 
         #Covariate Adjustment Parameters:
         :param covariates: list of feature names in the data to be treated as covariates (not included in binning)
