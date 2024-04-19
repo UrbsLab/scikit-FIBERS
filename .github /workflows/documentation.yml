@@ -17,11 +17,11 @@ jobs:
           sphinx-build -b html docs/source docs/build/html -E -a
       - name: Extract branch name
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
         id: extract_branch
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/ryan_dev' || github.ref == 'refs/heads/main') }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == {{ steps.extract_branch.outputs.branch }} || github.ref == {{ steps.extract_branch.outputs.branch }} }}
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
