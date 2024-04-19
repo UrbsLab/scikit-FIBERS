@@ -7,3 +7,5 @@ pytest
 setuptools
 tqdm
 seaborn
+paretoset
+scipy
