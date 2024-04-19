@@ -11,7 +11,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install sphinx sphinx_rtd_theme myst-parser
+          pip install sphinx sphinx_rtd_theme myst-parser scikit-learn==1.2.2
       - name: Sphinx build
         run: |
           sphinx-build -b html docs/source docs/build/html -E -a
