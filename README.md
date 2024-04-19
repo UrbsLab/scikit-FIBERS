@@ -37,7 +37,7 @@ Urbanowicz, R., Bandhey, H., McCullough, K., Chang, A., Gragert, L., Brown, N., 
 
 ## Documentation:
 Extensive code documentation about the scikit-FIBERS API
-can be found [here](https://urbslab.github.io/scikit-FIBERS/skfibers.html) in the guide. (this guide is currently being updated for version 2.0)
+can be found [here](https://urbslab.github.io/scikit-FIBERS/skfibers.html) in the guide.
 
 ## Contact
 Please email Ryan.Urbanowicz@cshs.org and Harsh.Bandhey@cshs.org for any
