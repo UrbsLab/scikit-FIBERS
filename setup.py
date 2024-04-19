@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="scikit-fibers",
-    version="1.0.0",
+    version="1.0.1",
     author="Harsh Bandhey",
     author_email="harsh.bandhey@cshs.org",
     description="A Scikit Learn compatible implementation of FIBERS Algorithm",
