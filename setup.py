@@ -20,7 +20,10 @@ setuptools.setup(
     install_requires=[
         "numpy",
         "pandas",
-        "sklearn",
+        "scikit-learn",
+        "setuptools",
+        "paretoset",
+        "scipy",
         "lifelines",
         "skrebate==0.7",
         "matplotlib",

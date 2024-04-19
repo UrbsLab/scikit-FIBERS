@@ -39,10 +39,10 @@ target/
 data/
 src/Data1.csv
 sampledata.csv
-src/sampledata.csv
-src/run_history_old/
-src/old*
-
+src/
+output/
+output_cov/
+output_cov_new/
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
