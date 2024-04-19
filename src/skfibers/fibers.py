@@ -324,7 +324,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         else:
             self.residuals = None
 
-        print("Beginning FIBERS Fit:")
+        # print("Beginning FIBERS Fit:")
         #Initialize bin population
         threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
         self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
@@ -347,7 +347,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         cycle_length = 9 #Hard coded mutation occellation length (i.e. mutation climbs for 10 iterations then drops for 10 iterations)
         #EVOLUTIONARY LEARNING ITERATIONS
         for iteration in tqdm(range(1, self.iterations+ 1)):
-            print('Iteration: '+str(iteration))
+            # print('Iteration: '+str(iteration))
             if self.group_thresh == None:
                 evolve = random.random()
                 if self.thresh_evolve_prob > evolve:
@@ -599,7 +599,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
         df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
-        print(df.shape)
+        # print(df.shape)
 
         # Sum instance values across features specified in the bin
         feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
@@ -685,7 +685,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                     bin.adj_HR = 0
                     bin.adj_HR_CI = None
                     bin.adj_HR_p_value = None
-            print('Evaluating Bin '+str(bin_index))
+            # print('Evaluating Bin '+str(bin_index))
             bin_index += 1
 
         bin_df = None
