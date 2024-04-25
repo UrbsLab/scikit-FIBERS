@@ -635,8 +635,31 @@ class FIBERS(BaseEstimator, TransformerMixin):
             # Transform bin feature values according to respective bin threshold
             bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
 
+        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        try:
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            self.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
+            self.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+            self.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
+        except:
+            self.set.bin_pop[bin_index].HR = 0
+            self.set.bin_pop[bin_index].HR_CI = None
+            self.set.bin_pop[bin_index].HR_p_value = None
+
+        if self.covariates != None:   
+            try:
+                bin_df = pd.concat([bin_df,df.loc[:,self.covariates]],axis=1)
+                summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+                self.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
+                self.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+                self.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
+            except:
+                self.set.bin_pop[bin_index].adj_HR = 0
+                self.set.bin_pop[bin_index].adj_HR_CI = None
+                self.set.bin_pop[bin_index].adj_HR_p_value = None
+
         # Create evaluation dataframe including bin sum feature with any covariates present
-        bin_df = pd.concat([bin_df,df.loc[:,self.covariates],df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        #bin_df = pd.concat([bin_df,df.loc[:,self.covariates],df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
 
         summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
         df = None
