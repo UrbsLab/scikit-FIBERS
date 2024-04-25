@@ -1,6 +1,11 @@
 import os
 import time
-from skfibers.experiments.survival_sim_simple import survival_data_simulation
+from src.skfibers.experiments.survival_sim_simple import survival_data_simulation #SOURCE CODE RUN
+#from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
+
+#CLUSTER NOTES:
+# module load git
+# git clone --single-branch --branch dev https://github.com/UrbsLab/scikit-FIBERS
 
 class RunFIBERS:
     def __init__(self):

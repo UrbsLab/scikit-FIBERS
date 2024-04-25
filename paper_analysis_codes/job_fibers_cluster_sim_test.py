@@ -4,8 +4,8 @@ import argparse
 import pickle
 import pandas as pd
 from sklearn.metrics import classification_report
-from skfibers.fibers import FIBERS
-
+from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
+#from skfibers.fibers import FIBERS #PIP INSTALL RUN
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description='')
@@ -40,6 +40,7 @@ def main(argv):
     fibers = fibers.fit(data)
     bin_index = 0 #top bin
     summary = fibers.get_cox_prop_hazard(data, bin_index)
+    summary.to_csv(outputPath+'/'+'Cox_PH_'+str(bin_index)+'_'+dataset_name+'_'+str(random_seed)+'.csv', index=False)
 
     #Save bin population as csv
     pop_df = fibers.get_pop()

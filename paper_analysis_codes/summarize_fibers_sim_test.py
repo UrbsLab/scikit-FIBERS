@@ -2,7 +2,10 @@ import os
 import time
 from skfibers.experiments.survival_sim_simple import survival_data_simulation
 
-class RunFIBERS:
+
+#https://github.com/UrbsLab/scikit-FIBERS/blob/ppsn/New%20FIBERS%20Experiment%20-%20All%20FIBERS2%20Exp.ipynb
+
+class SumFIBERS:
     def __init__(self):
         #Run Parameters
         self.data_path = '/project/kamoun_shared/ryanurb/data'
@@ -94,4 +97,4 @@ def submit_lsf_cluster_job(self, seed): #UPENN - Legacy mode (using shell file) 
     os.system('bsub < ' + job_path)
 
 
-run_obj = RunFIBERS()
+run_obj = SumFIBERS()
