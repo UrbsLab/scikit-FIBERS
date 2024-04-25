@@ -1,13 +1,9 @@
 import os
 import time
-from src.skfibers.experiments.survival_sim_simple import survival_data_simulation #SOURCE CODE RUN
-#from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
 
-#CLUSTER NOTES:
-# module load git
-# git clone --single-branch --branch dev https://github.com/UrbsLab/scikit-FIBERS
+#https://github.com/UrbsLab/scikit-FIBERS/blob/ppsn/New%20FIBERS%20Experiment%20-%20All%20FIBERS2%20Exp.ipynb
 
-class RunFIBERS:
+class SumFIBERS:
     def __init__(self):
         #Run Parameters
         self.data_path = '/project/kamoun_shared/ryanurb/data'
@@ -39,28 +35,16 @@ class RunFIBERS:
         if not os.path.exists(self.logPath):
             os.mkdir(self.logPath) 
 
-        #Generate Example Simulated Dataset --------------------------------------------
-        self.dataset = self.data_path +'/'+self.data_name+'.csv'
-        if not os.path.exists(self.dataset):
-            print('Simulating Dataset')
-            self.data = survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, threshold = 0, feature_frequency_range=(0.1, 0.4), 
-                    noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, 
-                    covariates_to_sim=0, covariates_signal_range=(0.2,0.4), random_seed=42)
-            self.data.to_csv(self.dataset, index=False)
-            print('Dataset Simulation Complete')
-
-
         #Apply FIBERS multiple times with different random seeds. 
         jobCount = 0
-        for seed in range(0,self.random_seeds):
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,seed)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,seed)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
+        if self.run_cluster == 'LSF':
+            submit_lsf_cluster_job(self,seed)
+            jobCount +=1
+        elif self.run_cluster == 'SLURM':
+            submit_slurm_cluster_job(self,seed)
+            jobCount +=1
+        else:
+            print('ERROR: Cluster type not found')
         print(str(jobCount)+' jobs submitted successfully')
 
     #load and process datasets
@@ -77,10 +61,9 @@ def submit_slurm_cluster_job(self, seed): #legacy mode just for cedars (no head 
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_fibers_cluster_sim_test.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
+    sh_file.write('srun python test_job_sum_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
-
 
 def submit_lsf_cluster_job(self, seed): #UPENN - Legacy mode (using shell file) - memory on head node
     job_ref = str(time.time())
@@ -94,9 +77,8 @@ def submit_lsf_cluster_job(self, seed): #UPENN - Legacy mode (using shell file) 
     sh_file.write('#BSUB -M ' + str(self.reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_fibers_cluster_sim_test.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
+    sh_file.write('python test_job_sum_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 
-
-run_obj = RunFIBERS()
+run_obj = SumFIBERS()

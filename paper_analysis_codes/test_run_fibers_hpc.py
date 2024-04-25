@@ -1,11 +1,13 @@
 import os
 import time
-from skfibers.experiments.survival_sim_simple import survival_data_simulation
+from src.skfibers.experiments.survival_sim_simple import survival_data_simulation #SOURCE CODE RUN
+#from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
 
+#CLUSTER NOTES:
+# module load git
+# git clone --single-branch --branch dev https://github.com/UrbsLab/scikit-FIBERS
 
-#https://github.com/UrbsLab/scikit-FIBERS/blob/ppsn/New%20FIBERS%20Experiment%20-%20All%20FIBERS2%20Exp.ipynb
-
-class SumFIBERS:
+class RunFIBERS:
     def __init__(self):
         #Run Parameters
         self.data_path = '/project/kamoun_shared/ryanurb/data'
@@ -75,7 +77,7 @@ def submit_slurm_cluster_job(self, seed): #legacy mode just for cedars (no head 
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_fibers_cluster_sim_test.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
+    sh_file.write('srun python test_job_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -92,9 +94,9 @@ def submit_lsf_cluster_job(self, seed): #UPENN - Legacy mode (using shell file) 
     sh_file.write('#BSUB -M ' + str(self.reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_fibers_cluster_sim_test.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
+    sh_file.write('python test_job_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 
 
-run_obj = SumFIBERS()
+run_obj = RunFIBERS()
