@@ -14,6 +14,7 @@ class SumFIBERS:
         self.random_seeds = 10
         self.reserved_memory = 4
         self.queue = 'i2c2_normal'
+        self.dataset = self.data_path+'/'+self.data_name+'.csv'
 
         #Folder Management------------------------------
         #Main Write Path-----------------
@@ -38,10 +39,10 @@ class SumFIBERS:
         #Apply FIBERS multiple times with different random seeds. 
         jobCount = 0
         if self.run_cluster == 'LSF':
-            submit_lsf_cluster_job(self,seed)
+            submit_lsf_cluster_job(self)
             jobCount +=1
         elif self.run_cluster == 'SLURM':
-            submit_slurm_cluster_job(self,seed)
+            submit_slurm_cluster_job(self)
             jobCount +=1
         else:
             print('ERROR: Cluster type not found')
@@ -49,9 +50,9 @@ class SumFIBERS:
 
     #load and process datasets
     
-def submit_slurm_cluster_job(self, seed): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
+def submit_slurm_cluster_job(self): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
     job_ref = str(time.time())
-    job_name = 'FIBERS_'+self.data_name+'_' +str(seed)+'_'+job_ref
+    job_name = 'FIBERS_'+self.data_name+'_' +'sum'+'_'+job_ref
     job_path = self.scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
@@ -61,13 +62,13 @@ def submit_slurm_cluster_job(self, seed): #legacy mode just for cedars (no head 
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python test_job_sum_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
+    sh_file.write('srun python test_job_sum_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+ str(self.random_seeds) + '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
-def submit_lsf_cluster_job(self, seed): #UPENN - Legacy mode (using shell file) - memory on head node
+def submit_lsf_cluster_job(self): #UPENN - Legacy mode (using shell file) - memory on head node
     job_ref = str(time.time())
-    job_name = 'FIBERS_'+self.data_name+'_' +str(seed)+'_'+job_ref
+    job_name = 'FIBERS_'+self.data_name+'_' +'sum'+'_'+job_ref
     job_path = self.scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
@@ -77,7 +78,7 @@ def submit_lsf_cluster_job(self, seed): #UPENN - Legacy mode (using shell file) 
     sh_file.write('#BSUB -M ' + str(self.reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('python test_job_sum_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
+    sh_file.write('python test_job_sum_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+ str(self.random_seeds) + '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

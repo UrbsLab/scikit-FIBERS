@@ -619,6 +619,71 @@ class FIBERS(BaseEstimator, TransformerMixin):
         return low_outcome, high_outcome, low_censor, high_censor
     
 
+    def get_cox_prop_hazard_unadjust(self,x, y=None, bin_index=0, use_bin_sums=False):
+        if not self.hasTrained:
+            raise Exception("FIBERS must be fit first")
+        
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+
+        # Sum instance values across features specified in the bin
+        feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
+        bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
+
+        if not use_bin_sums:
+            # Transform bin feature values according to respective bin threshold
+            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
+
+        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        summary = None
+        try:
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            self.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
+            self.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+            self.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
+        except:
+            self.set.bin_pop[bin_index].HR = 0
+            self.set.bin_pop[bin_index].HR_CI = None
+            self.set.bin_pop[bin_index].HR_p_value = None
+
+        df = None
+        return summary
+
+
+    def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False):
+        if not self.hasTrained:
+            raise Exception("FIBERS must be fit first")
+
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+
+        # Sum instance values across features specified in the bin
+        feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
+        bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
+
+        if not use_bin_sums:
+            # Transform bin feature values according to respective bin threshold
+            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
+
+        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        summary = None
+        try:
+            bin_df = pd.concat([bin_df,df.loc[:,self.covariates]],axis=1)
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            self.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
+            self.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+            self.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
+        except:
+            self.set.bin_pop[bin_index].adj_HR = 0
+            self.set.bin_pop[bin_index].adj_HR_CI = None
+            self.set.bin_pop[bin_index].adj_HR_p_value = None
+
+        df = None
+        return summary
+    
+    """
     def get_cox_prop_hazard(self,x, y=None, bin_index=0, use_bin_sums=False):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
@@ -660,11 +725,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         # Create evaluation dataframe including bin sum feature with any covariates present
         #bin_df = pd.concat([bin_df,df.loc[:,self.covariates],df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
-
-        summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+        #summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
         df = None
         return summary
-
+    """
 
     def calculate_cox_prop_hazards(self,x, y=None, use_bin_sums=False):
         if not self.hasTrained:

@@ -3,7 +3,6 @@ import sys
 import argparse
 import pickle
 import pandas as pd
-from sklearn.metrics import classification_report
 from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 def main(argv):
@@ -21,7 +20,7 @@ def main(argv):
     outputPath = options.outputPath
     random_seed = int(options.random_seed)
 
-    # Get dataset Name
+    # Get Dataset Name
     filename = os.path.basename(dataset)
     dataset_name,ext = os.path.splitext(filename)
 
@@ -39,15 +38,15 @@ def main(argv):
 
     fibers = fibers.fit(data)
     bin_index = 0 #top bin
-    summary = fibers.get_cox_prop_hazard(data, bin_index)
-    summary.to_csv(outputPath+'/'+'Cox_PH_'+str(bin_index)+'_'+dataset_name+'_'+str(random_seed)+'.csv', index=False)
+    summary = fibers.get_cox_prop_hazard_unadjust(data, bin_index)
+    summary.to_csv(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_'+str(bin_index)+'.csv', index=False)
 
     #Save bin population as csv
     pop_df = fibers.get_pop()
-    pop_df.to_csv(outputPath+'/'+'Pop_'+dataset_name+'_'+str(random_seed)+'.csv', index=False)
+    pop_df.to_csv(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_pop'+'.csv', index=False)
 
     #Pickle FIBERS trained object
-    with open(outputPath+'/'+'Pop_'+dataset_name+'_'+str(random_seed)+'.pickle', 'wb') as f:
+    with open(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_fibers.pickle', 'wb') as f:
         pickle.dump(fibers, f)
 
 if __name__=="__main__":
