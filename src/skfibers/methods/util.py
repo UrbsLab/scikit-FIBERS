@@ -9,7 +9,6 @@ import seaborn as sns
 import matplotlib.patches as mpatches
 import collections
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.colors import ListedColormap
 
 def transform_value(n,cycle_length):
     remainder = n % (2 * cycle_length)

@@ -4,6 +4,11 @@ import argparse
 import pickle
 import pandas as pd
 import numpy as np
+import collections
+import seaborn as sns
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 from sklearn.metrics import accuracy_score
 from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
@@ -67,6 +72,9 @@ def main(argv):
     bin_size = []
     birth_iteration = []
 
+    top_bin_pop = []
+    feature_names = None
+
     #Create top bin summary across replicates
     for random_seed in range(0, random_seeds):  #for each replicate
         #Unpickle FIBERS Object
@@ -75,6 +83,8 @@ def main(argv):
         #Get top bin object for current fibers population
         bin_index = 0 #top bin
         bin = fibers.set.bin_pop[bin_index]
+        feature_names = fibers.feature_names
+        top_bin_pop.append(bin)
 
 
         results_list = [bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score,
@@ -167,6 +177,17 @@ def main(argv):
     df_master.loc[len(df_master)] = master_results_list
     #Save master results as csv
     df_master.to_csv(outputPath+'/'+dataset_name+'_master_summary'+'.csv', index=False)
+
+    #Generate Top-bin Heatmap across replicates
+    group_names=["P", "R"]
+    legend_group_info = ['Not in Bin','Non-Predictive Feature in Bin','Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
+    colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+    max_bins = 100
+    max_features = 100
+    population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
+    population = population['feature_list']
+    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=outputPath,data_name=dataset_name)
+
     
 
 def ideal_iteration(ideal_count, feature_list, birth_iteration):
@@ -174,6 +195,136 @@ def ideal_iteration(ideal_count, feature_list, birth_iteration):
         return birth_iteration
     else:
         return None
+
+def match_prefix(feature, group_names):
+    """
+    :param feature: the feature
+    :param group_names: the list of group names, must be exhaustive
+    """
+    for group_label in group_names:
+        if feature.startswith(group_label):
+            return group_label
+
+    return "None"
+
+def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+    """
+    :param population: a list where each element is a list of specified features
+    :param feature_list: an alphabetically sorted list containing each of the possible feature
+    :param group_names: identifies unique text that identifies unique groups of features to group together in the heatmap separated by vertical lines
+    :param legend_group_info: text for the different heatmap colors in the legend
+    :param color_features: list of lists, where each sublists identifies all feature names in the data to be given a unique color in the heatmap other than default binary coloring
+    :param colors: list of tuple objects identifying additional colors to use in the heatmap beyond the two default colors e.g. (0,0,1) for blue
+    :param default_colors: list of tuple objects identifying the two default colors used in the heatmap for features unspecified and specified in bins e.g. (0,0,1) for blue
+    :param max_bins: maximum number of bins in a population before the heatmap no longer prints these bin name lables on the y-axis
+    :param max_features: maximum number of features in the dataset befor the heatmap no longer prints these feature name lables on the x-axis
+    """
+
+    #Prepare bin population dataset
+    feature_index_map = {}
+    for i in range(len(feature_names)):
+        feature_index_map[feature_names[i]] = i #create feature to featuer position index mapping
+
+    graph_df = [] #create dataset of bin values
+    for bin in population:
+        temp_arr = [0] * len(feature_names)
+        for feature in bin:
+            temp_arr[feature_index_map[feature]] = 1
+        graph_df.append(temp_arr)
+
+    # Define bin names for plot
+    bin_names = []
+    for i in range(len(population)):
+        bin_names.append("Seed " + str(i))
+
+    graph_df = pd.DataFrame(graph_df, bin_names, feature_names) #data, index, columns
+
+    #Re order dataframe based on specified group names
+    prefix_columns = {prefix: [col for col in graph_df.columns if col.startswith(prefix)] for prefix in group_names} # Get the columns starting with each prefix
+    ordered_columns = sum(prefix_columns.values(), []) # Concatenate the columns lists in the desired order
+    graph_df = graph_df[ordered_columns] # Reorder the DataFrame columns
+
+    #Prepare for group lines in the figure
+    group_size_counter =  group_size_counter = collections.defaultdict(int)
+
+    group_list = [[] for _ in range(len(group_names))] #list of feature lists by group
+    for feature in feature_names:
+        p = match_prefix(feature, group_names)
+        group_size_counter[p] += 1
+        index = group_names.index(p)
+        group_list[index].append(feature) 
+
+    group_counter_sorted = []
+    for name in group_names:
+        group_counter_sorted.append((name,group_size_counter[name]))
+
+    #Prepare color mapping
+    custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', colors, N=len(colors))
+    #custom_cmap = ListedColormap.from_list('custom_cmap', colors, N=256)
+
+    #Define color lists
+    index_dict = {}
+    count = 1
+    for group in group_list:
+        for feature in group:
+            index_dict[feature] = count
+        count += 1
+
+    for feature in graph_df.columns: #for each feature
+        if feature in index_dict:
+            for i in range(len(graph_df[feature])):
+                if graph_df[feature][i] == 1:
+                    graph_df[feature][i] = index_dict[feature]
+    num_bins = len(population) #tmp
+
+    # iterate through df columns and adjust values as necessary
+    if num_bins > max_bins:  #
+        if len(feature_names) > max_features: #over max bins and max features - fixed plot with no labels
+            fig_size = (max_features // 2, max_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, xticklabels=False, yticklabels=False,
+                        square=True, cmap=custom_cmap, cbar_kws={"shrink": .75}, cbar=False)
+        else: #Over max bins, but under max features
+            fig_size = (len(feature_names)// 2, max_bins  // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, yticklabels=False,
+                        square=True, cmap=custom_cmap, cbar_kws={"shrink": .75}, cbar=False)
+    else:
+        if len(feature_names) > max_features: #under max bins but over max features 
+            fig_size = (max_features // 2, num_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, xticklabels=False, square=True, cmap=custom_cmap,
+                        cbar_kws={"shrink": .75}, cbar=False)
+        else:
+            fig_size = (num_bins // 2, num_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, square=True, cmap=custom_cmap,
+                        cbar_kws={"shrink": .75}, cbar=False)
+
+    legend_elements = []
+    index = 0
+    for color in colors:
+        legend_elements.append(mpatches.Patch(color=color,label=legend_group_info[index]))
+        index += 1
+
+    plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
+
+    running_count = 0
+    for name, count in group_counter_sorted:
+        running_count += count
+        ax.vlines(running_count, colors="Black", *ax.get_ylim())
+
+    plt.xlabel('Features')
+    plt.ylabel('Bin Population')
+
+    if save:
+        plt.savefig(output_folder+'/'+data_name+'_top_bins_custom_pop_heatmap.png', bbox_inches="tight")
+    if show:
+        plt.show()
 
 if __name__=="__main__":
     sys.exit(main(sys.argv))
