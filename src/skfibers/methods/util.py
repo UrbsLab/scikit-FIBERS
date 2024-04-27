@@ -54,7 +54,7 @@ def plot_pareto(bin_pop,show=True,save=False,output_folder=None,data_name=None):
     plt.grid(True, alpha=0.5, ls="--", zorder=0)
     plt.tight_layout()
     if save:
-        plt.savefig(output_folder+'/'+'Pop_Pareto_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_pop_pareto.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -77,7 +77,7 @@ def plot_feature_tracking(feature_names,feature_tracking,max_features=40,show=Tr
     plt.ylabel('Feature Tracking Score')
     plt.xticks(rotation=90)
     if save:
-        plt.savefig(output_folder+'/'+'Feature_Tracking_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_feature_tracking.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -95,7 +95,7 @@ def plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=True,
     kmf1.plot_survival_function(ax=a1)
     a1.set_xlabel('Time After Event')
     if save:
-        plt.savefig(output_folder+'/'+'KM_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_km.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -118,7 +118,7 @@ def plot_fitness_progress(perform_track_df,show=True,save=False,output_folder=No
     # Show the plot
     plt.grid(True)
     if save:
-        plt.savefig(output_folder+'/'+'Fitness_Track_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_fitness_track.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -141,7 +141,7 @@ def plot_threshold_progress(perform_track_df,show=True,save=False,output_folder=
     # Show the plot
     plt.grid(True)
     if save:
-        plt.savefig(output_folder+'/'+'Threshold_Track_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_threshold_track.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -163,7 +163,7 @@ def plot_perform_progress(perform_track_df,show=True,save=False,output_folder=No
     # Show the plot
     plt.grid(True)
     if save:
-        plt.savefig(output_folder+'/'+'Pre-Fitness_Track_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_pre-fitness_track.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -187,7 +187,7 @@ def plot_misc_progress(perform_track_df,show=True,save=False,output_folder=None,
     # Show the plot
     plt.grid(True)
     if save:
-        plt.savefig(output_folder+'/'+'Misc_Track_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_misc_track.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -202,7 +202,7 @@ def plot_residuals_histogram(residuals,show=True,save=False,output_folder=None,d
         plt.ylabel('Frequency')
         plt.title('Histogram of Cox PH Model Residuals')
         if save:
-            plt.savefig(output_folder+'/'+'Residuals_Histogram_'+data_name+'.png', bbox_inches="tight")
+            plt.savefig(output_folder+'/'+data_name+'_residuals_histogram.png', bbox_inches="tight")
         if show:
             plt.show()
     else:
@@ -237,7 +237,7 @@ def plot_log_rank_residuals(residuals,bin_pop,show=True,save=False,output_folder
         # Add correlation coefficient to the plot
         plt.text(0.53, 0.02, f'Correlation coeff. = {r_value:.2f}', transform=plt.gca().transAxes)
         if save:
-            plt.savefig(output_folder+'/'+'Log_Rank_Residuals_'+data_name+'.png', bbox_inches="tight")
+            plt.savefig(output_folder+'/'+data_name+'_log_rank_residuals.png', bbox_inches="tight")
         if show:
             plt.show()
         # Calculate and print correlation
@@ -273,7 +273,7 @@ def plot_adj_HR_residuals(residuals,bin_pop,show=True,save=False,output_folder=N
         # Add correlation coefficient to the plot
         plt.text(0.53, 0.02, f'Correlation coeff. = {r_value:.2f}', transform=plt.gca().transAxes)
         if save:
-            plt.savefig(output_folder+'/'+'Adj_HR_Residuals_'+data_name+'.png', bbox_inches="tight")
+            plt.savefig(output_folder+'/'+data_name+'_adj_hr_residuals.png', bbox_inches="tight")
         if show:
             plt.show()
     else:
@@ -307,7 +307,7 @@ def plot_log_rank_adj_HR(bin_pop,show=True,save=False,output_folder=None,data_na
     # Add correlation coefficient to the plot
     plt.text(0.53, 0.02, f'Correlation coeff. = {r_value:.2f}', transform=plt.gca().transAxes)
     if save:
-        plt.savefig(output_folder+'/'+'Log_Rank_Adj_HR_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_log_rank_adj_hr.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -340,7 +340,7 @@ def plot_adj_HR_metric_product(residuals,bin_pop,show=True,save=False,output_fol
         # Add correlation coefficient to the plot
         plt.text(0.53, 0.02, f'Correlation coeff. = {r_value:.2f}', transform=plt.gca().transAxes)
         if save:
-            plt.savefig(output_folder+'/'+'Metric_Product_Adj_HR_'+data_name+'.png', bbox_inches="tight")
+            plt.savefig(output_folder+'/'+data_name+'_metric_product_adj_hr.png', bbox_inches="tight")
         if show:
             plt.show()
 
@@ -424,7 +424,7 @@ def plot_bin_population_heatmap(population, feature_names,show=True,save=False,o
     plt.ylabel('Bin Population')
 
     if save:
-        plt.savefig(output_folder+'/'+'Basic_Pop_Heatmap_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_basic_pop_heatmap.png', bbox_inches="tight")
     if show:
         plt.show()
 
@@ -492,8 +492,6 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
     for name in group_names:
         group_counter_sorted.append((name,group_size_counter[name]))
 
-
-
     #Prepare color mapping
     custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', colors, N=len(colors))
     #custom_cmap = ListedColormap.from_list('custom_cmap', colors, N=256)
@@ -558,6 +556,6 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
     plt.ylabel('Bin Population')
 
     if save:
-        plt.savefig(output_folder+'/'+'Custom_Pop_Heatmap_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_custom_pop_heatmap.png', bbox_inches="tight")
     if show:
         plt.show()

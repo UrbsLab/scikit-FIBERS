@@ -39,10 +39,10 @@ def main(argv):
     fibers = fibers.fit(data)
     bin_index = 0 #top bin
     summary = fibers.get_cox_prop_hazard_unadjust(data, bin_index)
-    summary.to_csv(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_unadj_'+str(bin_index)+'.csv', index=True)
+    summary.to_csv(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_unadj_bin_'+str(bin_index)+'.csv', index=True)
     if covariates != None:
         summary = fibers.get_cox_prop_hazard_adjusted(data, bin_index)
-        summary.to_csv(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_adj_'+str(bin_index)+'.csv', index=True)
+        summary.to_csv(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_adj_bin_'+str(bin_index)+'.csv', index=True)
 
     #Save bin population as csv
     pop_df = fibers.get_pop()
