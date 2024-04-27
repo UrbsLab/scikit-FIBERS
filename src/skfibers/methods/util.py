@@ -501,10 +501,6 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
     for name in group_names:
         group_counter_sorted.append((name,group_size_counter[name]))
 
-    #Prepare color mapping
-    custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', colors, N=len(colors))
-    #custom_cmap = ListedColormap.from_list('custom_cmap', colors, N=256)
-
     #Define color lists
     index_dict = {}
     count = 1
@@ -519,6 +515,31 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
                 if graph_df[feature][i] == 1:
                     graph_df[feature][i] = index_dict[feature]
     num_bins = len(population) #tmp
+
+    #Identify if one group is not represented (to readjust colors used in colormap)
+    code = 1 #starts with specified features
+    remove_colors = []
+    for group in group_names:
+        count = (graph_df == code).sum().sum()
+        if count == 0:
+            remove_colors.append(colors[code])
+        code += 1
+
+    applied_colors = [x for x in colors if x not in remove_colors]
+
+    #Redo dataframe encoding
+    code = 1
+    if applied_colors != colors: #redo value encoding
+        for i in range(0,len(group_names)):
+            count = (graph_df == code).sum().sum()
+            if count == 0:
+                graph_df = graph_df.applymap(lambda x: x - 1 if x > code else x)
+            else:
+                code +=1
+
+    #Prepare color mapping
+    custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', applied_colors, N=len(applied_colors))
+    #custom_cmap = ListedColormap.from_list('custom_cmap', colors, N=256)
 
     # iterate through df columns and adjust values as necessary
     if num_bins > max_bins:  #
