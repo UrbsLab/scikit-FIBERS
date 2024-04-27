@@ -128,7 +128,7 @@ def main(argv):
 
         #Bin Population Heatmap
         group_names=["P", "R"]
-        legend_group_info = ['Not in Bin','Non-Predictive Feature in Bin','Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
+        legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
         colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
         max_bins = 100
         max_features = 100
@@ -180,7 +180,7 @@ def main(argv):
 
     #Generate Top-bin Heatmap across replicates
     group_names=["P", "R"]
-    legend_group_info = ['Not in Bin','Non-Predictive Feature in Bin','Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
+    legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
     colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
     max_bins = 100
     max_features = 100
@@ -219,7 +219,7 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
     :param max_bins: maximum number of bins in a population before the heatmap no longer prints these bin name lables on the y-axis
     :param max_features: maximum number of features in the dataset befor the heatmap no longer prints these feature name lables on the x-axis
     """
-
+    fontsize = 20
     #Prepare bin population dataset
     feature_index_map = {}
     for i in range(len(feature_names)):
@@ -285,12 +285,16 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
             plt.subplots(figsize=fig_size)
             ax=sns.heatmap(graph_df, xticklabels=False, yticklabels=False,
                         square=True, cmap=custom_cmap, cbar_kws={"shrink": .75}, cbar=False)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
         else: #Over max bins, but under max features
             fig_size = (len(feature_names)// 2, max_bins  // 2)
             # Create a heatmap using Seaborn
             plt.subplots(figsize=fig_size)
             ax=sns.heatmap(graph_df, yticklabels=False,
                         square=True, cmap=custom_cmap, cbar_kws={"shrink": .75}, cbar=False)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
     else:
         if len(feature_names) > max_features: #under max bins but over max features 
             fig_size = (max_features // 2, num_bins // 2)
@@ -298,12 +302,16 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
             plt.subplots(figsize=fig_size)
             ax=sns.heatmap(graph_df, xticklabels=False, square=True, cmap=custom_cmap,
                         cbar_kws={"shrink": .75}, cbar=False)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
         else:
-            fig_size = (num_bins // 2, num_bins // 2)
+            fig_size = (len(feature_names)// 2, num_bins // 2)
             # Create a heatmap using Seaborn
             plt.subplots(figsize=fig_size)
             ax=sns.heatmap(graph_df, square=True, cmap=custom_cmap,
                         cbar_kws={"shrink": .75}, cbar=False)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
 
     legend_elements = []
     index = 0
@@ -311,15 +319,17 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         legend_elements.append(mpatches.Patch(color=color,label=legend_group_info[index]))
         index += 1
 
-    plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
+    plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5),fontsize=fontsize)
 
     running_count = 0
     for name, count in group_counter_sorted:
         running_count += count
         ax.vlines(running_count, colors="Black", *ax.get_ylim())
 
-    plt.xlabel('Features')
-    plt.ylabel('Bin Population')
+    plt.xlabel('Features',fontsize=fontsize)
+    plt.ylabel('Bin Population',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_top_bins_custom_pop_heatmap.png', bbox_inches="tight")
