@@ -15,11 +15,16 @@ def main(argv):
     parser.add_argument('--d', dest='dataset', help='name of data path (REQUIRED)', type=str, default = 'myData') #output folder name
     parser.add_argument('--o', dest='outputPath', help='', type=str, default = 'myOutputPath') #full path/filename
     parser.add_argument('--r', dest='random_seeds', help='random seeds in experiment', type=str, default='None')
+    parser.add_argument('--f', dest='figures_only', help='random seeds in experiment', type=str, default='False')
 
     options=parser.parse_args(argv[1:])
     dataset = options.dataset
     outputPath = options.outputPath
     random_seeds = int(options.random_seeds)
+    if options.figures_only == 'False':
+        figures_only = False
+    else:
+        figures_only = True
 
     ideal_count = 10
     ideal_threshold = 0
@@ -70,80 +75,101 @@ def main(argv):
         #Get top bin object for current fibers population
         bin_index = 0 #top bin
         bin = fibers.set.bin_pop[bin_index]
-        results_list = [bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score,
-                        bin.log_rank_p_value, bin.bin_size, bin.group_strata_prop, bin.count_bt, bin.count_at, 
-                        bin.birth_iteration, bin.deletion_prop, bin.cluster, bin.residuals_score, bin.residuals_p_value,
-                        bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
-                        str(bin.feature_list).count('P'), str(bin.feature_list).count('R'), 
-                        ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration),
-                        accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None,
-                        fibers.elapsed_time, dataset_name] 
-        df.loc[len(df)] = results_list
 
-        #Update metric lists
-        accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None)
-        num_P.append(str(bin.feature_list).count('P'))
-        num_R.append(str(bin.feature_list).count('R'))
-        if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
-            ideal += 1
-            ideal_iter.append(bin.birth_iteration)
-        if bin.group_threshold == ideal_threshold:
-            ideal_thresh += 1
-        threshold.append(bin.group_threshold)
-        if bin.log_rank_score != None:
-            log_rank.append(bin.log_rank_score)
-        if bin.residuals_score != None:
-            residuals.append(bin.residuals_score)
-        if bin.HR != None:
-            unadj_HR.append(bin.HR)
-        if bin.adj_HR != None:
-            adj_HR.append(bin.adj_HR)
-        group_balance.append(bin.group_strata_prop)
-        runtime.append(fibers.elapsed_time)
-        if str(bin.feature_list).count('T') > 0:
-            tc += 1
-        bin_size.append(bin.bin_size)
-        birth_iteration.append(bin.birth_iteration)
+        if not figures_only:
+            results_list = [bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score,
+                            bin.log_rank_p_value, bin.bin_size, bin.group_strata_prop, bin.count_bt, bin.count_at, 
+                            bin.birth_iteration, bin.deletion_prop, bin.cluster, bin.residuals_score, bin.residuals_p_value,
+                            bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
+                            str(bin.feature_list).count('P'), str(bin.feature_list).count('R'), 
+                            ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration),
+                            accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None,
+                            fibers.elapsed_time, dataset_name] 
+            df.loc[len(df)] = results_list
 
+            #Update metric lists
+            accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None)
+            num_P.append(str(bin.feature_list).count('P'))
+            num_R.append(str(bin.feature_list).count('R'))
+            if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
+                ideal += 1
+                ideal_iter.append(bin.birth_iteration)
+            if bin.group_threshold == ideal_threshold:
+                ideal_thresh += 1
+            threshold.append(bin.group_threshold)
+            if bin.log_rank_score != None:
+                log_rank.append(bin.log_rank_score)
+            if bin.residuals_score != None:
+                residuals.append(bin.residuals_score)
+            if bin.HR != None:
+                unadj_HR.append(bin.HR)
+            if bin.adj_HR != None:
+                adj_HR.append(bin.adj_HR)
+            group_balance.append(bin.group_strata_prop)
+            runtime.append(fibers.elapsed_time)
+            if str(bin.feature_list).count('T') > 0:
+                tc += 1
+            bin_size.append(bin.bin_size)
+            birth_iteration.append(bin.birth_iteration)
+
+        #Generate Figures:
+        if figures_only:
+            #Kaplan Meir Plot
+            fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=outputPath,data_name=dataset_name)
+
+            #Bin Population Heatmap
+            group_names=["P", "R"]
+            legend_group_info = ['Not in Bin','Non-Predictive Feature in Bin','Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
+            colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+            max_bins = 100
+            max_features = 100
+
+            fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=outputPath,data_name=dataset_name)
+
+            # Feature Importance Estimates
+            fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=outputPath,data_name=dataset_name)
+            
     #Save replicate results as csv
-    df.to_csv(outputPath+'/'+dataset_name+'_summary'+'.csv', index=False)
+    if not figures_only:
+        df.to_csv(outputPath+'/'+dataset_name+'_summary'+'.csv', index=False)
 
-    #Generate experiment summary 'master list'
-    master_columns = ["Algorithm","Experiment", "Dataset", 
-                      "Accuracy", "Accuracy (SD)", 
-                      "Number of P", "Number of P (SD)",
-                      "Number of R", "Number of R (SD)", "Ideal Bin", 
-                      "Iteration of Ideal Bin", "Iteration of Ideal Bin (SD)", "Ideal Threshold", 
-                      "Threshold", "Threshold (SD)",
-                      "Log-Rank Score", "Log-Rank Score (SD)", 
-                      "Residual", "Residual (SD)", 
-                      "Unadjusted HR", "Unadjusted HR (SD)", 
-                      "Adjusted HR", "Adjusted HR (SD)", 
-                      "Group Ratio", "Group Ratio (SD)",
-                      "Runtime", "Runtime (SD)", "TC1 Present", 
-                      "Bin Size", "Bin Size (SD)", 
-                      "Birth Iteration", "Birth Iteration (SD)"]
+        #Generate experiment summary 'master list'
+        master_columns = ["Algorithm","Experiment", "Dataset", 
+                        "Accuracy", "Accuracy (SD)", 
+                        "Number of P", "Number of P (SD)",
+                        "Number of R", "Number of R (SD)", "Ideal Bin", 
+                        "Iteration of Ideal Bin", "Iteration of Ideal Bin (SD)", "Ideal Threshold", 
+                        "Threshold", "Threshold (SD)",
+                        "Log-Rank Score", "Log-Rank Score (SD)", 
+                        "Residual", "Residual (SD)", 
+                        "Unadjusted HR", "Unadjusted HR (SD)", 
+                        "Adjusted HR", "Adjusted HR (SD)", 
+                        "Group Ratio", "Group Ratio (SD)",
+                        "Runtime", "Runtime (SD)", "TC1 Present", 
+                        "Bin Size", "Bin Size (SD)", 
+                        "Birth Iteration", "Birth Iteration (SD)"]
+        
+        df_master = pd.DataFrame(columns=master_columns)
+        master_results_list = [algorithm,experiment,dataset_name,
+                            np.mean(accuracy),np.std(accuracy),
+                            np.mean(num_P),np.std(num_P),
+                            np.mean(num_R),np.std(num_R), ideal, 
+                            np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
+                            np.mean(threshold),np.std(threshold), 
+                            None if len(log_rank) == 0 else np.mean(log_rank), None if len(log_rank) == 0 else np.std(log_rank) ,
+                            None if len(residuals) == 0 else np.mean(residuals), None if len(residuals) == 0 else np.std(residuals), 
+                            None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
+                            None if len(adj_HR) == 0 else np.mean(adj_HR), None if len(adj_HR) == 0 else np.std(adj_HR), 
+                            np.mean(group_balance),np.std(group_balance),
+                            np.mean(runtime),np.std(runtime), tc,
+                            np.mean(bin_size),np.std(bin_size), 
+                            np.mean(birth_iteration),np.std(birth_iteration)]
+        
+        df_master.loc[len(df_master)] = master_results_list
+        #Save master results as csv
+        df_master.to_csv(outputPath+'/'+dataset_name+'_master_summary'+'.csv', index=False)
     
-    df_master = pd.DataFrame(columns=master_columns)
-    master_results_list = [algorithm,experiment,dataset_name,
-                           np.mean(accuracy),np.std(accuracy),
-                           np.mean(num_P),np.std(num_P),
-                           np.mean(num_R),np.std(num_R), ideal, 
-                           np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
-                           np.mean(threshold),np.std(threshold), 
-                           None if len(log_rank) == 0 else np.mean(log_rank), None if len(log_rank) == 0 else np.std(log_rank) ,
-                           None if len(residuals) == 0 else np.mean(residuals), None if len(residuals) == 0 else np.std(residuals), 
-                           None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
-                           None if len(adj_HR) == 0 else np.mean(adj_HR), None if len(adj_HR) == 0 else np.std(adj_HR), 
-                           np.mean(group_balance),np.std(group_balance),
-                           np.mean(runtime),np.std(runtime), tc,
-                           np.mean(bin_size),np.std(bin_size), 
-                           np.mean(birth_iteration),np.std(birth_iteration)]
-    
-    df_master.loc[len(df_master)] = master_results_list
-    #Save master results as csv
-    df_master.to_csv(outputPath+'/'+dataset_name+'_master_summary'+'.csv', index=False)
-    
+
 def ideal_iteration(ideal_count, feature_list, birth_iteration):
     if str(feature_list).count('P') == ideal_count and str(feature_list).count('R') == 0:
         return birth_iteration

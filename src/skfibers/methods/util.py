@@ -9,7 +9,7 @@ import seaborn as sns
 import matplotlib.patches as mpatches
 import collections
 from matplotlib.colors import LinearSegmentedColormap
-
+from matplotlib.colors import ListedColormap
 
 def transform_value(n,cycle_length):
     remainder = n % (2 * cycle_length)
@@ -441,7 +441,7 @@ def match_prefix(feature, group_names):
     return "None"
 
 
-def plot_custom_bin_population_heatmap(population, feature_names,group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+def plot_custom_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
     """
     :param population: a list where each element is a list of specified features
     :param feature_list: an alphabetically sorted list containing each of the possible feature
@@ -453,49 +453,64 @@ def plot_custom_bin_population_heatmap(population, feature_names,group_names,leg
     :param max_bins: maximum number of bins in a population before the heatmap no longer prints these bin name lables on the y-axis
     :param max_features: maximum number of features in the dataset befor the heatmap no longer prints these feature name lables on the x-axis
     """
-    # preprocessing of feature_list
-    group_size_counter = collections.defaultdict(int)
-    for feature in feature_names:
-        p = match_prefix(feature, group_names)
-        group_size_counter[p] += 1
 
-    group_counter_sorted = []
-    for name in group_names:
-        group_counter_sorted.append((name,group_size_counter[name]))
-
-    bin_names = []
-    for i in range(len(population)):
-        bin_names.append("Bin " + str(i + 1))
-
+    #Prepare bin population dataset
     feature_index_map = {}
     for i in range(len(feature_names)):
-        feature_index_map[feature_names[i]] = i #create feature to index mapping
+        feature_index_map[feature_names[i]] = i #create feature to featuer position index mapping
 
-    for each in colors: #Add custom colors to color set - order matters
-        default_colors.append(each)
-    custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', default_colors, N=256)
-
-    index_dict = {}
-    count = 2
-    for colorset in color_features:
-        for feature in colorset:
-            index_dict[feature] = count
-        count += 1
-
-    graph_df = []
+    graph_df = [] #create dataset of bin values
     for bin in population:
         temp_arr = [0] * len(feature_names)
         for feature in bin:
             temp_arr[feature_index_map[feature]] = 1
         graph_df.append(temp_arr)
 
-    graph_df = pd.DataFrame(graph_df, bin_names, feature_names)
+    # Define bin names for plot
+    bin_names = []
+    for i in range(len(population)):
+        bin_names.append("Bin " + str(i + 1))
 
-    for col in graph_df.columns: #for each feature
-        if col in index_dict:
-            for i in range(len(graph_df[col])):
-                if graph_df[col][i] == 1:
-                    graph_df[col][i] = index_dict[col]
+    graph_df = pd.DataFrame(graph_df, bin_names, feature_names) #data, index, columns
+
+    #Re order dataframe based on specified group names
+    prefix_columns = {prefix: [col for col in graph_df.columns if col.startswith(prefix)] for prefix in group_names} # Get the columns starting with each prefix
+    ordered_columns = sum(prefix_columns.values(), []) # Concatenate the columns lists in the desired order
+    graph_df = graph_df[ordered_columns] # Reorder the DataFrame columns
+
+    #Prepare for group lines in the figure
+    group_size_counter =  group_size_counter = collections.defaultdict(int)
+
+    group_list = [[] for _ in range(len(group_names))] #list of feature lists by group
+    for feature in feature_names:
+        p = match_prefix(feature, group_names)
+        group_size_counter[p] += 1
+        index = group_names.index(p)
+        group_list[index].append(feature) 
+
+    group_counter_sorted = []
+    for name in group_names:
+        group_counter_sorted.append((name,group_size_counter[name]))
+
+
+
+    #Prepare color mapping
+    custom_cmap = LinearSegmentedColormap.from_list('custom_cmap', colors, N=len(colors))
+    #custom_cmap = ListedColormap.from_list('custom_cmap', colors, N=256)
+
+    #Define color lists
+    index_dict = {}
+    count = 1
+    for group in group_list:
+        for feature in group:
+            index_dict[feature] = count
+        count += 1
+
+    for feature in graph_df.columns: #for each feature
+        if feature in index_dict:
+            for i in range(len(graph_df[feature])):
+                if graph_df[feature][i] == 1:
+                    graph_df[feature][i] = index_dict[feature]
     num_bins = len(population) #tmp
 
     # iterate through df columns and adjust values as necessary
@@ -528,7 +543,7 @@ def plot_custom_bin_population_heatmap(population, feature_names,group_names,leg
 
     legend_elements = []
     index = 0
-    for color in default_colors:
+    for color in colors:
         legend_elements.append(mpatches.Patch(color=color,label=legend_group_info[index]))
         index += 1
 
@@ -543,6 +558,6 @@ def plot_custom_bin_population_heatmap(population, feature_names,group_names,leg
     plt.ylabel('Bin Population')
 
     if save:
-        plt.savefig(output_folder+'/'+'Basic_Pop_Heatmap_'+data_name+'.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+'Custom_Pop_Heatmap_'+data_name+'.png', bbox_inches="tight")
     if show:
         plt.show()
