@@ -190,13 +190,16 @@ def main(argv):
     population = population['feature_list']
     plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=outputPath,data_name=dataset_name)
 
-    #Generate Top-bin Basic Heatmap (optional filtering) across replicates
-    filtering = 5
+    #Generate Top-bin Basic Heatmap (no filtering) across replicates
+    filtering = 1
     gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=outputPath,data_name=dataset_name)
 
+    #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
                      ylabel='Count Across Top Bins', xlabel='Dataset Feature')
-    plt.savefig(outputPath+'/'+dataset_name+'_basic_pop_heatmap.png', bbox_inches="tight")
+    plt.savefig(outputPath+'/'+dataset_name+'_feature_frequency_barplot.png', bbox_inches="tight")
+
+
 
 def ideal_iteration(ideal_count, feature_list, birth_iteration):
     if str(feature_list).count('P') == ideal_count and str(feature_list).count('R') == 0:

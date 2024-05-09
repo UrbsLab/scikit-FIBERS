@@ -51,6 +51,8 @@ def main(argv):
     #Pickle FIBERS trained object
     with open(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_fibers.pickle', 'wb') as f:
         pickle.dump(fibers, f)
+    
+    fibers.save_run_params(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_run_parameters.txt')
 
 if __name__=="__main__":
     sys.exit(main(sys.argv))

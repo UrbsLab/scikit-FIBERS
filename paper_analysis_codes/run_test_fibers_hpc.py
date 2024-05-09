@@ -77,7 +77,7 @@ def submit_slurm_cluster_job(self, seed): #legacy mode just for cedars (no head 
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python test_job_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
+    sh_file.write('srun python job_test_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -94,7 +94,7 @@ def submit_lsf_cluster_job(self, seed): #UPENN - Legacy mode (using shell file) 
     sh_file.write('#BSUB -M ' + str(self.reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('python test_job_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
+    sh_file.write('python job_test_fibers_hpc.py'+' --d '+ self.dataset +' --o '+self.outputPath +' --r '+str(seed) + '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 
