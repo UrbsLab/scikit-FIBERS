@@ -179,7 +179,7 @@ def main(argv):
     #Save master results as csv
     df_master.to_csv(outputPath+'/'+dataset_name+'_master_summary'+'.csv', index=False)
 
-    #Generate Top-bin Heatmap across replicates
+    #Generate Top-bin Custom Heatmap across replicates
     group_names=["P", "R"]
     legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
     colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
@@ -190,7 +190,13 @@ def main(argv):
     population = population['feature_list']
     plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=outputPath,data_name=dataset_name)
 
-    
+    #Generate Top-bin Basic Heatmap (optional filtering) across replicates
+    filtering = 5
+    gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=outputPath,data_name=dataset_name)
+
+    pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
+                     ylabel='Count Across Top Bins', xlabel='Dataset Feature')
+    plt.savefig(outputPath+'/'+dataset_name+'_basic_pop_heatmap.png', bbox_inches="tight")
 
 def ideal_iteration(ideal_count, feature_list, birth_iteration):
     if str(feature_list).count('P') == ideal_count and str(feature_list).count('R') == 0:
@@ -208,6 +214,92 @@ def match_prefix(feature, group_names):
             return group_label
 
     return "None"
+
+def plot_bin_population_heatmap(population, feature_names,filtering=None,show=True,save=False,output_folder=None,data_name=None):
+    """
+    :param population: a list where each element is a list of specified features
+    :param feature_list: an alphabetically sorted list containing each of the possible feature
+    """
+    fontsize = 20
+    feature_count = len(feature_names)
+    bin_names = []
+    for i in range(len(population)):
+        bin_names.append("Bin " + str(i + 1))
+
+    feature_index_map = {}
+    for i in range(feature_count):
+        feature_index_map[feature_names[i]] = i #create feature to index mapping
+
+    graph_df = []
+    for bin in population:
+        temp_arr = [0] * feature_count
+        for feature in bin:
+            temp_arr[feature_index_map[feature]] = 1
+        graph_df.append(temp_arr)
+
+    graph_df = pd.DataFrame(graph_df, bin_names, feature_names)
+
+    if filtering != None:
+        tdf = graph_df
+        tdf = pd.DataFrame(tdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False)
+        tdf = tdf[tdf['Count'] >= filtering]
+        graph_df = graph_df[list(tdf.index)]
+        feature_count = len(graph_df.columns)
+        print(feature_count)
+
+    num_bins = len(population) 
+    max_bins = 100
+    max_features = 100
+    # iterate through df columns and adjust values as necessary
+    if num_bins > max_bins:  #
+        if feature_count > max_features: #over max bins and max features - fixed plot with no labels
+            fig_size = (max_features // 2, max_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, xticklabels=False, yticklabels=False, vmax=1, vmin=0,
+                        square=True, cmap="Blues", cbar_kws={"shrink": .75}, cbar=False)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+        else: #Over max bins, but under max features
+            fig_size = (feature_count// 2, max_bins  // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, yticklabels=False, vmax=1, vmin=0,
+                        square=True, cmap="Blues", cbar_kws={"shrink": .75}, cbar=False)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+    else:
+        if feature_count > max_features: #under max bins but over max features 
+            fig_size = (max_features // 2, num_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, xticklabels=False, vmax=1, vmin=0, square=True, cmap="Blues",
+                        cbar_kws={"shrink": .75}, cbar=False)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+        else:
+            fig_size = (feature_count// 2 , num_bins // 2)
+            # Create a heatmap using Seaborn
+            plt.subplots(figsize=fig_size)
+            ax=sns.heatmap(graph_df, vmax=1, vmin=0, square=True, cmap="Blues",
+                        cbar_kws={"shrink": .75}, cbar=False)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+
+    plt.xticks(fontsize=fontsize)
+    plt.yticks(fontsize=fontsize)
+    legend_elements = [mpatches.Patch(color='aliceblue', label='Not in Bin'),
+                        mpatches.Patch(color='darkblue', label='Included in Bin')]
+    plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5),fontsize=fontsize)
+    plt.xlabel('Dataset Features',fontsize=fontsize)
+    plt.ylabel('Bins',fontsize=fontsize)
+
+    if save:
+        plt.savefig(output_folder+'/'+data_name+'_basic_pop_heatmap.png', bbox_inches="tight")
+    if show:
+        plt.show()
+
+    return graph_df
 
 def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
     """

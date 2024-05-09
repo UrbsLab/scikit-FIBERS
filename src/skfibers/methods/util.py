@@ -362,35 +362,44 @@ def match_prefix(feature, locust_names):
     return "None"
 
 
-def plot_bin_population_heatmap(population, feature_names,show=True,save=False,output_folder=None,data_name=None):
+def plot_bin_population_heatmap(population, feature_names,filtering=None,show=True,save=False,output_folder=None,data_name=None):
     """
     :param population: a list where each element is a list of specified features
     :param feature_list: an alphabetically sorted list containing each of the possible feature
     """
     fontsize = 20
+    feature_count = len(feature_names)
     bin_names = []
     for i in range(len(population)):
         bin_names.append("Bin " + str(i + 1))
 
     feature_index_map = {}
-    for i in range(len(feature_names)):
+    for i in range(feature_count):
         feature_index_map[feature_names[i]] = i #create feature to index mapping
 
     graph_df = []
     for bin in population:
-        temp_arr = [0] * len(feature_names)
+        temp_arr = [0] * feature_count
         for feature in bin:
             temp_arr[feature_index_map[feature]] = 1
         graph_df.append(temp_arr)
 
     graph_df = pd.DataFrame(graph_df, bin_names, feature_names)
 
+    if filtering != None:
+        tdf = graph_df
+        tdf = pd.DataFrame(tdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False)
+        tdf = tdf[tdf['Count'] >= filtering]
+        graph_df = graph_df[list(tdf.index)]
+        feature_count = len(graph_df.columns)
+        print(feature_count)
+
     num_bins = len(population) 
     max_bins = 100
     max_features = 100
     # iterate through df columns and adjust values as necessary
     if num_bins > max_bins:  #
-        if len(feature_names) > max_features: #over max bins and max features - fixed plot with no labels
+        if feature_count > max_features: #over max bins and max features - fixed plot with no labels
             fig_size = (max_features // 2, max_bins // 2)
             # Create a heatmap using Seaborn
             plt.subplots(figsize=fig_size)
@@ -399,7 +408,7 @@ def plot_bin_population_heatmap(population, feature_names,show=True,save=False,o
             ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
         else: #Over max bins, but under max features
-            fig_size = (len(feature_names)// 2, max_bins  // 2)
+            fig_size = (feature_count// 2, max_bins  // 2)
             # Create a heatmap using Seaborn
             plt.subplots(figsize=fig_size)
             ax=sns.heatmap(graph_df, yticklabels=False, vmax=1, vmin=0,
@@ -407,7 +416,7 @@ def plot_bin_population_heatmap(population, feature_names,show=True,save=False,o
             ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
     else:
-        if len(feature_names) > max_features: #under max bins but over max features 
+        if feature_count > max_features: #under max bins but over max features 
             fig_size = (max_features // 2, num_bins // 2)
             # Create a heatmap using Seaborn
             plt.subplots(figsize=fig_size)
@@ -416,7 +425,7 @@ def plot_bin_population_heatmap(population, feature_names,show=True,save=False,o
             ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
         else:
-            fig_size = (len(feature_names)// 2 , num_bins // 2)
+            fig_size = (feature_count// 2 , num_bins // 2)
             # Create a heatmap using Seaborn
             plt.subplots(figsize=fig_size)
             ax=sns.heatmap(graph_df, vmax=1, vmin=0, square=True, cmap="Blues",
@@ -430,12 +439,14 @@ def plot_bin_population_heatmap(population, feature_names,show=True,save=False,o
                         mpatches.Patch(color='darkblue', label='Included in Bin')]
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5),fontsize=fontsize)
     plt.xlabel('Dataset Features',fontsize=fontsize)
-    plt.ylabel('Bin Population',fontsize=fontsize)
+    plt.ylabel('Bins',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_basic_pop_heatmap.png', bbox_inches="tight")
     if show:
         plt.show()
+
+    return graph_df
 
 
 def match_prefix(feature, group_names):
@@ -593,7 +604,7 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
         ax.vlines(running_count, colors="Black", *ax.get_ylim())
 
     plt.xlabel('Features',fontsize=fontsize)
-    plt.ylabel('Bin Population',fontsize=fontsize)
+    plt.ylabel('Bins',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_custom_pop_heatmap.png', bbox_inches="tight")

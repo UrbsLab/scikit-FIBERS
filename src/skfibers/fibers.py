@@ -840,8 +840,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def get_adj_HR_metric_product_plot(self,show=True,save=False,output_folder=None,data_name=None):
         plot_adj_HR_metric_product(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
 
-    def get_bin_population_heatmap_plot(self,show=True,save=False,output_folder=None,data_name=None):
-        plot_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, show=show,save=save,output_folder=output_folder,data_name=data_name)
+    def get_bin_population_heatmap_plot(self,filtering=None,show=True,save=False,output_folder=None,data_name=None):
+        plot_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, filtering=filtering, show=show,save=save,output_folder=output_folder,data_name=data_name)
 
     def get_custom_bin_population_heatmap_plot(self,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
         plot_custom_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, group_names,legend_group_info,colors,max_bins,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
