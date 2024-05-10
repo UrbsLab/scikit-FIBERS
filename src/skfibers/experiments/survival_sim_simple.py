@@ -7,7 +7,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 def survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, threshold = 0, 
                              feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
-                             class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
+                             class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, negative_control=False, random_seed=None):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
     Note: MAF (minor allele frequency) cutoff refers to the threshold
@@ -25,8 +25,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     :param class1_time_to_event_range: (min, max) time to event as a tuple (should be smaller but a bit overlapping \
                                         with above range (e.g. 20 to 150)
     :param censoring_frequency: proportion of instances that are censored (0 = censored, 1 = not censored)
-    :param covariates_to_sim: number of covariates to simulate - that are each partially correlated with outcome
-    :param covariates_signal_range: range of values determining covariate correlation with True Risk Group
+    :param negative_control: boolean flag to randomly shuffle outcome to remove dataset signal.
     :param random_seed:
 
     :return: pandas dataframe of generated data
@@ -150,7 +149,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             df.at[row,feature] = 1
         feature_index += 1 
 
-    # check that no random column has all 0's for low groups and all 1's for high group
+    # Check that no random column has all 0's for low groups and all 1's for high group
     for feature in random_names:
         sum_of_LR = df.iloc[0:hr_count+1][feature].sum()
         if sum_of_LR == 0:
@@ -167,86 +166,29 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     # Assigning Gaussian according to class
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
     df_1 = df[df['TrueRiskGroup'] == 1].sample(frac=1).reset_index(drop=True)
-    #df_0 = df[df['TrueRiskGroup'] == 0]
-    #df_1 = df[df['TrueRiskGroup'] == 1]
-    df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0],
-                                                class0_time_to_event_range[1], size=len(df_0)),
-                               a_min=0, a_max=None)
-    df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0],
-                                                class1_time_to_event_range[1], size=len(df_1)),
-                               a_min=0, a_max=None)
+    df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=0, a_max=None)
+    df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=None)
     df = pd.concat([df_1, df_0])
-
     df = censor(df, censoring_frequency, random_seed)
-
-
-    #df_0 = df[df['TrueRiskGroup'] == 0]
-    #df_1 = df[df['TrueRiskGroup'] == 1]
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
     df_1 = df[df['TrueRiskGroup'] == 1].sample(frac=1).reset_index(drop=True)
 
+    #Add Noise by swapping 
     if noise_frequency > 0:
         swap_count = int(min(len(df_0), len(df_1)) * noise_frequency)
         indexes = random.sample(list(range(min(len(df_0), len(df_1)))), swap_count)
         for i in indexes:
-            df_0['Censoring'].iloc[i], df_1['Censoring'].iloc[i] = \
-                df_1['Censoring'].iloc[i].copy(), df_0['Censoring'].iloc[i].copy()
-            df_0['Duration'].iloc[i], df_1['Duration'].iloc[i] = \
-                df_1['Duration'].iloc[i].copy(), df_0['Duration'].iloc[i].copy()
+            df_0['Censoring'].iloc[i], df_1['Censoring'].iloc[i] = df_1['Censoring'].iloc[i].copy(), df_0['Censoring'].iloc[i].copy()
+            df_0['Duration'].iloc[i], df_1['Duration'].iloc[i] = df_1['Duration'].iloc[i].copy(), df_0['Duration'].iloc[i].copy()
+            df_0['TrueRiskGroup'].iloc[i], df_1['TrueRiskGroup'].iloc[i] = df_1['TrueRiskGroup'].iloc[i].copy(), df_0['TrueRiskGroup'].iloc[i].copy()
 
     df = pd.concat([df_0, df_1]).sample(frac=1).reset_index(drop=True)
     print("Random Number Check: "+str(random.randint(0,100000)))
 
-    # Simulation of Covariates ---------------------------------------------
-    if covariates_to_sim > 0: #Simulate covariates as separate dataframe
-        # Create Covariate Dataframe
-        max_duration = max(df['Duration'])
-        min_duration = min(df['Duration'])
-        df_covariate = pd.DataFrame({f'C_{i}': df['Duration'].copy() for i in range(1, covariates_to_sim+1)})
-        #df_covariate = pd.DataFrame({f'C_{i}': df['TrueRiskGroup'].copy() for i in range(1, covariates_to_sim+1)})
-        #df_covariate = pd.DataFrame({f'C_{i}': df[predictive_names[i-1]].copy() for i in range(1, covariates_to_sim+1)})
-
-        covariate_associations = [random.uniform(covariates_signal_range[0], covariates_signal_range[1]) for _ in range(covariates_to_sim)]
-        print(covariate_associations)
-
-        swap_count_list = [int(instances-(x * instances)) for x in covariate_associations]
-
-        i = 0
-        for covariate in df_covariate.columns:
-            change_index_list = random.sample(range(instances), swap_count_list[i])
-            for index in change_index_list:
-                df_covariate.at[index,covariate] = random.uniform(min_duration,max_duration)
-                #if int(df_covariate.at[index,covariate]) == 1:
-                #    df_covariate.at[index,covariate] = 0
-                #else:
-                #    df_covariate.at[index,covariate] = 1
-            i+= 1
-
-
-        # Make feature column that alone perfectly discriminates between high and low risk groups
-        #PC_list = []
-        #for index, value in df['TrueRiskGroup'].items():
-        #    if int(value) == 0:
-        #        PC_list.append(random.randint(0,threshold))
-        #    else:
-        #        PC_list.append(random.randint(threshold+1,predictive_features))
-            
-        #df_covariate['PC'] = PC_list
-        # Make a covariate column that is a copy of this feature column (perfectly correlated with it)
-        #df_covariate['C'] = df_covariate['PC']
-        #for index, value in df_covariate['C'].items():
-        #    df_covariate.at[index,'C'] = (10-value)*df.at[index,'Duration']
-
-
-        #make a predictive feature that perfectly captures threshold but is also perfectly correlated with a covariate
-        #for covariate in df_covariate.columns:
-        #    for index in range(0,instances): 
-        #        if int(df_covariate.at[index,covariate]) == 1:
-        #            df_covariate.at[index,covariate] = random.uniform(0.51, 1)
-        #        else:
-        #            df_covariate.at[index,covariate] = random.uniform(0, 0.5)
-        df = pd.concat([df, df_covariate], axis=1)
-        print("Simulated covariates generated and added to dataframe.")
+    if negative_control:
+        columns_to_shuffle = ['TrueRiskGroup','Duration','Censoring']
+        for col in columns_to_shuffle:
+            df[col] = np.random.permutation(df[col].values)
 
     return df
 
