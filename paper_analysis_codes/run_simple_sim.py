@@ -23,8 +23,8 @@ class RunFIBERS:
         self.pred_features = [5,10,20]
         self.ncs = ['False','True']
         self.noises = [0,0.1,0.2,0.3,0.4,0.5]
-        self.total_features = [100,200,500,1000,10000]
-        self.thresholds = [0,1,2,3,4,5,6,7,8,9,10]
+        self.total_features = [100,200,500,1000]
+        self.thresholds = [0,1,2,3,4,5]
 
         #Folder Management------------------------------
         #Main Write Path-----------------
@@ -148,8 +148,6 @@ class RunFIBERS:
 
         # Noisy Thresholds Assessment
         noise = 0.2
-        total_feature = 100
-        pred_feature = 20
         for threshold in self.thresholds:
             if self.run_cluster == 'LSF':
                 submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,threshold,censor)
@@ -166,7 +164,7 @@ class RunFIBERS:
     
 def submit_slurm_cluster_job(self,instance,pred_feature,nc,noise,total_feature,threshold,censor): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
     job_ref = str(time.time())
-    job_name = 'FIBERS_data_sim_'+job_ref
+    job_name = 'FIBERS_data_sim_'+'i_'+str(instance)+'_tf_'+str(total_feature)+'_p_'+str(pred_feature)+'_t_'+str(threshold)+'_n_'+str(noise)+'_c_'+str(censor)+'_nc_'+str(nc)+'_'+job_ref
     job_path = self.scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
@@ -183,7 +181,7 @@ def submit_slurm_cluster_job(self,instance,pred_feature,nc,noise,total_feature,t
 
 def submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,threshold,censor): #UPENN - Legacy mode (using shell file) - memory on head node
     job_ref = str(time.time())
-    job_name = 'FIBERS_data_sim_'+job_ref
+    job_name = 'FIBERS_data_sim_'+'i_'+str(instance)+'_tf_'+str(total_feature)+'_p_'+str(pred_feature)+'_t_'+str(threshold)+'_n_'+str(noise)+'_c_'+str(censor)+'_nc_'+str(nc)+'_'+job_ref
     job_path = self.scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
