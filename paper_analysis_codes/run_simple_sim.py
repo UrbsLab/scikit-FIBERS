@@ -20,7 +20,7 @@ class RunFIBERS:
 
         self.censoring = [0,0.2,0.5,0.8]
         self.instances = [500,1000,10000]
-        self.pred_features = [5,10,20]
+        self.pred_features = [5,10]
         self.ncs = ['False','True']
         self.noises = [0,0.1,0.2,0.3,0.4,0.5]
         self.total_features = [100,200,500,1000]
@@ -135,7 +135,7 @@ class RunFIBERS:
         # Basic Thresholds Assessment
         noise = 0
         total_feature = 100
-        pred_feature = 20
+        pred_feature = 10
         for threshold in self.thresholds:
             if self.run_cluster == 'LSF':
                 submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,threshold,censor)
