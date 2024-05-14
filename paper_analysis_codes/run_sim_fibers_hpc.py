@@ -29,7 +29,7 @@ def main(argv):
     parser.add_argument('--mp', dest='merge_prob', help='merge probability', type=float, default=0.1)
     parser.add_argument('--ng', dest='new_gen', help='proportion of max population used to deterimine offspring population size', type=float, default=1.0)
     parser.add_argument('--e', dest='elitism', help='elite proportion of population protected from deletion', type=float, default=0.1)
-    parser.add_argument('--d', dest='diversity_pressure', help='diversity pressure (K in k-means)', type=int, default=0)
+    parser.add_argument('--dp', dest='diversity_pressure', help='diversity pressure (K in k-means)', type=int, default=0)
     parser.add_argument('--bi', dest='min_bin_size', help='minimum bin size', type=int, default=1)
     parser.add_argument('--ba', dest='max_bin_size', help='maximum bin size', type=str, default='None')
     parser.add_argument('--ib', dest='max_bin_init_size', help='maximum bin intitilize size', type=int, default=10)
@@ -84,6 +84,7 @@ def main(argv):
     #covariates = None #Manually included in script
     pop_clean = options.pop_clean
     #random_seed = options.random_seed
+    algorithm = 'Fibers2.0' #hard coded here
 
     #Folder Management------------------------------
     #Main Write Path-----------------
@@ -94,14 +95,14 @@ def main(argv):
     if not os.path.exists(outputPath):
         os.mkdir(outputPath) 
     #Scratch Path-------------------- 
-    scratchPath = writepath+'scratch/'
+    scratchPath = writepath+'scratch'
     if not os.path.exists(scratchPath):
         os.mkdir(scratchPath) 
     #LogFile Path--------------------
-    logPath = writepath+'logs/'
+    logPath = writepath+'logs'
     if not os.path.exists(logPath):
         os.mkdir(logPath) 
-    outputPath = outputPath+outputfolder
+    outputPath = outputPath+algorithm+'_'+outputfolder
     if not os.path.exists(outputPath):
         os.mkdir(outputPath) 
 
@@ -131,7 +132,7 @@ def main(argv):
                 jobCount +=1
             else:
                 print('ERROR: Cluster type not found')
-        print(str(jobCount)+' jobs submitted successfully')
+    print(str(jobCount)+' jobs submitted successfully')
 
 #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
 def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
@@ -149,9 +150,10 @@ def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,m
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_test_fibers_hpc.py'+' --d '+str(datapath)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)+' --pi '+str(manual_bin_init)+' --ol '+str(outcome_label)+' --ot '+str(outcome_type)
+    sh_file.write('srun python job_sim_fibers_hpc.py'+' --d '+str(datapath)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)
+        +' --ol '+str(outcome_label)+' --ot '+str(outcome_type)
         +' --i '+str(iterations)+' --ps '+str(pop_size)+' --tp '+str(tournament_prop)+' --cp '+str(crossover_prob)+' --mi '+str(min_mutation_prob)
-        +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --d '+str(diversity_pressure)
+        +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
         +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+' --r '+str(random_seed)+'\n')
@@ -174,9 +176,10 @@ def submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,man
     sh_file.write('#BSUB -M ' + str(reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_test_fibers_hpc.py'+' --d '+str(datapath)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)+' --pi '+str(manual_bin_init)+' --ol '+str(outcome_label)+' --ot '+str(outcome_type)
+    sh_file.write('python job_sim_fibers_hpc.py'+' --d '+str(datapath)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)
+        +' --ol '+str(outcome_label)+' --ot '+str(outcome_type)
         +' --i '+str(iterations)+' --ps '+str(pop_size)+' --tp '+str(tournament_prop)+' --cp '+str(crossover_prob)+' --mi '+str(min_mutation_prob)
-        +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --d '+str(diversity_pressure)
+        +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
         +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+' --r '+str(random_seed)+'\n')

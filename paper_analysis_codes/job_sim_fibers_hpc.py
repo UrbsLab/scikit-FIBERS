@@ -8,7 +8,6 @@ from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description='')
-
     #Script Parameters
     parser.add_argument('--d', dest='datapath', help='name of data file (REQUIRED)', type=str, default = 'myData') #output folder name
     parser.add_argument('--o', dest='outputpath', help='directory path to write output (default=CWD)', type=str, default = 'myOutput') #full path/filename
@@ -25,7 +24,7 @@ def main(argv):
     parser.add_argument('--mp', dest='merge_prob', help='merge probability', type=float, default=0.1)
     parser.add_argument('--ng', dest='new_gen', help='proportion of max population used to deterimine offspring population size', type=float, default=1.0)
     parser.add_argument('--e', dest='elitism', help='elite proportion of population protected from deletion', type=float, default=0.1)
-    parser.add_argument('--d', dest='diversity_pressure', help='diversity pressure (K in k-means)', type=int, default=0)
+    parser.add_argument('--dp', dest='diversity_pressure', help='diversity pressure (K in k-means)', type=int, default=0)
     parser.add_argument('--bi', dest='min_bin_size', help='minimum bin size', type=int, default=1)
     parser.add_argument('--ba', dest='max_bin_size', help='maximum bin size', type=str, default='None')
     parser.add_argument('--ib', dest='max_bin_init_size', help='maximum bin intitilize size', type=int, default=10)
@@ -40,7 +39,7 @@ def main(argv):
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
-    parser.add_argument('--r', dest='random_seed', help='random seed', type=str, default='None')
+    parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
 
     options=parser.parse_args(argv[1:])
 
@@ -80,7 +79,7 @@ def main(argv):
     if options.group_thresh == 'None':
         group_thresh = None
     else:
-        group_thresh = str(options.group_thresh)
+        group_thresh = int(options.group_thresh)
     min_thresh = options.min_thresh 
     max_thresh = options.max_thresh 
     #int_thresh = options.int_thresh

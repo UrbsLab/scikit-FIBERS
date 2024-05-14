@@ -52,7 +52,7 @@ class RunFIBERS:
         jobCount = 0
 
         #Baseline Positive Control
-        exp_name = 'Base_PC'
+        exp_name = 'BasePC'
         if self.run_cluster == 'LSF':
             submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,exp_name)
             jobCount +=1
@@ -63,7 +63,7 @@ class RunFIBERS:
             print('ERROR: Cluster type not found')
 
         #Baseline Negative Control
-        exp_name = 'Base_NC'
+        exp_name = 'BaseNC'
         if self.run_cluster == 'LSF':
             submit_lsf_cluster_job(self,self.instance,self.pred_feature,'True',self.noise,self.total_feature,self.threshold,self.censor,exp_name)
             jobCount +=1
@@ -98,7 +98,7 @@ class RunFIBERS:
                 print('ERROR: Cluster type not found')
 
         # Baseline Noise Assessment
-        exp_name = "Base_Noise"
+        exp_name = "BaseNoise"
         for noise in self.noises:
             if self.run_cluster == 'LSF':
                 submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,self.threshold,self.censor,exp_name)
@@ -122,7 +122,7 @@ class RunFIBERS:
                 print('ERROR: Cluster type not found')
 
         # Noisy Total Features Assessment
-        exp_name = "Features_Noise"
+        exp_name = "FeaturesNoise"
         noise = 0.2
         for total_feature in self.total_features:
             if self.run_cluster == 'LSF':
@@ -147,7 +147,7 @@ class RunFIBERS:
                 print('ERROR: Cluster type not found')
 
         # Noisy Thresholds Assessment
-        exp_name = "Threshold_Noise"
+        exp_name = "ThresholdNoise"
         noise = 0.2
         for threshold in self.thresholds:
             if self.run_cluster == 'LSF':
