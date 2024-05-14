@@ -269,9 +269,12 @@ class BIN_SET:
         while len(self.bin_pop) > pop_size:
             #Calculate total fitness across all bins
             total_fitness = sum(bin.deletion_prop for bin in self.bin_pop)
-            # Calculate deletion probabilities for each object
-            deletion_probabilities = [bin.deletion_prop / total_fitness for bin in self.bin_pop]
-            index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
+            if total_fitness == 0.0:
+                index = random.choices(range(len(self.bin_pop)))[0]
+            else:
+                # Calculate deletion probabilities for each object
+                deletion_probabilities = [bin.deletion_prop / total_fitness for bin in self.bin_pop]
+                index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
             del self.bin_pop[index]
 
 
@@ -304,22 +307,18 @@ class BIN_SET:
         # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
         # Delete remaining bins required (from non-elite set) based on bin selection that is inversely proportional to bin fitness
         while len(remaining_bins)+len(elite_bins) > pop_size:
-            #Calculate total fitness across all bins
-            total_fitness = sum(1/bin.fitness for bin in remaining_bins)
-            # Calculate deletion probabilities for each object
-            deletion_probabilities = [(1/bin.fitness) / total_fitness for bin in remaining_bins]
-            remaining_index = 0
-            for bin in remaining_bins:
-                bin.update_deletion_prop(deletion_probabilities[remaining_index],None)
-                remaining_index += 1
             try:
+                #Calculate total fitness across all bins
+                total_fitness = sum(1/bin.fitness for bin in remaining_bins)
+                # Calculate deletion probabilities for each object
+                deletion_probabilities = [(1/bin.fitness) / total_fitness for bin in remaining_bins]
+                remaining_index = 0
+                for bin in remaining_bins:
+                    bin.update_deletion_prop(deletion_probabilities[remaining_index],None)
+                    remaining_index += 1
                 index = random.choices(range(len(remaining_bins)), weights=deletion_probabilities)[0]
             except:
-                print(len(elite_bins))
-                print(elite_count)
-                print(len(remaining_bins))
-                print(pop_size)
-                index = 0
+                index = random.choices(range(len(remaining_bins)))[0]
             del remaining_bins[index]
 
         self.bin_pop = elite_bins + remaining_bins

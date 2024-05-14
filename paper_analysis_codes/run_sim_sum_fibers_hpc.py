@@ -70,7 +70,7 @@ def main(argv):
     
 def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
     job_ref = str(time.time())
-    job_name = 'FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
+    job_name = 'Sum_FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
@@ -87,7 +87,7 @@ def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,r
 
 def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue): #UPENN - Legacy mode (using shell file) - memory on head node
     job_ref = str(time.time())
-    job_name = 'FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
+    job_name = 'Sum_FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
