@@ -1,0 +1,19 @@
+#Test
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_test --rc LSF --rs 2 --rm 4 --q i2c2_normal --ol Duration --c Censoring --ma 0.5 --dp 0 --f log_rank --t 0 --cl None
+
+#Runs
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --ma 0.5 --dp 0 --f log_rank --t 0 --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_default --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/ryanurb/ --o Fibers2.0_sim_default
+
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_t_0_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --ma 0.5 --dp 0 --f log_rank --t None --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_t_0_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/ryanurb/ --o Fibers2.0_sim_t_0_5
+
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_t_0_5_ma_0.1 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --ma 0.1 --dp 0 --f log_rank --t None --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_t_0_5_ma_0.1 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/ryanurb/ --o Fibers2.0_sim_t_0_5_ma_0.1
+
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_t_0_5_d_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --ma 0.5 --dp 5 --f log_rank --t None --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/ryanurb/ --o sim_t_0_5_d_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/ryanurb/ --o Fibers2.0_sim_t_0_5_d_5

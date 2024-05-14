@@ -38,8 +38,8 @@ def main(argv):
     data_file = datapath.split('/')[-1]
     data_name = data_file.rstrip('.csv')
     experiment = data_name.split('_')[0]
-    ideal_count = data_name.split('_')[6]
-    ideal_threshold = data_name.split('_')[8]
+    ideal_count = int(data_name.split('_')[6])
+    ideal_threshold = int(data_name.split('_')[8])
     target_folder = outputpath+'/'+data_name #target output subfolder
 
     #Make local summary output folder
