@@ -312,7 +312,10 @@ class BIN_SET:
             for bin in remaining_bins:
                 bin.update_deletion_prop(deletion_probabilities[remaining_index],None)
                 remaining_index += 1
-            index = random.choices(range(len(remaining_bins)), weights=deletion_probabilities)[0]
+            try:
+                index = random.choices(range(len(remaining_bins)), weights=deletion_probabilities)[0]
+            except:
+                index = 0
             del remaining_bins[index]
 
         self.bin_pop = elite_bins + remaining_bins
