@@ -288,12 +288,12 @@ class BIN_SET:
             del self.bin_pop[index]
 
         # Preseve any proportion of elite bins specified
-        x = 0
-        while self.bin_pop[x].fitness == 1:
-            x+=1 #gets the bin index where fitness begins to drop
+        #x = 0
+        #while self.bin_pop[x].fitness == 1:
+        #    x+=1 #gets the bin index where fitness begins to drop
         elite_count = int(pop_size*(elitism))
-        if elite_count < x+1: #
-            elite_count = x #count is -1 for indexing below
+        #if elite_count < x+1: #
+        #    elite_count = x #count is -1 for indexing below
 
         elite_bins = self.bin_pop[:elite_count]
         remaining_bins = self.bin_pop[elite_count:]
@@ -315,6 +315,10 @@ class BIN_SET:
             try:
                 index = random.choices(range(len(remaining_bins)), weights=deletion_probabilities)[0]
             except:
+                print(len(elite_bins))
+                print(elite_count)
+                print(len(remaining_bins))
+                print(pop_size)
                 index = 0
             del remaining_bins[index]
 
