@@ -1,8 +1,8 @@
 import os
 import sys
 import argparse
-import pickle
 import pandas as pd
+sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
 from src.skfibers.experiments.survival_sim_simple import survival_data_simulation #SOURCE CODE RUN
 #from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
 def main(argv):

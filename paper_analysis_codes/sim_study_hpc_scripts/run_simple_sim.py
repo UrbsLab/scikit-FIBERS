@@ -1,7 +1,5 @@
 import os
 import time
-from src.skfibers.experiments.survival_sim_simple import survival_data_simulation #SOURCE CODE RUN
-#from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
 
 #CLUSTER NOTES:
 # module load git
@@ -10,8 +8,10 @@ from src.skfibers.experiments.survival_sim_simple import survival_data_simulatio
 class RunFIBERS:
     def __init__(self):
         #Run Parameters
-        self.write_path = '/project/kamoun_shared/ryanurb/'
-        self.data_path = '/project/kamoun_shared/ryanurb/data/simple_sim_datasets'
+        #self.write_path = '/project/kamoun_shared/ryanurb/'
+        self.write_path = '/project/kamoun_shared/output_shared/ryanurb/'
+        #self.data_path = '/project/kamoun_shared/ryanurb/data/simple_sim_datasets'
+        self.data_path = '/project/kamoun_shared/data_shared/simple_sim_datasets'
         self.run_cluster = 'LSF' #LSF or SLURM
         self.reserved_memory = 4
         self.queue = 'i2c2_normal'
