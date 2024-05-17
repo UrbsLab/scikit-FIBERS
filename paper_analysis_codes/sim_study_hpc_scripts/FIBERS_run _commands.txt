@@ -1,3 +1,7 @@
+#CLUSTER NOTES:
+# module load git
+# git clone --single-branch --branch dev https://github.com/UrbsLab/scikit-FIBERS
+# git pull origin dev #update repository from within scikit-FIBERS folder.
 
 #Runs
 python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simple_sim_datasets --w /project/kamoun_shared/output_shared/ryanurb/ --o sim_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --ma 0.5 --dp 0 --f log_rank --t 0 --cl None
