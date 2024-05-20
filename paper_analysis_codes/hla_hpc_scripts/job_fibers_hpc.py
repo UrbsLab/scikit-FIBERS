@@ -136,6 +136,7 @@ def main(argv):
         cov_sub_list = cov_typ_dict[covariate]
         for each in cov_sub_list:
             covariates.append(each) #add selected Ag covariate to primary covariates
+    print(covariates) #temporary
 
     # Get Dataset Name
     filename = os.path.basename(datapath)
@@ -151,6 +152,7 @@ def main(argv):
             MM_feature_list.append('MM_'+str(locus)+'_'+str(j))
 
     features = MM_feature_list + covariates + [outcome_label] + [censor_label]
+    print(features) #temporary
     data = data[features]
 
     #Missing data values check
