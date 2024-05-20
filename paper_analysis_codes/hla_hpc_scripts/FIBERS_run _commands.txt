@@ -1,0 +1,11 @@
+#CLUSTER NOTES:
+# module load git
+# git clone --single-branch --branch dev https://github.com/UrbsLab/scikit-FIBERS
+# git pull origin dev #update repository from within scikit-FIBERS folder.
+
+#Runs
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --i 100 --ps 100 --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 1 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata
+
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --rc LSF --rm 4 --q i2c2_normal --rs 10
+
+
