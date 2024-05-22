@@ -16,8 +16,8 @@ def main(argv):
     parser.add_argument('--q', dest='queue', help='cluster queue name', type=str, default= 'i2c2_normal')
     parser.add_argument('--re', dest='replicates', help='number of data replicates', type=int, default= 10)
     parser.add_argument('--rs', dest='random_seeds', help='number of random seed replicates', type=int, default= 10)
-    parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1,DPA1,DPB1')
-    parser.add_argument('--cov-list', dest='cov_list', help='loci covariates to include',type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1,DPA1,DPB1')
+    parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1')
+    parser.add_argument('--cov-list', dest='cov_list', help='loci covariates to include',type=str, default= 'None')
     parser.add_argument('--ra', dest='rare_filter', help='rare frequency used for data cleaning', type=float, default=0)
 
     #FIBERS Parameters
@@ -119,11 +119,13 @@ def main(argv):
     locus = ['A','B','C','DRB1','DRB345','DQA1','DQB1','DPA1','DPB1']
 
     temp_loci_list = loci_list.split(',')
-    temp_cov_list = cov_list.split(',')
     if not set(temp_loci_list).issubset(set(locus)):
         raise Exception("One or more items in 'loci_list' are not in default loci list.")
-    if not set(temp_cov_list).issubset(set(locus)):
-        raise Exception("One or more items in 'cov_list' are not in default loci list.")
+
+    if not cov_list == 'None':
+        temp_cov_list = cov_list.split(',')
+        if not set(temp_cov_list).issubset(set(locus)):
+            raise Exception("One or more items in 'cov_list' are not in default loci list.")
 
     jobCount = 0
     datanames = []

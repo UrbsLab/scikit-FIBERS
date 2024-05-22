@@ -14,8 +14,8 @@ def main(argv):
     parser.add_argument('--d', dest='datapath', help='name of data file (REQUIRED)', type=str, default = 'myData') #output folder name
     parser.add_argument('--o', dest='outputpath', help='directory path to write output (default=CWD)', type=str, default = 'myOutput') #full path/filename
     parser.add_argument('--pi', dest='manual_bin_init', help='directory path to population initialization file', type=str, default = 'None') #full path/filename
-    parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1,DPA1,DPB1')
-    parser.add_argument('--cov-list', dest='cov_list', help='loci covariates to include',type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1,DPA1,DPB1')
+    parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1')
+    parser.add_argument('--cov-list', dest='cov_list', help='loci covariates to include',type=str, default= 'None')
     parser.add_argument('--ra', dest='rare_filter', help='rare frequency used for data cleaning', type=float, default=0)
 
     #FIBERS Parameters
@@ -56,7 +56,10 @@ def main(argv):
     else:
         manual_bin_init = pd.read_csv(manual_bin_init,low_memory=False)
     loci_list = options.loci_list.split(',')
-    cov_list = options.cov_list.split(',')
+    if options.cov_list == 'None':
+        cov_list = None
+    else:
+        cov_list = options.cov_list.split(',')
     rare_filter = options.rare_filter
 
     outcome_label = options.outcome_label
@@ -101,6 +104,7 @@ def main(argv):
     random_seed = options.random_seed
 
     #Hard Coded Covariate Information
+    #If there is a colinearity issue with calculating residuals, Keith indicated that we can remove dcadcodoth and/or PKPRA_MS from covariate list
     covariates = [
               'shared', 'DCD', 'DON_AGE', 'donage_slope_ge18', 'dcadcodanox', 'dcadcodcva', 'dcadcodcnst', 'dcadcodoth', 'don_cmv_negative',
               'don_htn_0c', 'ln_don_wgt_kg_0c', 'ln_don_wgt_kg_0c_s55', 'don_ecd', 'age_ecd', 'yearslice', 'REC_AGE_AT_TX',
@@ -109,6 +113,8 @@ def main(argv):
               'rbmi_gt_20', 'rbmi_DM', 'rbmi_gt_20_DM', 'ln_c_hd_m', 'ln_c_hd_0c', 'ln_c_hd_m_ptx', 'PKPRA_MS', 'PKPRA_1080',
               'PKPRA_GE80', 'hispanic', 'CAN_RACE_BLACK', 'CAN_RACE_asian', 'CAN_RACE_WHITE', 'Agmm0']
     
+    #DRB345 has redundant covariates with DRB1, so both should not be specified together
+    #Also, Malek indicated we will not corret for DPA1 or DPB1 for the time being.
     cov_typ_dict = {
         'A': ['AgmmA0', 'AgmmA1'],
         'B': ['AgmmB0', 'AgmmB1'],
@@ -118,8 +124,9 @@ def main(argv):
         'DQA1':  ['Agmmdqa10', 'Agmmdqa11'],
         'DQB1':  ['Agmmdqb10', 'Agmmdqb11'],
         'DPA1':  ['Agmmdpa10', 'Agmmdpa11'],
-        'DPB1':  ['Agmmdpb10', 'Agmmdpb11']}
+        'DPB1':  ['Agmmdpb10', 'Agmmdpb11']} 
     
+    #hard coded specific AA-MM positions to include in these analyses
     locus_range_dict = {
         'A': [1,182],
         'B': [1,182],
@@ -132,10 +139,11 @@ def main(argv):
         'DPB1':  [6,94]}
     
     #Create Final Covariate List
-    for covariate in cov_list:
-        cov_sub_list = cov_typ_dict[covariate]
-        for each in cov_sub_list:
-            covariates.append(each) #add selected Ag covariate to primary covariates
+    if cov_list != None:
+        for covariate in cov_list:
+            cov_sub_list = cov_typ_dict[covariate]
+            for each in cov_sub_list:
+                covariates.append(each) #add selected Ag covariate to primary covariates
     print(covariates) #temporary
 
     # Get Dataset Name
