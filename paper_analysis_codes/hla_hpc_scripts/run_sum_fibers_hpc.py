@@ -3,8 +3,6 @@ import time
 import argparse
 import sys
 
-#https://github.com/UrbsLab/scikit-FIBERS/blob/ppsn/New%20FIBERS%20Experiment%20-%20All%20FIBERS2%20Exp.ipynb
-
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description='')
@@ -14,9 +12,11 @@ def main(argv):
     parser.add_argument('--w', dest='writepath', help='', type=str, default = 'myWritePath') #full path/filename
     parser.add_argument('--o', dest='outputfolder', help='directory path to write output (default=CWD)', type=str, default = 'myOutput') #full path/filename
     parser.add_argument('--rc', dest='run_cluster', help='cluster type', type=str, default='LSF')
-    parser.add_argument('--rs', dest='random_seeds', help='number of random seeds to run', type=int, default= 30)
     parser.add_argument('--rm', dest='reserved_memory', help='reserved memory for job', type=int, default= 4)
     parser.add_argument('--q', dest='queue', help='cluster queue name', type=str, default= 'i2c2_normal')
+    parser.add_argument('--rs', dest='random_seeds', help='number of random seeds to run', type=int, default= 10)
+    parser.add_argument('--re', dest='replicates', help='number of data replicates', type=int, default= 10)
+    parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1')
 
     options=parser.parse_args(argv[1:])
 
@@ -24,9 +24,12 @@ def main(argv):
     writepath = options.writepath
     outputfolder = options.outputfolder
     run_cluster = options.run_cluster
-    random_seeds = options.random_seeds
     reserved_memory = options.reserved_memory
     queue = options.queue
+    random_seeds = options.random_seeds
+    replicates = options.replicates
+    loci_list = options.loci_list
+
     algorithm = 'Fibers2.0' #hard coded here
 
     #Folder Management------------------------------
@@ -50,17 +53,21 @@ def main(argv):
         os.mkdir(logPath) 
 
     jobCount = 0
-    #For each dataset
+    datanames = []
     for dataname in os.listdir(datafolder):
-        if os.path.isfile(os.path.join(datafolder, dataname)):
-            datapath = os.path.join(datafolder, dataname)
-        data_name = os.path.splitext(dataname)[0]
+        datanames.append(dataname)
+    base_name = datanames[0].split('.')[0] #remove file extension
+    base_name = base_name.split('_')[0] #remove replicate number
+
+    for replicate in range(1,replicates+1): #one indexed datasets
+        datapath = datafolder+'/'+base_name+'_'+str(replicate)+'.csv'
+        data_name = base_name+'_'+str(replicate)
 
         if run_cluster == 'LSF':
-            submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue)
+            submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list)
             jobCount +=1
         elif run_cluster == 'SLURM':
-            submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue)
+            submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list)
             jobCount +=1
         else:
             print('ERROR: Cluster type not found')
@@ -68,7 +75,7 @@ def main(argv):
     print(str(jobCount)+' jobs submitted successfully')
 
     
-def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
+def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
     job_ref = str(time.time())
     job_name = 'Sum_FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -80,12 +87,12 @@ def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,r
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_sim_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) + '\n')
+    sh_file.write('srun python job_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) +' --loci-list '+ str(loci_list)+ '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
 
-def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue): #UPENN - Legacy mode (using shell file) - memory on head node
+def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list): #UPENN - Legacy mode (using shell file) - memory on head node
     job_ref = str(time.time())
     job_name = 'Sum_FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -97,7 +104,7 @@ def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,ran
     sh_file.write('#BSUB -M ' + str(reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_sim_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) + '\n')
+    sh_file.write('python job_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) +' --loci-list '+ str(loci_list) + '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

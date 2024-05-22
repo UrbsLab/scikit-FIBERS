@@ -23,7 +23,7 @@ def main(argv):
     parser.add_argument('--d', dest='datapath', help='name of data path (REQUIRED)', type=str, default = 'myData') #output folder name
     parser.add_argument('--o', dest='outputpath', help='', type=str, default = 'myOutputPath') #full path/filename
     parser.add_argument('--r', dest='random_seeds', help='random seeds in experiment', type=int, default='None')
-
+    parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1')
     #parser.add_argument('--f', dest='figures_only', help='random seeds in experiment', type=str, default='False')
 
     options=parser.parse_args(argv[1:])
@@ -31,44 +31,31 @@ def main(argv):
     datapath = options.datapath
     outputpath = options.outputpath
     random_seeds = options.random_seeds
+    loci_list = options.loci_list.split(',')
 
     #Get algorithm name
     outputfolder  = outputpath.split('/')[-1]
     algorithm = outputfolder.split('_')[0]
+    experiment = outputfolder.replace(algorithm+'_',"") #Unique experiment is identified by the output folder name
 
     #Get experiment name
     data_file = datapath.split('/')[-1]
     data_name = data_file.rstrip('.csv')
-    experiment = data_name.split('_')[0]
-    ideal_count = int(data_name.split('_')[6])
-    ideal_threshold = int(data_name.split('_')[8])
+
     target_folder = outputpath+'/'+data_name #target output subfolder
 
     #Make local summary output folder
     if not os.path.exists(target_folder+'/'+'summary'):
         os.mkdir(target_folder+'/'+'summary')  
 
-    #Load/Process Dataset
-    data = pd.read_csv(datapath)
-
-    true_risk_group = data[['TrueRiskGroup']]
-    data = data.drop('TrueRiskGroup', axis=1)
-
     #Define columns for replicate results summary:
     columns = ["Bin Features", "Threshold", "Fitness", "Pre-Fitness", "Log-Rank Score","Log-Rank p-value",
                "Bin Size", "Group Ratio", "Count At/Below Threshold", "Count Above Threshold", "Birth Iteration", 
                "Deletion Probability", "Cluster", "Residual", "Residual p-value", "Unadjusted HR", "Unadjusted HR CI",
-               "Unadjusted HR p-value", "Adjusted HR", "Adjusted HR CI", "Adjusted HR p-value", "Number of P", 
-               "Number of R", "Ideal Iteration", "Accuracy", "Runtime", "Dataset Filename"]
+               "Unadjusted HR p-value", "Adjusted HR", "Adjusted HR CI", "Adjusted HR p-value", "Runtime", "Dataset Filename"]
     df = pd.DataFrame(columns=columns)
 
     #Make intial lists to store metrics across replications
-    accuracy = []
-    num_P = []
-    num_R = []
-    ideal = 0
-    ideal_iter = []
-    ideal_thresh = 0
     threshold = []
     log_rank = []
     residuals = []
@@ -76,10 +63,8 @@ def main(argv):
     adj_HR = []
     group_balance = []
     runtime = []
-    tc = 0
     bin_size = []
     birth_iteration = []
-
     top_bin_pop = []
     feature_names = None
 
@@ -99,21 +84,10 @@ def main(argv):
                         bin.log_rank_p_value, bin.bin_size, bin.group_strata_prop, bin.count_bt, bin.count_at, 
                         bin.birth_iteration, bin.deletion_prop, bin.cluster, bin.residuals_score, bin.residuals_p_value,
                         bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
-                        str(bin.feature_list).count('P'), str(bin.feature_list).count('R'), 
-                        ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration),
-                        accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None,
                         fibers.elapsed_time, data_name] 
         df.loc[len(df)] = results_list
 
         #Update metric lists
-        accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None)
-        num_P.append(str(bin.feature_list).count('P'))
-        num_R.append(str(bin.feature_list).count('R'))
-        if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
-            ideal += 1
-            ideal_iter.append(bin.birth_iteration)
-        if bin.group_threshold == ideal_threshold:
-            ideal_thresh += 1
         threshold.append(bin.group_threshold)
         if bin.log_rank_score != None:
             log_rank.append(bin.log_rank_score)
@@ -125,21 +99,23 @@ def main(argv):
             adj_HR.append(bin.adj_HR)
         group_balance.append(bin.group_strata_prop)
         runtime.append(fibers.elapsed_time)
-        if str(bin.feature_list).count('T') > 0:
-            tc += 1
         bin_size.append(bin.bin_size)
         birth_iteration.append(bin.birth_iteration)
 
-        #Generate Figures:
-        #Kaplan Meir Plot
-        fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
-
-        #Bin Population Heatmap
-        group_names=["P", "R"]
-        legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
-        colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+        #Generate Bin Population Heatmap 
+        # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
+        all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
         max_bins = 100
         max_features = 100
+        group_names = []
+        legend_group_info = ['Not in Bin']
+        colors = [(.95, .95, 1)]
+        i = 0
+        for locus in loci_list:
+            group_names.append('MM_'+str(locus))
+            legend_group_info.append(locus)
+            colors.append(all_colors[i])
+            i += 1
 
         fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
@@ -147,38 +123,29 @@ def main(argv):
         fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
     #Save replicate results as csv
-
     df.to_csv(target_folder+'/'+'summary'+'/'+data_name+'_summary'+'.csv', index=False)
 
     #Generate experiment summary 'master list'
     master_columns = ["Algorithm","Experiment", "Dataset", 
-                    "Accuracy", "Accuracy (SD)", 
-                    "Number of P", "Number of P (SD)",
-                    "Number of R", "Number of R (SD)", "Ideal Bin", 
-                    "Iteration of Ideal Bin", "Iteration of Ideal Bin (SD)", "Ideal Threshold", 
                     "Threshold", "Threshold (SD)",
                     "Log-Rank Score", "Log-Rank Score (SD)", 
                     "Residual", "Residual (SD)", 
                     "Unadjusted HR", "Unadjusted HR (SD)", 
                     "Adjusted HR", "Adjusted HR (SD)", 
                     "Group Ratio", "Group Ratio (SD)",
-                    "Runtime", "Runtime (SD)", "TC1 Present", 
+                    "Runtime", "Runtime (SD)", 
                     "Bin Size", "Bin Size (SD)", 
                     "Birth Iteration", "Birth Iteration (SD)"]
     
     df_master = pd.DataFrame(columns=master_columns)
     master_results_list = [algorithm,experiment,data_name,
-                        np.mean(accuracy),np.std(accuracy),
-                        np.mean(num_P),np.std(num_P),
-                        np.mean(num_R),np.std(num_R), ideal, 
-                        np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
                         np.mean(threshold),np.std(threshold), 
                         None if len(log_rank) == 0 else np.mean(log_rank), None if len(log_rank) == 0 else np.std(log_rank) ,
                         None if len(residuals) == 0 else np.mean(residuals), None if len(residuals) == 0 else np.std(residuals), 
                         None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
                         None if len(adj_HR) == 0 else np.mean(adj_HR), None if len(adj_HR) == 0 else np.std(adj_HR), 
                         np.mean(group_balance),np.std(group_balance),
-                        np.mean(runtime),np.std(runtime), tc,
+                        np.mean(runtime),np.std(runtime), 
                         np.mean(bin_size),np.std(bin_size), 
                         np.mean(birth_iteration),np.std(birth_iteration)]
     
@@ -187,11 +154,19 @@ def main(argv):
     df_master.to_csv(target_folder+'/'+'summary'+'/'+data_name+'_master_summary'+'.csv', index=False)
 
     #Generate Top-bin Custom Heatmap across replicates
-    group_names=["P", "R"]
-    legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
-    colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+    # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
+    all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
     max_bins = 100
     max_features = 100
+    group_names = []
+    legend_group_info = ['Not in Bin']
+    colors = [(.95, .95, 1)]
+    i = 0
+    for locus in loci_list:
+        group_names.append('MM_'+str(locus))
+        legend_group_info.append(locus)
+        colors.append(all_colors[i])
+        i += 1
 
     population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
     population = population['feature_list']

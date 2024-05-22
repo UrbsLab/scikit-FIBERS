@@ -7,21 +7,35 @@
 python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --i 100 --ps 100 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 1 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
 python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --rc LSF --rm 4 --q i2c2_normal --rs 10
 
+#New Test
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test_new --i 50 --ps 50 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 1 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
 
 # Runs/Analyses
 
 # Fibers Settings - Iter 500, Pop 200, Div = 5 Thresh = None MaxThresh = 10 Fitness = log_rank_residuals
 
-    ### DRB1, DQA1, DQB1
-    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 1 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
+    ### DRB1, DQA1, DQB1 - Ag Covariates adjusted
+    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_3locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
 
 
-    ### DRB1, DQA1, DQB1 + DRB345
-    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 1 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+    ### DRB1, DQA1, DQB1 + DRB345 - Ag Covariates adjusted
+    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_4locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
 
 
-    ### DRB1, DQA1, DQB1, DRB345 + A, B, C
-    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 1 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+    ### DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted
+    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_7locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+
+
+    ### DRB1, DQA1, DQB1 
+    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_3locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list None
+
+
+    ### DRB1, DQA1, DQB1 + DRB345 
+    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_4locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list None
+
+
+    ### DRB1, DQA1, DQB1, DRB345 + A, B, C 
+    python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_7locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list None
 
 
 

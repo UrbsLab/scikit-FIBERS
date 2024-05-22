@@ -182,7 +182,6 @@ def main(argv):
         columns_to_remove = percentages[percentages == 0.0].index.tolist()
         data = data.drop(columns=columns_to_remove)
 
-
     #Job Definition
     fibers = FIBERS(outcome_label=outcome_label, outcome_type=outcome_type, iterations=iterations, pop_size=pop_size, tournament_prop=tournament_prop, 
                     crossover_prob=crossover_prob, min_mutation_prob=min_mutation_prob, max_mutation_prob=max_mutation_prob, merge_prob=merge_prob, 
@@ -205,6 +204,9 @@ def main(argv):
     #Save bin population as csv
     pop_df = fibers.get_pop()
     pop_df.to_csv(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_pop'+'.csv', index=False)
+
+    #Kaplan Meir Plot
+    fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=outputpath,data_name=dataset_name+'_'+str(random_seed))
 
     #Pickle FIBERS trained object
     with open(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_fibers.pickle', 'wb') as f:
