@@ -180,7 +180,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,all_bin
     if all_bin_labels == None:
         bin_names = []
         for i in range(len(population)):
-            bin_names.append("Seed " + str(i + 1))
+            bin_names.append("Imp " + str(i + 1))
     else:
         bin_names = all_bin_labels
 
@@ -253,7 +253,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,all_bin
     plt.ylabel('Top Bins',fontsize=fontsize)
 
     if save:
-        plt.savefig(output_folder+'/'+data_name+'_basic_pop_heatmap.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_top_bins_basic_pop_heatmap.png', bbox_inches="tight")
 
     if show:
         plt.show()
@@ -289,7 +289,7 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
     if all_bin_labels == None:
         bin_names = []
         for i in range(len(population)):
-            bin_names.append("Seed " + str(i + 1))
+            bin_names.append("Imp " + str(i + 1))
     else:
         bin_names = all_bin_labels
 
@@ -300,8 +300,7 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         tdf = pd.DataFrame(tdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False)
         tdf = tdf[tdf['Count'] >= filtering]
         graph_df = graph_df[list(tdf.index)]
-        feature_count = len(graph_df.columns)
-        print(feature_count)
+        feature_names = graph_df.columns.tolist()
 
     #Re order dataframe based on specified group names
     prefix_columns = {prefix: [col for col in graph_df.columns if col.startswith(prefix)] for prefix in group_names} # Get the columns starting with each prefix
