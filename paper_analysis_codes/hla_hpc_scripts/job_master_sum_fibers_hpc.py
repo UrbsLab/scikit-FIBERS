@@ -34,7 +34,7 @@ def main(argv):
     targetfolder = writepath +'/'+outputfolder
     replicates = options.replicates
     random_seeds = options.random_seeds
-    loci_list = options.loci_list
+    loci_list = options.loci_list.split(',')
 
     datanames = []
     for dataname in os.listdir(datafolder):
@@ -115,9 +115,6 @@ def main(argv):
             legend_group_info.append(locus)
             colors.append(all_colors[i])
             i += 1
-            print('next')
-            print(i)
-            print(locus)
 
         #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
         population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
