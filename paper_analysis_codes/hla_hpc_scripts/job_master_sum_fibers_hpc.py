@@ -75,7 +75,7 @@ def main(argv):
     combined_data = pd.DataFrame(columns=header)
     # Iterate over each CSV file (excluding the first one) and add its first row to the combined DataFrame
     for summary_file in all_summary_files:
-        data = pd.read_csv(summary_file, nrows=1, header=0, names=header)
+        data = pd.read_csv(summary_file, nrows=random_seeds, header=0, names=header)
         combined_data = pd.concat([combined_data, data], ignore_index=True)
     # Save the combined data to a new CSV file
     combined_data.to_csv(targetfolder+'/'+outputfolder+'_summary.csv', index=False)
