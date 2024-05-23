@@ -179,7 +179,7 @@ def main(argv):
     #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
                      ylabel='Count Across Top Bins', xlabel='Feature')
-    plt.savefig(target_folder+'/'+'summary'+'/'+data_name+'_feature_frequency_barplot.png', bbox_inches="tight")
+    plt.savefig(target_folder+'/'+'summary'+'/'+data_name+'_top_bins_feature_frequency_barplot.png', bbox_inches="tight")
 
 
 
@@ -280,7 +280,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
     plt.ylabel('Bins',fontsize=fontsize)
 
     if save:
-        plt.savefig(output_folder+'/'+data_name+'_basic_pop_heatmap.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_top_bins_basic_pop_heatmap.png', bbox_inches="tight")
     if show:
         plt.show()
 

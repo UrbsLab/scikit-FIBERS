@@ -127,7 +127,7 @@ def main(argv):
         #Generate feature frequency barplot
         pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
                         ylabel='Count Across Top Bins', xlabel='Dataset Feature')
-        plt.savefig(imp_sum_path+'/'+base_name+'_rs_'+str(random_seed)+'_feature_frequency_barplot.png', bbox_inches="tight")
+        plt.savefig(imp_sum_path+'/'+base_name+'_rs_'+str(random_seed)+'_top_bins_feature_frequency_barplot.png', bbox_inches="tight")
 
     #Generate Top-bin Custom Heatmap across replicates and random seeds
     # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
@@ -156,9 +156,7 @@ def main(argv):
     #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
                     ylabel='Count Across Top Bins', xlabel='Dataset Feature')
-    plt.savefig(imp_sum_path+'/'+base_name+'_feature_frequency_barplot.png', bbox_inches="tight")
-
-
+    plt.savefig(imp_sum_path+'/'+base_name+'_top_bins_feature_frequency_barplot.png', bbox_inches="tight")
 
 
 def match_prefix(feature, group_names):
