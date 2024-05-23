@@ -158,6 +158,7 @@ def main(argv):
     all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
     max_bins = 100
     max_features = 100
+    filtering = 1
     group_names = []
     legend_group_info = ['Not in Bin']
     colors = [(.95, .95, 1)]
@@ -170,10 +171,9 @@ def main(argv):
 
     population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
     population = population['feature_list']
-    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
+    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate Top-bin Basic Heatmap (no filtering) across replicates
-    filtering = 1
     gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate feature frequency barplot
@@ -286,7 +286,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
 
     return graph_df
 
-def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,filtering=None,show=True,save=False,output_folder=None,data_name=None):
     """
     :param population: a list where each element is a list of specified features
     :param feature_list: an alphabetically sorted list containing each of the possible feature
@@ -317,6 +317,13 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         bin_names.append("Seed " + str(i))
 
     graph_df = pd.DataFrame(graph_df, bin_names, feature_names) #data, index, columns
+
+    if filtering != None:
+        tdf = graph_df
+        tdf = pd.DataFrame(tdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False)
+        tdf = tdf[tdf['Count'] >= filtering]
+        graph_df = graph_df[list(tdf.index)]
+        feature_names = graph_df.columns.tolist()
 
     #Re order dataframe based on specified group names
     prefix_columns = {prefix: [col for col in graph_df.columns if col.startswith(prefix)] for prefix in group_names} # Get the columns starting with each prefix

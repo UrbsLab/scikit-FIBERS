@@ -197,7 +197,7 @@ def main(argv):
     #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
     population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
     population = population['feature_list']
-    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
+    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
     gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)
@@ -349,8 +349,7 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         tdf = pd.DataFrame(tdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False)
         tdf = tdf[tdf['Count'] >= filtering]
         graph_df = graph_df[list(tdf.index)]
-        feature_count = len(graph_df.columns)
-        print(feature_count)
+        feature_names = graph_df.columns.tolist()
 
     #Re order dataframe based on specified group names
     prefix_columns = {prefix: [col for col in graph_df.columns if col.startswith(prefix)] for prefix in group_names} # Get the columns starting with each prefix

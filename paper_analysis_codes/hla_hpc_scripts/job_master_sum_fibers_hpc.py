@@ -98,7 +98,7 @@ def main(argv):
             feature_names = fibers.feature_names
             top_bin_pop.append(bin)
             all_top_bins.append(bin)
-            all_bin_labels.append("Seed_" + str(random_seed + 1)+" Imp_"+str(replicate))
+            all_bin_labels.append("Seed_" + str(random_seed)+" Imp_"+str(replicate))
 
         #Generate Top-bin Custom Heatmap across replicates
         # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
