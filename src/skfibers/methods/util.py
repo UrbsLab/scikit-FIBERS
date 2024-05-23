@@ -438,8 +438,8 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
     legend_elements = [mpatches.Patch(color='aliceblue', label='Not in Bin'),
                         mpatches.Patch(color='darkblue', label='Included in Bin')]
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5),fontsize=fontsize)
-    plt.xlabel('Dataset Features',fontsize=fontsize)
-    plt.ylabel('Bins',fontsize=fontsize)
+    plt.xlabel('Features',fontsize=fontsize)
+    plt.ylabel('Bin Population',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_basic_pop_heatmap.png', bbox_inches="tight")
@@ -604,7 +604,7 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
         ax.vlines(running_count, colors="Black", *ax.get_ylim())
 
     plt.xlabel('Features',fontsize=fontsize)
-    plt.ylabel('Bins',fontsize=fontsize)
+    plt.ylabel('Bin Population',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_custom_pop_heatmap.png', bbox_inches="tight")

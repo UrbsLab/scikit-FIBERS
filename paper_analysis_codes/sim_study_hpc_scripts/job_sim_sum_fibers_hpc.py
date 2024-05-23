@@ -192,18 +192,19 @@ def main(argv):
     colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
     max_bins = 100
     max_features = 100
+    filtering = 1
 
+    #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
     population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
     population = population['feature_list']
     plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
-    #Generate Top-bin Basic Heatmap (no filtering) across replicates
-    filtering = 1
+    #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
     gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
-                     ylabel='Count Across Top Bins', xlabel='Dataset Feature')
+                     ylabel='Count Across Top Bins', xlabel='Feature')
     plt.savefig(target_folder+'/'+'summary'+'/'+data_name+'_feature_frequency_barplot.png', bbox_inches="tight")
 
 
@@ -234,7 +235,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
     feature_count = len(feature_names)
     bin_names = []
     for i in range(len(population)):
-        bin_names.append("Bin " + str(i + 1))
+        bin_names.append("Seed " + str(i + 1))
 
     feature_index_map = {}
     for i in range(feature_count):
@@ -301,17 +302,17 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
     legend_elements = [mpatches.Patch(color='aliceblue', label='Not in Bin'),
                         mpatches.Patch(color='darkblue', label='Included in Bin')]
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5),fontsize=fontsize)
-    plt.xlabel('Dataset Features',fontsize=fontsize)
-    plt.ylabel('Bins',fontsize=fontsize)
+    plt.xlabel('Features',fontsize=fontsize)
+    plt.ylabel('Top Bins',fontsize=fontsize)
 
     if save:
-        plt.savefig(output_folder+'/'+data_name+'_basic_pop_heatmap.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_top_bins_basic_pop_heatmap.png', bbox_inches="tight")
     if show:
         plt.show()
 
     return graph_df
 
-def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,filtering=None,show=True,save=False,output_folder=None,data_name=None):
     """
     :param population: a list where each element is a list of specified features
     :param feature_list: an alphabetically sorted list containing each of the possible feature
@@ -342,6 +343,14 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         bin_names.append("Seed " + str(i))
 
     graph_df = pd.DataFrame(graph_df, bin_names, feature_names) #data, index, columns
+
+    if filtering != None:
+        tdf = graph_df
+        tdf = pd.DataFrame(tdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False)
+        tdf = tdf[tdf['Count'] >= filtering]
+        graph_df = graph_df[list(tdf.index)]
+        feature_count = len(graph_df.columns)
+        print(feature_count)
 
     #Re order dataframe based on specified group names
     prefix_columns = {prefix: [col for col in graph_df.columns if col.startswith(prefix)] for prefix in group_names} # Get the columns starting with each prefix
@@ -455,7 +464,7 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         ax.vlines(running_count, colors="Black", *ax.get_ylim())
 
     plt.xlabel('Features',fontsize=fontsize)
-    plt.ylabel('Bin Population',fontsize=fontsize)
+    plt.ylabel('Top Bins',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_top_bins_custom_pop_heatmap.png', bbox_inches="tight")

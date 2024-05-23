@@ -10,7 +10,7 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 #from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import ListedColormap
-from sklearn.metrics import accuracy_score
+#from sklearn.metrics import accuracy_score
 sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
 from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
@@ -49,10 +49,10 @@ def main(argv):
         os.mkdir(target_folder+'/'+'summary')  
 
     #Define columns for replicate results summary:
-    columns = ["Bin Features", "Threshold", "Fitness", "Pre-Fitness", "Log-Rank Score","Log-Rank p-value",
+    columns = ["Dataset Filename","Random Seed","Bin Features", "Threshold", "Fitness", "Pre-Fitness", "Log-Rank Score","Log-Rank p-value",
                "Bin Size", "Group Ratio", "Count At/Below Threshold", "Count Above Threshold", "Birth Iteration", 
                "Deletion Probability", "Cluster", "Residual", "Residual p-value", "Unadjusted HR", "Unadjusted HR CI",
-               "Unadjusted HR p-value", "Adjusted HR", "Adjusted HR CI", "Adjusted HR p-value", "Runtime", "Dataset Filename"]
+               "Unadjusted HR p-value", "Adjusted HR", "Adjusted HR CI", "Adjusted HR p-value", "Runtime"]
     df = pd.DataFrame(columns=columns)
 
     #Make intial lists to store metrics across replications
@@ -80,11 +80,11 @@ def main(argv):
         top_bin_pop.append(bin)
 
 
-        results_list = [bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score,
+        results_list = [data_name,random_seed, bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score,
                         bin.log_rank_p_value, bin.bin_size, bin.group_strata_prop, bin.count_bt, bin.count_at, 
                         bin.birth_iteration, bin.deletion_prop, bin.cluster, bin.residuals_score, bin.residuals_p_value,
                         bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
-                        fibers.elapsed_time, data_name] 
+                        fibers.elapsed_time] 
         df.loc[len(df)] = results_list
 
         #Update metric lists
@@ -178,7 +178,7 @@ def main(argv):
 
     #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
-                     ylabel='Count Across Top Bins', xlabel='Dataset Feature')
+                     ylabel='Count Across Top Bins', xlabel='Feature')
     plt.savefig(target_folder+'/'+'summary'+'/'+data_name+'_feature_frequency_barplot.png', bbox_inches="tight")
 
 
@@ -430,7 +430,7 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         ax.vlines(running_count, colors="Black", *ax.get_ylim())
 
     plt.xlabel('Features',fontsize=fontsize)
-    plt.ylabel('Bin Population',fontsize=fontsize)
+    plt.ylabel('Top Bins',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_top_bins_custom_pop_heatmap.png', bbox_inches="tight")
