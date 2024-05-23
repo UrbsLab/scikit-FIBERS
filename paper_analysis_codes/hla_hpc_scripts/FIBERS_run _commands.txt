@@ -17,26 +17,31 @@ python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_
 
     ### DRB1, DQA1, DQB1 - Ag Covariates adjusted
     python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_3locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
-
+    python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_3locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
+    python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o Fibers2.0_hla_3locus_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
 
     ### DRB1, DQA1, DQB1 + DRB345 - Ag Covariates adjusted
     python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_4locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-
+    python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_4locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 
+    python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o Fibers2.0_hla_4locus_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 
     ### DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted
     python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_7locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-
+    python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_7locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+    python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o Fibers2.0_hla_7locus_baseline --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 
     ### DRB1, DQA1, DQB1 
     python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_3locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list None
-
+    python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_3locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
+    python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o Fibers2.0_hla_3locus_noagcov_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
 
     ### DRB1, DQA1, DQB1 + DRB345 
     python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_4locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list None
-
+    python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_4locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 
+    python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o Fibers2.0_hla_4locus_noagcov_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 
     ### DRB1, DQA1, DQB1, DRB345 + A, B, C 
     python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_7locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list None
-
-
+    python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_7locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+    python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o Fibers2.0_hla_7locus_noagcov_baseline --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 
