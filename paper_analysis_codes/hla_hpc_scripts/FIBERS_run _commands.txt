@@ -6,18 +6,10 @@
 #copy files
 cp /project/kamoun_shared/data_shared/new_imputaions/NewImp2.csv /project/kamoun_shared/data_shared/ryan_new_imp
 
-#Test
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --i 100 --ps 100 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 1 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test --rc LSF --rm 4 --q i2c2_normal --rs 10
-
-#New Test
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test_new --i 50 --ps 50 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 1 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test_new --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 1 --loci-list DRB1,DQA1,DQB1
-
 #New Test all
 python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test_new_full --i 50 --ps 50 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 10 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
 python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o hla_test_new_full --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
-
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/ryan_new_imp --w /project/kamoun_shared/output_shared/ryanurb/ --o Fibers2.0_hla_test_new_full --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
 
 # Runs/Analyses
 

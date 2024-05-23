@@ -48,10 +48,10 @@ def main(argv):
 
     #Create Combined Master List - results for each imputation analysis averaged over random seed runs
     master_files = []
-    for folder in os.listdir(targetfolder):
-        if os.path.isdir(os.path.join(targetfolder,folder)):
-            subfolder = os.path.join(targetfolder,folder)
-            master_files.append(subfolder+'/summary/'+folder+'_master_summary.csv')
+    for replicate in range(1,replicates+1): #one indexed datasets
+        data_name = base_name+'_'+str(replicate)
+        subfolder = targetfolder+'/'+data_name
+        master_files.append(subfolder+'/summary/'+data_name+'_master_summary.csv')
     #Read the header from the first CSV file
     header = pd.read_csv(master_files[0], nrows=0).columns.tolist()
     # Create an empty DataFrame to store the combined data
@@ -65,10 +65,10 @@ def main(argv):
 
     #Create Summary List of Individual results
     all_summary_files = []
-    for folder in os.listdir(targetfolder):
-        if os.path.isdir(os.path.join(targetfolder,folder)):
-            subfolder = os.path.join(targetfolder,folder)
-            all_summary_files.append(subfolder+'/summary/'+folder+'_summary.csv')
+    for replicate in range(1,replicates+1): #one indexed datasets
+        data_name = base_name+'_'+str(replicate)
+        subfolder = targetfolder+'/'+data_name
+        all_summary_files.append(subfolder+'/summary/'+data_name+'_summary.csv')
     #Read the header from the first CSV file
     header = pd.read_csv(all_summary_files[0], nrows=0).columns.tolist()
     # Create an empty DataFrame to store the combined data
