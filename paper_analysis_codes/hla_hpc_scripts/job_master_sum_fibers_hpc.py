@@ -89,7 +89,7 @@ def main(argv):
             data_name = base_name+'_'+str(replicate)
 
             #Unpickle FIBERS Object
-            with open(targetfolder+'/'+data_name+'_'+str(random_seed)+'_fibers.pickle', 'rb') as f:
+            with open(targetfolder+'/'+data_name+'/'+data_name+'_'+str(random_seed)+'_fibers.pickle', 'rb') as f:
                 fibers = pickle.load(f)
 
             #Get top bin object for current fibers population
