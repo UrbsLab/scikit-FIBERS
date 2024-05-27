@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
+import clips
 import time
 from sklearn.base import BaseEstimator, TransformerMixin
 from .methods.data_handling import prepare_data
@@ -531,7 +532,87 @@ class FIBERS(BaseEstimator, TransformerMixin):
             temp_df = None
             df = None
             return np.array(prediction_list) 
+        
+    
 
+    def predict_exp(self, instances, b, t):
+
+        def assert_fact_from_dict(env, template_name, data_dict):
+            # Construct the fact string from the dictionary
+            fact_str = f"({template_name} "
+            fact_str += " ".join(f"({key} \"{value}\")" if isinstance(value, str) else f"({key} {value})" for key, value in data_dict.items())
+            fact_str += ")"
+            # Assert the fact
+            env.assert_string(fact_str)
+
+        output = []
+        bins = b.copy()
+        l = instances.copy()
+        bins['pre_fitness'] = (bins['pre_fitness']) / (bins['pre_fitness'].sum())
+        env = clips.Environment() #create CLIPS environment
+
+        #generate instance template
+
+        instance_template = """
+        (deftemplate instance"""
+        for f in self.feature_names:
+            instance_template += """\n (slot """ + f + """ (type FLOAT))"""
+        instance_template += ")"
+        env.build(instance_template)
+        template = env.find_template('instance')
+        for i in range (len(bins)):
+            bin_template = """
+            (deftemplate bin""" + str(i) + "\n (slot pred (type FLOAT)))"
+            env.build(bin_template)
+        #function to assert a fact from a dictionary
+
+
+
+        #create global sum variable that will congregate
+        env.build("""
+        (defglobal ?*sum* = 0)""")
+
+        #create a rule for each bin
+        for i in range(len(bins)):
+            feature_list = (bins['feature_list'][i])
+            condition = ' '.join(f"({f} ?{f})" for f in feature_list)
+            action = '+ ' + ' '.join(f"?{f}" for f in feature_list)
+
+            rule = f"""
+            (defrule bin{i}_layer1
+                ?instance <- (instance {condition})
+            =>
+                (bind ?total ({action}))
+                (if (>= ?total {bins['group_threshold'][i]})
+                    then
+                        (assert (bin{i} (pred (* 1  {bins['pre_fitness'][i]}))))
+                        (bind ?*sum* (+ ?*sum* (* 1  {bins['pre_fitness'][i]})))
+                    else
+                        (assert (bin{i} (pred (* -1  {bins['pre_fitness'][i]}))))
+                        (bind ?*sum* (+ ?*sum* (* -1  {bins['pre_fitness'][i]})))
+                )
+            )
+            """
+            env.build(rule)
+
+
+
+        for x in l:
+            env.reset()
+            env.eval("(bind ?*sum* 0)")
+            assert_fact_from_dict(env, "instance", x) #assert the instance as a fact
+            env.run() #run the program
+
+            aggscore = 0
+            #print summed score of all bin predictions
+            for g in env.globals():
+                print("Agregated Score: " + str(g.value))
+                aggscore = g
+            if aggscore.value > t:
+                output.append(1)
+            else:
+                output.append(0)
+        return np.array(output)
 
     def performance_tracking(self,initialize,iteration):
         current_time = time.time()
@@ -776,6 +857,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
             bin_index += 1
 
         bin_df = None
+
+    
+
 
     def get_bin_report(self, bin_index):
         # Generates a bin summary report as a transposed dataframe
