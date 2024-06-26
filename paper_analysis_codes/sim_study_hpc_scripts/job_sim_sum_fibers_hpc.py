@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from sklearn.metrics import accuracy_score
 sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
-from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
+from src.skfibersv2.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
 def main(argv):

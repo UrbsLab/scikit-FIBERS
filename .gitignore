@@ -41,8 +41,6 @@ src/Data1.csv
 sampledata.csv
 src/
 output/
-output_cov/
-output_cov_new/
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/

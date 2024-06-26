@@ -8,41 +8,48 @@ import collections
 import seaborn as sns
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
+#from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import ListedColormap
 from sklearn.metrics import accuracy_score
+sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS-old/')
 from src.skfibersv2.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
+
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description='')
     
     #Script Parameters
-    parser.add_argument('--d', dest='dataset', help='name of data path (REQUIRED)', type=str, default = 'myData') #output folder name
-    parser.add_argument('--o', dest='outputPath', help='', type=str, default = 'myOutputPath') #full path/filename
-    parser.add_argument('--r', dest='random_seeds', help='random seeds in experiment', type=str, default='None')
+    parser.add_argument('--d', dest='datapath', help='name of data path (REQUIRED)', type=str, default = 'myData') #output folder name
+    parser.add_argument('--o', dest='outputpath', help='', type=str, default = 'myOutputPath') #full path/filename
+    parser.add_argument('--r', dest='random_seeds', help='random seeds in experiment', type=int, default='None')
+
     #parser.add_argument('--f', dest='figures_only', help='random seeds in experiment', type=str, default='False')
 
     options=parser.parse_args(argv[1:])
-    dataset = options.dataset
-    outputPath = options.outputPath
-    random_seeds = int(options.random_seeds)
-    #if options.figures_only == 'False':
-    #    figures_only = False
-    #else:
-    #    figures_only = True
 
-    ideal_count = 10
-    ideal_threshold = 0
-    algorithm = "FIBERS 2.0"
-    experiment = "TestAnalysis"
+    datapath = options.datapath
+    outputpath = options.outputpath
+    random_seeds = options.random_seeds
 
-    # Get dataset Name
-    filename = os.path.basename(dataset)
-    dataset_name,ext = os.path.splitext(filename)
+    #Get algorithm name
+    outputfolder  = outputpath.split('/')[-1]
+    algorithm = outputfolder.split('_')[0]
+
+    #Get experiment name
+    data_file = datapath.split('/')[-1]
+    data_name = data_file.rstrip('.csv')
+    experiment = data_name.split('_')[0]
+    ideal_count = int(data_name.split('_')[6])
+    ideal_threshold = int(data_name.split('_')[8])
+    target_folder = outputpath+'/'+data_name #target output subfolder
+
+    #Make local summary output folder
+    if not os.path.exists(target_folder+'/'+'summary'):
+        os.mkdir(target_folder+'/'+'summary')  
 
     #Load/Process Dataset
-    data = pd.read_csv(dataset)
+    data = pd.read_csv(datapath)
 
     true_risk_group = data[['TrueRiskGroup']]
     data = data.drop('TrueRiskGroup', axis=1)
@@ -79,7 +86,7 @@ def main(argv):
     #Create top bin summary across replicates
     for random_seed in range(0, random_seeds):  #for each replicate
         #Unpickle FIBERS Object
-        with open(outputPath+'/'+dataset_name+'_'+str(random_seed)+'_fibers.pickle', 'rb') as f:
+        with open(target_folder+'/'+data_name+'_'+str(random_seed)+'_fibers.pickle', 'rb') as f:
             fibers = pickle.load(f)
         #Get top bin object for current fibers population
         bin_index = 0 #top bin
@@ -95,7 +102,7 @@ def main(argv):
                         str(bin.feature_list).count('P'), str(bin.feature_list).count('R'), 
                         ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration),
                         accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None,
-                        fibers.elapsed_time, dataset_name] 
+                        fibers.elapsed_time, data_name] 
         df.loc[len(df)] = results_list
 
         #Update metric lists
@@ -125,7 +132,7 @@ def main(argv):
 
         #Generate Figures:
         #Kaplan Meir Plot
-        fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=outputPath,data_name=dataset_name+'_'+str(random_seed))
+        fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
         #Bin Population Heatmap
         group_names=["P", "R"]
@@ -134,14 +141,14 @@ def main(argv):
         max_bins = 100
         max_features = 100
 
-        fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=outputPath,data_name=dataset_name+'_'+str(random_seed))
+        fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
         # Feature Importance Estimates
-        fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=outputPath,data_name=dataset_name+'_'+str(random_seed))
+        fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
     #Save replicate results as csv
 
-    df.to_csv(outputPath+'/'+dataset_name+'_summary'+'.csv', index=False)
+    df.to_csv(target_folder+'/'+'summary'+'/'+data_name+'_summary'+'.csv', index=False)
 
     #Generate experiment summary 'master list'
     master_columns = ["Algorithm","Experiment", "Dataset", 
@@ -160,7 +167,7 @@ def main(argv):
                     "Birth Iteration", "Birth Iteration (SD)"]
     
     df_master = pd.DataFrame(columns=master_columns)
-    master_results_list = [algorithm,experiment,dataset_name,
+    master_results_list = [algorithm,experiment,data_name,
                         np.mean(accuracy),np.std(accuracy),
                         np.mean(num_P),np.std(num_P),
                         np.mean(num_R),np.std(num_R), ideal, 
@@ -177,7 +184,7 @@ def main(argv):
     
     df_master.loc[len(df_master)] = master_results_list
     #Save master results as csv
-    df_master.to_csv(outputPath+'/'+dataset_name+'_master_summary'+'.csv', index=False)
+    df_master.to_csv(target_folder+'/'+'summary'+'/'+data_name+'_master_summary'+'.csv', index=False)
 
     #Generate Top-bin Custom Heatmap across replicates
     group_names=["P", "R"]
@@ -185,19 +192,20 @@ def main(argv):
     colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
     max_bins = 100
     max_features = 100
+    filtering = 1
 
+    #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
     population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
     population = population['feature_list']
-    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=outputPath,data_name=dataset_name)
+    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
-    #Generate Top-bin Basic Heatmap (no filtering) across replicates
-    filtering = 1
-    gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=outputPath,data_name=dataset_name)
+    #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
+    gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
-                     ylabel='Count Across Top Bins', xlabel='Dataset Feature')
-    plt.savefig(outputPath+'/'+dataset_name+'_feature_frequency_barplot.png', bbox_inches="tight")
+                     ylabel='Count Across Top Bins', xlabel='Feature')
+    plt.savefig(target_folder+'/'+'summary'+'/'+data_name+'_feature_frequency_barplot.png', bbox_inches="tight")
 
 
 
@@ -227,7 +235,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
     feature_count = len(feature_names)
     bin_names = []
     for i in range(len(population)):
-        bin_names.append("Bin " + str(i + 1))
+        bin_names.append("Seed " + str(i + 1))
 
     feature_index_map = {}
     for i in range(feature_count):
@@ -294,17 +302,17 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
     legend_elements = [mpatches.Patch(color='aliceblue', label='Not in Bin'),
                         mpatches.Patch(color='darkblue', label='Included in Bin')]
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5),fontsize=fontsize)
-    plt.xlabel('Dataset Features',fontsize=fontsize)
-    plt.ylabel('Bins',fontsize=fontsize)
+    plt.xlabel('Features',fontsize=fontsize)
+    plt.ylabel('Top Bins',fontsize=fontsize)
 
     if save:
-        plt.savefig(output_folder+'/'+data_name+'_basic_pop_heatmap.png', bbox_inches="tight")
+        plt.savefig(output_folder+'/'+data_name+'_top_bins_basic_pop_heatmap.png', bbox_inches="tight")
     if show:
         plt.show()
 
     return graph_df
 
-def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,filtering=None,show=True,save=False,output_folder=None,data_name=None):
     """
     :param population: a list where each element is a list of specified features
     :param feature_list: an alphabetically sorted list containing each of the possible feature
@@ -335,6 +343,13 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         bin_names.append("Seed " + str(i))
 
     graph_df = pd.DataFrame(graph_df, bin_names, feature_names) #data, index, columns
+
+    if filtering != None:
+        tdf = graph_df
+        tdf = pd.DataFrame(tdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False)
+        tdf = tdf[tdf['Count'] >= filtering]
+        graph_df = graph_df[list(tdf.index)]
+        feature_names = graph_df.columns.tolist()
 
     #Re order dataframe based on specified group names
     prefix_columns = {prefix: [col for col in graph_df.columns if col.startswith(prefix)] for prefix in group_names} # Get the columns starting with each prefix
@@ -448,7 +463,7 @@ def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,
         ax.vlines(running_count, colors="Black", *ax.get_ylim())
 
     plt.xlabel('Features',fontsize=fontsize)
-    plt.ylabel('Bin Population',fontsize=fontsize)
+    plt.ylabel('Top Bins',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_top_bins_custom_pop_heatmap.png', bbox_inches="tight")

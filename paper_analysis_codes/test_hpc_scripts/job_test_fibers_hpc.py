@@ -3,7 +3,7 @@ import sys
 import argparse
 import pickle
 import pandas as pd
-from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
+from src.skfibersv2.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
