@@ -4,7 +4,7 @@ from lifelines import CoxPHFitter
 def prepare_data(df,outcome_label,censor_label,covariates):
     # Make list of feature names (i.e. columns that are not outcome, censor, or covariates)
     feature_names = list(df.columns)
-    if censor_label != None:
+    if covariates != None: # Sobhan_chnage to covariants
         exclude = covariates + [outcome_label,censor_label]
     else:
         exclude = [outcome_label,censor_label]
