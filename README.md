@@ -5,7 +5,7 @@
 ![alttext](https://github.com/UrbsLab/scikit-FIBERS/blob/main/Pictures/FIBERS2.0_paper_vertical_color.png?raw=true)
 
 The repository contains high-performance-cluster running scripts for different version of FIBERS for the anaysis.
-Specifically this repository comparares 3 versions of scikit-FIBERS
+Specifically this repository compares 3 versions of scikit-FIBERS
 1. FIBERS 1.0: https://github.com/UrbsLab/scikit-FIBERS/tree/gecco_dev / https://github.com/UrbsLab/scikit-FIBERS/releases/tag/v1.0-beta
 2. FIBERS AT: https://github.com/UrbsLab/scikit-FIBERS/tree/evostar_24
 3. FIBERS 2.0: https://github.com/UrbsLab/scikit-FIBERS/tree/dev / https://github.com/UrbsLab/scikit-FIBERS/releases/tag/v2.0.0
@@ -29,7 +29,7 @@ Most recently scikit-FIBERS 2.0 was released, as a completely redesigned, refact
 ### Pre-requisites and Installation
 
 Steps and commands to set up and run experiments as per the manuscript:
-1. Clone the reposioriy with all the code and runner files `git clone --single-branch --branch dev https://github.com/UrbsLab/scikit-FIBERS`
+1. Clone the reposioriy with all the code and runner files `git clone --single-branch --branch sim_paper https://github.com/UrbsLab/scikit-FIBERS`
 2. Install pre-requisites using `pip install -r requirements.txt`
 3. Run the experiments using commands specified in the next section (assumes you have access to an HPC, change HPC type and queue name accordingly). The sample commands below are specified for the UPenn I2C2 Cluster.
 
@@ -70,6 +70,8 @@ python run_sim_fibersAT_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_si
 python run_sim_sum_fibersAT_hpc.py --d /project/kamoun_shared/ryanurb/data/simple_sim_datasets --w /project/kamoun_shared/bandheyh/ --o FAT_sim_t_0_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal
 python run_sim_master_sum_fibersAT_hpc.py --w /project/kamoun_shared/ryanurb/ --o FibersAT_sim_t_0_5
 ```
+
+More to be added
 
 ## Documentation:
 Extensive code documentation about the scikit-FIBERS 2.0 API can be found [here](https://urbslab.github.io/scikit-FIBERS/skfibers.html) in the guide.
