@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scikit-FIBERS &mdash; FIBERS 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=af2ce170"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Code Documentation" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            FIBERS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">FIBERS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">scikit-FIBERS</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="scikit-fibers">
+<h1>scikit-FIBERS<a class="headerlink" href="#scikit-fibers" title="Permalink to this heading"></a></h1>
+<p>Feature Inclusion Bin Evolver for Risk Stratification (FIBERS) is an evolutionary algorithm for automatically
+binning features to stratify risk in right-censored survival data. In particular it was designed for features
+that correspond to mismatches between donor and recipients for transplantation. This repository focuses on a
+scikit-learn compatible implementation and ongoing improvement/expansion of the of the original
+<a class="reference external" href="https://doi.org/10.1016/j.jbi.2023.104374">(FIBERS)</a> algorithm.
+Further development of the FIBERS algorithm will take place via this repository.
+The schematic below outlines how this algorithm works.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<p>We can easily install scikit-fibers using the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>scikit-fibers
+</pre></div>
+</div>
+</section>
+<section id="how-to-use">
+<h2>How to Use:<a class="headerlink" href="#how-to-use" title="Permalink to this heading"></a></h2>
+<p>An <a class="reference external" href="FIBERS_Survival_Demo.ipynb">Example Notebook</a> is given with sample code that shows what functions are available
+in scikit-FIBERS and how to use them by utilizing a built in survival data simulator. This notebook is currently set up to run by downloading this repository and running the included notebook, however you can also set up scikit-fibers to be installed and applied using pip install (above).</p>
+</section>
+<section id="read-about-and-cite-fibers-and-scikit-fibers">
+<h2>Read About and Cite FIBERS and scikit-FIBERS<a class="headerlink" href="#read-about-and-cite-fibers-and-scikit-fibers" title="Permalink to this heading"></a></h2>
+<p>FIBERS was originally based on the <a class="reference external" href="https://github.com/UrbsLab/RARE">RARE</a> algorithm, an evolutionary algorithm for rare variant binning.</p>
+<p>Dasariraju, S. and Urbanowicz, R.J., 2021, July. <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3449726.3463174?casa_token=0MRY0eLfZW0AAAAA:PD75rM0SB_V37prY2Ey1CPCu5twUrWMoPn5C6tD9sBRuQy5TJ_TeqhzWwmvp41gbrsPtQerZpPI56A">RARE: evolutionary feature engineering for rare-variant bin discovery.</a> In Proceedings of the Genetic and Evolutionary Computation Conference Companion (pp. 1335-1343).</p>
+<p>The first implementation of <cite>FIBERS &lt;https://github.com/UrbsLab/FIBERS&gt;</cite> was developed within it’s own GitHub repository, and was applied to an investigation of graft failure in kidney transplantation.</p>
+<p>Dasariraju, S., Gragert, L., Wager, G.L., McCullough, K., Brown, N.K., Kamoun, M. and Urbanowicz, R.J., 2023. <a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S1532046423000953?casa_token=HP4rI5N9iFkAAAAA:-NgwMAlLUWlvLzzBHU9qz08mv-evC19YxIsFH5RTiGpSiXEd-uBuOkfZbuBShTwstT50vDnIsrM">HLA amino acid Mismatch-Based risk stratification of kidney allograft failure using a novel Machine learning algorithm.</a> Journal of Biomedical Informatics, 142, p.104374.</p>
+<p>The first publication detailing scikit-FIBERS (release 0.9.3) was applied and evaluated on simulated right-censored survival data with amino acid mismatch features.</p>
+<p>Urbanowicz, R., Bandhey, H., Kamoun, M., Fogarty, N. and Hsieh, Y.A., 2023, July. <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3583133.3596393?casa_token=jZEPXXznvuUAAAAA:IdV4u-Q07p8_AEfvnTtLpBJePZzmdR2DsImvtpN0z2mge0tgLwqutEF18q74afpj9pOnQ8OnlxPKjw">Scikit-FIBERS: An’OR’-Rule Discovery Evolutionary Algorithm for Risk Stratification in Right-Censored Survival Analyses.</a> In Proceedings of the Companion Conference on Genetic and Evolutionary Computation (pp. 1846-1854).</p>
+<p>FIBERS was extended with a prototype <a class="reference external" href="https://github.com/UrbsLab/scikit-FIBERS/tree/evostar_24">adaptive burden thresholding</a> approach to allow bins to simulaneously identify the best bin threshold to apply.</p>
+<p>Bandhey, H., Sadek, S., Kamoun, M. and Urbanowicz, R., 2024, March. <a class="reference external" href="https://link.springer.com/chapter/10.1007/978-3-031-56855-8_14">Evolutionary Feature-Binning with Adaptive Burden Thresholding for Biomedical Risk Stratification.</a> In International Conference on the Applications of Evolutionary Computation (Part of EvoStar) (pp. 225-239). Cham: Springer Nature Switzerland.</p>
+<p>Most recently FIBERS 2.0 was released, as a completely redesigned, refactored and expanded implementation. Expansions include (1) a merge operator, (2) variable mutation rate, (3) improved adaptive burden thresholding, (4) a bin diversity pressure mechanism, (5) a fitness option based on deviance residuals to estimate covariate adjustments throught algorithm training, and (6) a bin population cleanup option. This paper is currently submitted (under review).</p>
+<p>Urbanowicz, R., Bandhey, H., McCullough, K., Chang, A., Gragert, L., Brown, N., Kamoun, M., 2024, April. FIBERS 2.0: Evolutionary Feature Binning For Biomedical Risk Stratification in Right-Censored Survival Analyses With Covariates.</p>
+</section>
+<section id="documentation-for-fibers-class">
+<h2>Documentation for FIBERS Class:<a class="headerlink" href="#documentation-for-fibers-class" title="Permalink to this heading"></a></h2>
+<p>Extensive code documentation about the scikit-FIBERS API can be found <a class="reference external" href="skfibers.html#module-skfibers.fibers">here</a>.</p>
+</section>
+<section id="contact">
+<h2>Contact<a class="headerlink" href="#contact" title="Permalink to this heading"></a></h2>
+<p>Please email <a class="reference external" href="mailto:Ryan&#46;Urbanowicz&#37;&#52;&#48;cshs&#46;org">Ryan<span>&#46;</span>Urbanowicz<span>&#64;</span>cshs<span>&#46;</span>org</a> and <a class="reference external" href="mailto:Harsh&#46;Bandhey&#37;&#52;&#48;cshs&#46;org">Harsh<span>&#46;</span>Bandhey<span>&#64;</span>cshs<span>&#46;</span>org</a> for any
+inquiries related to scikit-FIBERS.</p>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-right" title="Code Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Ryan Urbanowicz, Harsh Bandhey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
