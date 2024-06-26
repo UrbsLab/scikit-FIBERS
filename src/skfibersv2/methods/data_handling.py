@@ -1,10 +1,10 @@
 import logging
 from lifelines import CoxPHFitter
 
-def prepare_data(df,outcome_label,censor_label,covariates):
+def prepare_data(df, outcome_label, censor_label, covariates):
     # Make list of feature names (i.e. columns that are not outcome, censor, or covariates)
     feature_names = list(df.columns)
-    if censor_label != None:
+    if covariates != None:
         exclude = covariates + [outcome_label,censor_label]
     else:
         exclude = [outcome_label,censor_label]
@@ -22,7 +22,7 @@ def prepare_data(df,outcome_label,censor_label,covariates):
     return df, feature_names
 
 
-def calculate_residuals(df,covariates,feature_names,outcome_label,censor_label): #Ryan - do we need to handle categorical variables like when calculating Cox PH??
+def calculate_residuals(df,covariates, feature_names, outcome_label,censor_label): #Ryan - do we need to handle categorical variables like when calculating Cox PH??
     # Fit a Cox proportional hazards model to the DataFrame
     var_list = covariates+[outcome_label,censor_label]
     logging.info("Fitting COX Model")
