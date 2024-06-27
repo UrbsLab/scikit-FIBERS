@@ -2,8 +2,8 @@ import os
 import shutil
 
 # Define the paths to the directories
-logs_dir = '/project/kamoun_shared/output_shared/ryanurb/logs'
-scratch_dir = '/project/kamoun_shared/output_shared/ryanurb/scratch'
+logs_dir = '/project/kamoun_shared/output_shared/bandheyh/hpcfiles/logs'
+scratch_dir = '/project/kamoun_shared/output_shared/bandheyh/hpcfiles/scratch'
 
 # Function to delete contents of a directory
 def delete_contents(directory):

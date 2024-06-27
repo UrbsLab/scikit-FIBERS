@@ -1,5 +1,7 @@
 import os
 import time
+import sys
+sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
 from src.skfibersv2.experiments.survival_sim_simple import survival_data_simulation #SOURCE CODE RUN
 #from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
 
@@ -10,8 +12,8 @@ from src.skfibersv2.experiments.survival_sim_simple import survival_data_simulat
 class RunFIBERS:
     def __init__(self):
         #Run Parameters
-        self.data_path = '/project/kamoun_shared/ryanurb/data'
-        self.write_path = '/project/kamoun_shared/ryanurb/'
+        self.data_path = '/project/kamoun_shared/bandheyh/simdatatest/'
+        self.write_path = '/project/kamoun_shared/bandheyh/hpcfiles/'
         self.data_name = 'example_sim1'
         self.output_folder = 'sim_test1'
         self.run_cluster = 'LSF' #LSF or SLURM

@@ -9,9 +9,9 @@ class RunFIBERS:
     def __init__(self):
         #Run Parameters
         #self.write_path = '/project/kamoun_shared/ryanurb/'
-        self.write_path = '/project/kamoun_shared/output_shared/ryanurb/'
+        self.write_path = '/project/kamoun_shared/output_shared/bandheyh/'
         #self.data_path = '/project/kamoun_shared/ryanurb/data/simple_sim_datasets'
-        self.data_path = '/project/kamoun_shared/data_shared/simple_sim_datasets'
+        self.data_path = '/project/kamoun_shared/data_shared/simulation_study_testing/'
         self.run_cluster = 'LSF' #LSF or SLURM
         self.reserved_memory = 4
         self.queue = 'i2c2_normal'
@@ -195,5 +195,5 @@ def submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,thr
     sh_file.close()
     os.system('bsub < ' + job_path)
 
-
-run_obj = RunFIBERS()
+if __name__ == "__main__":
+    run_obj = RunFIBERS()

@@ -6,8 +6,8 @@ import time
 class SumFIBERS:
     def __init__(self):
         #Run Parameters
-        self.data_path = '/project/kamoun_shared/ryanurb/data'
-        self.write_path = '/project/kamoun_shared/ryanurb/'
+        self.data_path = '/project/kamoun_shared/bandheyh/simdatatest/'
+        self.write_path = '/project/kamoun_shared/bandheyh/hpcfiles/'
         self.data_name = 'example_sim1'
         self.output_folder = 'sim_test1'
         self.run_cluster = 'LSF' #LSF or SLURM

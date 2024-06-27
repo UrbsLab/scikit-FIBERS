@@ -3,6 +3,7 @@ import sys
 import argparse
 import pickle
 import pandas as pd
+sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
 from src.skfibersv2.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 def main(argv):

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 #from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import ListedColormap
 from sklearn.metrics import accuracy_score
-sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
+sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
 from src.skfibersv2.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
