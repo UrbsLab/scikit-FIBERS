@@ -19,8 +19,8 @@ def save_run_params(fibers, filename):
         file.write(f"elitism: {fibers.elitism_parameter}\n")
         file.write(f"min_features_per_group: {fibers.min_features_per_group}\n")
         file.write(f"max_number_of_groups_with_feature: {fibers.max_number_of_groups_with_feature}\n")
-        file.write(f"fitness_metric: {fibers.fitness_metric}\n")
-        file.write(f"censor_label: {fibers.censor_label}\n")
+        file.write(f"fitness_metric: {fibers.scoring_method}\n")
+        file.write(f"censor_label: {fibers.label_name}\n")
         file.write(f"group_strata_min: {fibers.informative_cutoff}\n")
         file.write(f"group_thresh: {fibers.threshold}\n")
         file.write(f"min_thresh: {fibers.min_threshold}\n")
@@ -61,7 +61,7 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     
     # PREPARE DATA ---------------------------------------
     df = fibers.check_x_y(x, y)
-    df, feature_names = prepare_data(df, fibers.duration_label, fibers.censor_label, fibers.covariates)
+    df, feature_names = prepare_data(df, fibers.duration_label, fibers.label_name, fibers.covariates)
 
     # Sum instance values across features specified in the bin
     sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
@@ -73,10 +73,10 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
         # Transform bin feature values according to respective bin threshold
         bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= fibers.set.bin_pop[bin_index].group_threshold else 1)
 
-    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_label],df.loc[:,fibers.censor_label]],axis=1)
+    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_label],df.loc[:,fibers.label_name]],axis=1)
     summary = None
     try:
-        summary = cox_prop_hazard(bin_df,fibers.duration_label,fibers.censor_label)
+        summary = cox_prop_hazard(bin_df,fibers.duration_label,fibers.label_name)
         # fibers.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
         # fibers.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
         # fibers.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
@@ -96,7 +96,7 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
 
     # PREPARE DATA ---------------------------------------
     df = fibers.check_x_y(x, y)
-    df, feature_names = prepare_data(df, fibers.duration_label, fibers.censor_label, fibers.covariates)
+    df, feature_names = prepare_data(df, fibers.duration_label, fibers.label_name, fibers.covariates)
 
     # Sum instance values across features specified in the bin
     
@@ -109,11 +109,11 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
         # Transform bin feature values according to respective bin threshold
         bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= fibers.set.bin_pop[bin_index].group_threshold else 1)
 
-    bin_df = pd.concat([bin_df,df.loc[:,fibers.outcome_label],df.loc[:,fibers.censor_label]],axis=1)
+    bin_df = pd.concat([bin_df,df.loc[:,fibers.outcome_label],df.loc[:,fibers.label_name]],axis=1)
     summary = None
     try:
         bin_df = pd.concat([bin_df,df.loc[:,fibers.covariates]],axis=1)
-        summary = cox_prop_hazard(bin_df,fibers.outcome_label,fibers.censor_label)
+        summary = cox_prop_hazard(bin_df,fibers.outcome_label,fibers.label_name)
         # fibers.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
         # fibers.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
         # fibers.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
@@ -228,8 +228,8 @@ def main(argv):
     except:
         pass
     #Save bin population as csv
-    pop_df = fibers.get_pop()
-    pop_df.to_csv(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_pop'+'.csv', index=False)
+    # pop_df = fibers.get_pop()
+    # pop_df.to_csv(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_pop'+'.csv', index=False)
 
     #Pickle FIBERS trained object
     with open(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_fibers.pickle', 'wb') as f:
