@@ -3,7 +3,8 @@ import sys
 import argparse
 import pickle
 import pandas as pd
-sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS-old/')
+from lifelines import CoxPHFitter
+sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
 from src.skfibersAT.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
@@ -12,7 +13,6 @@ def save_run_params(fibers, filename):
         file.write(f"outcome_label: {fibers.duration_name}\n")
         file.write(f"iterations: {fibers.iterations}\n")
         file.write(f"pop_size: {fibers.set_number_of_bins}\n")
-        file.write(f"tournament_prop: {'NA'}\n")
         file.write(f"crossover_prob: {fibers.crossover_probability}\n")
         file.write(f"mutation_prob: {fibers.mutation_probability}\n")
         file.write(f"merge_prob: {fibers.merge_probability}\n")
@@ -50,33 +50,41 @@ def prepare_data(df, outcome_label, censor_label, covariates):
 
     return df, feature_names
 
+def cox_prop_hazard(bin_df, outcome_label, censor_label): #make bin variable beetween 0 and 1
+    cph = CoxPHFitter()
+    cph.fit(bin_df,outcome_label,event_col=censor_label, show_progress=False)
+    return cph.summary
+
 def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=False):
     if not fibers.hasTrained:
         raise Exception("FIBERS must be fit first")
     
     # PREPARE DATA ---------------------------------------
     df = fibers.check_x_y(x, y)
-    df,fibers.feature_names = prepare_data(df,fibers.outcome_label, fibers.censor_label, fibers.covariates)
+    df, feature_names = prepare_data(df, fibers.duration_label, fibers.censor_label, fibers.covariates)
 
     # Sum instance values across features specified in the bin
-    feature_sums = df.loc[:,fibers.feature_names][fibers.set.bin_pop[bin_index].feature_list].sum(axis=1)
+    sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
+    sorted_bin_list = list(sorted_bin_scores.keys())
+    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]].feature_list].sum(axis=1)
     bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
 
     if not use_bin_sums:
         # Transform bin feature values according to respective bin threshold
         bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= fibers.set.bin_pop[bin_index].group_threshold else 1)
 
-    bin_df = pd.concat([bin_df,df.loc[:,fibers.outcome_label],df.loc[:,fibers.censor_label]],axis=1)
+    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_label],df.loc[:,fibers.censor_label]],axis=1)
     summary = None
     try:
-        summary = cox_prop_hazard(bin_df,fibers.outcome_label,fibers.censor_label)
-        fibers.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
-        fibers.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
-        fibers.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
+        summary = cox_prop_hazard(bin_df,fibers.duration_label,fibers.censor_label)
+        # fibers.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
+        # fibers.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+        # fibers.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
     except:
-        fibers.set.bin_pop[bin_index].HR = 0
-        fibers.set.bin_pop[bin_index].HR_CI = None
-        fibers.set.bin_pop[bin_index].HR_p_value = None
+        # fibers.set.bin_pop[bin_index].HR = 0
+        # fibers.set.bin_pop[bin_index].HR_CI = None
+        # fibers.set.bin_pop[bin_index].HR_p_value = None
+        pass
 
     df = None
     return summary
@@ -88,10 +96,13 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
 
     # PREPARE DATA ---------------------------------------
     df = fibers.check_x_y(x, y)
-    df, fibers.feature_names = prepare_data(df, fibers.duration_label, fibers.censor_label, fibers.covariates)
+    df, feature_names = prepare_data(df, fibers.duration_label, fibers.censor_label, fibers.covariates)
 
     # Sum instance values across features specified in the bin
-    feature_sums = df.loc[:,fibers.feature_names][fibers.set.bin_pop[bin_index].feature_list].sum(axis=1)
+    
+    sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
+    sorted_bin_list = list(sorted_bin_scores.keys())
+    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]].feature_list].sum(axis=1)
     bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
 
     if not use_bin_sums:
@@ -103,13 +114,14 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     try:
         bin_df = pd.concat([bin_df,df.loc[:,fibers.covariates]],axis=1)
         summary = cox_prop_hazard(bin_df,fibers.outcome_label,fibers.censor_label)
-        fibers.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
-        fibers.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
-        fibers.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
+        # fibers.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
+        # fibers.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+        # fibers.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
     except:
-        fibers.set.bin_pop[bin_index].adj_HR = 0
-        fibers.set.bin_pop[bin_index].adj_HR_CI = None
-        fibers.set.bin_pop[bin_index].adj_HR_p_value = None
+        # fibers.set.bin_pop[bin_index].adj_HR = 0
+        # fibers.set.bin_pop[bin_index].adj_HR_CI = None
+        # fibers.set.bin_pop[bin_index].adj_HR_p_value = None
+        pass
 
     df = None
     return summary
@@ -125,7 +137,7 @@ def main(argv):
     parser.add_argument('--ol', dest='outcome_label', help='outcome column label', type=str, default='Duration')  
     parser.add_argument('--i', dest='iterations', help='iterations', type=int, default=100)
     parser.add_argument('--ps', dest='pop_size', help='population size', type=int, default=50)
-    parser.add_argument('--tp', dest='tournament_prop', help='trournament probability', type=float, default=0.2)
+    parser.add_argument('--pi', dest='manual_bin_init', help='directory path to population initialization file', type=str, default = 'None') #full path/filename
     parser.add_argument('--cp', dest='crossover_prob', help='crossover probability', type=float, default=0.5)
     parser.add_argument('--mup', dest='mutation_prob', help='mutation probability', type=float, default=0.5)
     parser.add_argument('--mp', dest='merge_prob', help='merge probability', type=float, default=0.1)
@@ -136,10 +148,10 @@ def main(argv):
     parser.add_argument('--f', dest='fitness_metric', help='fitness metric', type=str, default='log_rank')
     parser.add_argument('--c', dest='censor_label', help='censor column label', type=str, default='Censoring')
     parser.add_argument('--g', dest='group_strata_min', help='group strata minimum', type=float, default=0.2)
-    parser.add_argument('--t', dest='group_thresh', help='group threshold', type=str, default=0)
+    parser.add_argument('--t', dest='group_thresh', help='group threshold', type=int, default=0)
     parser.add_argument('--it', dest='min_thresh', help='minimum threshold', type=int, default=0)
     parser.add_argument('--at', dest='max_thresh', help='maximum threshold', type=int, default=5)
-    parser.add_argument('--ms', dest='mutation_strategy', help='mutation strategy (Regular or Simplifed)', type=int, default="Simplified")
+    parser.add_argument('--ms', dest='mutation_strategy', help='mutation strategy (Regular or Simplifed)', type=str, default="Regular")
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
 
@@ -149,8 +161,10 @@ def main(argv):
     outputpath = options.outputpath
     if options.manual_bin_init == 'None':
         manual_bin_init = None
+        assert(manual_bin_init is None)
     else:
-        manual_bin_init = pd.read_csv(manual_bin_init,low_memory=False)
+        # manual_bin_init = pd.read_csv(manual_bin_init,low_memory=False)
+        raise NotImplementedError
 
     outcome_label = options.outcome_label
     iterations = options.iterations
@@ -165,7 +179,7 @@ def main(argv):
     censor_label = options.censor_label
     group_strata_min = options.group_strata_min
     if options.group_thresh == 'None':
-        group_thresh = None
+        group_thresh = 0
     else:
         group_thresh = int(options.group_thresh)
     min_thresh = options.min_thresh 
@@ -198,7 +212,7 @@ def main(argv):
                     iterations=iterations, set_number_of_bins=pop_size, 
                     min_features_per_group=min_features_per_group, max_number_of_groups_with_feature=max_number_of_groups_with_feature,
                     informative_cutoff=group_strata_min, crossover_probability=crossover_prob, mutation_probability=mutation_prob, elitism_parameter=elitism,
-                    mutation_strategy=mutation_strategy, random_seed=random_seed, threshold=group_thresh, evolving_probability=thresh_evolve_prob,
+                    mutation_strategy=mutation_strategy, random_seed=random_seed, set_threshold=group_thresh, evolving_probability=thresh_evolve_prob,
                     min_threshold=min_thresh, max_threshold=max_thresh, merge_probability=merge_prob, 
                     adaptable_threshold=False if thresh_evolve_prob == 0 else True, covariates=covariates,
                     scoring_method=fitness_metric)
