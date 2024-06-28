@@ -80,6 +80,7 @@ def main(argv):
     if not os.path.exists(logPath):
         os.mkdir(logPath) 
     outputPath = outputPath+algorithm+'_'+outputfolder
+    # print(outputPath)
     if not os.path.exists(outputPath):
         os.mkdir(outputPath) 
 
@@ -145,6 +146,7 @@ def submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,man
     job_ref = str(time.time())
     job_name = 'FIBERS_'+data_name+'_' +str(random_seed)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
+    # print(job_path)
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
     sh_file.write('#BSUB -q ' + queue + '\n')
@@ -160,15 +162,15 @@ def submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,man
         +' --bi '+str(min_features_per_group)+' --ba '+str(max_number_of_groups_with_feature)+' --f '+str(fitness_metric)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
         +' --te '+str(thresh_evolve_prob)+' --r '+str(random_seed)+'\n')
-    print('python job_sim_fibers_hpc.py'+' --d '+str(datapath)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)
-        +' --ol '+str(outcome_label)
-        +' --i '+str(iterations)+' --ps '+str(pop_size)+' --cp '+str(crossover_prob)+' --mup '+str(mutation_prob)
-        +' --mp '+str(merge_prob)+' --e '+str(elitism)
-        +' --bi '+str(min_features_per_group)+' --ba '+str(max_number_of_groups_with_feature)+' --f '+str(fitness_metric)
-        +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --r '+str(random_seed)+'\n')
+    # print('python job_sim_fibers_hpc.py'+' --d '+str(datapath)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)
+    #     +' --ol '+str(outcome_label)
+    #     +' --i '+str(iterations)+' --ps '+str(pop_size)+' --cp '+str(crossover_prob)+' --mup '+str(mutation_prob)
+    #     +' --mp '+str(merge_prob)+' --e '+str(elitism)
+    #     +' --bi '+str(min_features_per_group)+' --ba '+str(max_number_of_groups_with_feature)+' --f '+str(fitness_metric)
+    #     +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
+    #     +' --te '+str(thresh_evolve_prob)+' --r '+str(random_seed)+'\n')
     sh_file.close()
-    # os.system('bsub < ' + job_path)
+    os.system('bsub < ' + job_path)
 
 
 if __name__=="__main__":

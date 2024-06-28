@@ -61,7 +61,7 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     
     # PREPARE DATA ---------------------------------------
     df = fibers.check_x_y(x, y)
-    df, feature_names = prepare_data(df, fibers.duration_label, fibers.label_name, fibers.covariates)
+    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, fibers.covariates)
 
     # Sum instance values across features specified in the bin
     sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
@@ -71,12 +71,12 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
 
     if not use_bin_sums:
         # Transform bin feature values according to respective bin threshold
-        bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= fibers.set.bin_pop[bin_index].group_threshold else 1)
+        bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= fibers.bins[sorted_bin_list[bin_index]].threshold else 1)
 
-    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_label],df.loc[:,fibers.label_name]],axis=1)
+    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_name],df.loc[:,fibers.label_name]],axis=1)
     summary = None
     try:
-        summary = cox_prop_hazard(bin_df,fibers.duration_label,fibers.label_name)
+        summary = cox_prop_hazard(bin_df,fibers.duration_name,fibers.label_name)
         # fibers.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
         # fibers.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
         # fibers.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
@@ -96,7 +96,7 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
 
     # PREPARE DATA ---------------------------------------
     df = fibers.check_x_y(x, y)
-    df, feature_names = prepare_data(df, fibers.duration_label, fibers.label_name, fibers.covariates)
+    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, fibers.covariates)
 
     # Sum instance values across features specified in the bin
     
@@ -220,13 +220,14 @@ def main(argv):
     fibers = fibers.fit(data)
     bin_index = 0 #top bin
     try:
-        summary = fibers.get_cox_prop_hazard_unadjust(data, bin_index)
+        summary = get_cox_prop_hazard_unadjust(fibers, data, bin_index)
         summary.to_csv(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_unadj_bin_'+str(bin_index)+'.csv', index=True)
         if covariates != None:
-            summary = fibers.get_cox_prop_hazard_adjusted(data, bin_index)
+            summary = get_cox_prop_hazard_adjusted(fibers, data, bin_index)
             summary.to_csv(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_adj_bin_'+str(bin_index)+'.csv', index=True)
-    except:
-        pass
+    except Exception as e:
+        print("Exception")
+        print(e)
     #Save bin population as csv
     # pop_df = fibers.get_pop()
     # pop_df.to_csv(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_pop'+'.csv', index=False)
