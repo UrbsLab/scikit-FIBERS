@@ -35,3 +35,4 @@ python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/bandheyh/ --o
 ## Experiment 6
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_testing --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_t_0_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal
 python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/ --o FibersAT_sim_t_0_5
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/bandheyh/ --o FibersAT_sim_default
