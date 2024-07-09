@@ -21,9 +21,8 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     :param feature_frequency_range: the max and min freature frequency for a given column in data. (e.g. 0.1 to 0.4)
     :param noise_frequency: Value from 0 to 0.5 representing the proportion of class 0/class 1 instance pairs that \
                             have their outcome switched from 0 to 1
-    :param class0_time_to_event_range: (min, max) time to event as a tuple (should be larger (e.g. 100 to 200)
-    :param class1_time_to_event_range: (min, max) time to event as a tuple (should be smaller but a bit overlapping \
-                                        with above range (e.g. 20 to 150)
+    :param class0_time_to_event_range: (mean, sd) time to event as a tuple 
+    :param class1_time_to_event_range: (mean, sd) time to event as a tuple 
     :param censoring_frequency: proportion of instances that are censored (0 = censored, 1 = not censored)
     :param negative_control: boolean flag to randomly shuffle outcome to remove dataset signal.
     :param random_seed:
