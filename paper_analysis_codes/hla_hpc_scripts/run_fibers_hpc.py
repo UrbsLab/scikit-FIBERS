@@ -131,6 +131,7 @@ def main(argv):
     datanames = []
     for dataname in os.listdir(datafolder):
         datanames.append(dataname)
+    print(datanames)
     base_name = datanames[0].split('.')[0] #remove file extension
     base_name = base_name.split('_')[0] #remove replicate number
 
