@@ -141,7 +141,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
 
 
     # Generate Random Feature Values -------------------------------
-    feature_index = 0
+    feature_index = predictive_features # Should start from random features
     for feature in random_names:
         one_count = one_count_list[feature_index]
         row_indexes = [random.randint(0, instances-1) for _ in range(one_count)]
