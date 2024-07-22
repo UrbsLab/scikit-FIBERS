@@ -7,6 +7,12 @@
 # python run_simple_sim.py
 
 # Runs
+
+## Test Run
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_testing --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_test --rc LSF --rs 5 --rm 4 --q i2c2_normal --ol Duration --c Censoring --ma 0.5 --dp 0 --f log_rank --t 0 --cl None --i 50
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_testing --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_test --rc LSF --rs 5 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_sim_test
+
 ## Experiment 1
 python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_testing --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --ma 0.5 --dp 0 --f log_rank --t 0 --cl None
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_testing --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_default --rc LSF --rs 30 --rm 4 --q i2c2_normal
