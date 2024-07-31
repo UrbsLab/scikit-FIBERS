@@ -81,18 +81,23 @@ def plot_feature_tracking(feature_names,feature_tracking,max_features=40,show=Tr
         plt.show()
 
 
-def plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=True,save=False,output_folder=None,data_name=None):
+def plot_kaplan_meir(low_outcome,low_censor,mid_outcome, mid_censor,high_outcome, high_censor,show=True,save=False,output_folder=None,data_name=None):
     kmf1 = KaplanMeierFitter()
 
     # fit the model for 1st cohort
-    kmf1.fit(low_outcome, low_censor, label='At/Below Bin Threshold')
+    kmf1.fit(low_outcome, low_censor, label='At/Below Bin Low Threshold')
     a1 = kmf1.plot_survival_function()
     a1.set_ylabel('Survival Probability')
 
     # fit the model for 2nd cohort
-    kmf1.fit(high_outcome, high_censor, label='Above Bin Threshold')
+    kmf1.fit(mid_outcome, mid_censor, label = 'Between Bin Thresholds')
+    kmf1.plot_survival_function()
+
+    # fit the model for 3rd cohort
+    kmf1.fit(high_outcome, high_censor, label='Above Bin High Threshold')
     kmf1.plot_survival_function(ax=a1)
     a1.set_xlabel('Time After Event')
+
     if save:
         plt.savefig(output_folder+'/'+data_name+'_km.png', bbox_inches="tight")
     if show:
@@ -125,17 +130,23 @@ def plot_fitness_progress(perform_track_df,show=True,save=False,output_folder=No
 def plot_threshold_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
     # Extract columns for plotting
     time = perform_track_df['Iteration']
-    df = perform_track_df[['Threshold']]
+    df_l = perform_track_df[['Low Threshold']]
+    df_h = perform_track_df[['High Threshold']]
 
     # Plot the data
     plt.figure(figsize=(5, 3))
-    colors = ['blue']  # Manually set colors
-    for i, column in enumerate(df.columns):
-        plt.plot(time, df[column], label=column, color=colors[i])
+    colors = ['blue','red']  # Manually set colors
+    for i, column in enumerate(df_l.columns):
+        plt.plot(time, df_l[column], label=column, color=colors[i])
+    for i, column in enumerate(df_h.columns):
+        plt.plot(time, df_h[column], label=column, color=colors[i+1])
+    
 
     # Add labels and title
     plt.xlabel('Iteration')
-    plt.ylabel('Threshold (Top Bin)')
+    plt.ylabel('Thresholds (Top Bin)')
+    plt.title('Threshold Progress Over Time')
+    plt.legend()
 
     # Show the plot
     plt.grid(True)
