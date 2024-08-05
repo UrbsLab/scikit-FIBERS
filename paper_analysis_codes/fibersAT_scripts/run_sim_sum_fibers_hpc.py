@@ -27,7 +27,7 @@ def main(argv):
     random_seeds = options.random_seeds
     reserved_memory = options.reserved_memory
     queue = options.queue
-    algorithm = 'Fibers1.0' #hard coded here
+    algorithm = 'FibersAT' #hard coded here
 
     #Folder Management------------------------------
     #Main Write Path-----------------
