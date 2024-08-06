@@ -63,7 +63,7 @@ class BIN_SET:
         
 
     def global_fitness_update(self,penalty):
-        self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
+        self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key) #DOES THIS NEED TO BE HERE?
         # Sort bin population first by pre-fitness, then by group_theshold, then by bin_size, then by group_strata_prop (to form a global bin ranking)
         # Sort DataFrame by maximizing column A (descending) and minimizing column B (ascending) for ties
         decay = 0.2
