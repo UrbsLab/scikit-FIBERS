@@ -8,6 +8,8 @@ sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
 from src.skfibersv1.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
+covariates = None #Manually included in script
+
 def save_run_params(fibers, filename):
     with open(filename, 'w') as file:
         file.write(f"outcome_label: {fibers.duration_name}\n")
@@ -53,7 +55,7 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     
     # PREPARE DATA ---------------------------------------
     df = fibers.check_x_y(x, y)
-    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, fibers.covariates)
+    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, covariates)
 
     # Sum instance values across features specified in the bin
     sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
@@ -88,7 +90,7 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
 
     # PREPARE DATA ---------------------------------------
     df = fibers.check_x_y(x, y)
-    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, fibers.covariates)
+    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, covariates)
 
     # Sum instance values across features specified in the bin
     
@@ -104,7 +106,7 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     bin_df = pd.concat([bin_df,df.loc[:,fibers.outcome_label],df.loc[:,fibers.label_name]],axis=1)
     summary = None
     try:
-        bin_df = pd.concat([bin_df,df.loc[:,fibers.covariates]],axis=1)
+        bin_df = pd.concat([bin_df,df.loc[:,covariates]],axis=1)
         summary = cox_prop_hazard(bin_df,fibers.outcome_label,fibers.label_name)
         # fibers.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
         # fibers.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
@@ -160,7 +162,6 @@ def main(argv):
     max_number_of_groups_with_feature = int(options.max_number_of_groups_with_feature)
     censor_label = options.censor_label
     group_strata_min = options.group_strata_min
-    covariates = None #Manually included in script
     random_seed = options.random_seed
 
     # Get Dataset Name

@@ -11,7 +11,7 @@ class RunFIBERS:
         #self.write_path = '/project/kamoun_shared/ryanurb/'
         self.write_path = '/project/kamoun_shared/output_shared/bandheyh/'
         #self.data_path = '/project/kamoun_shared/ryanurb/data/simple_sim_datasets'
-        self.data_path = '/project/kamoun_shared/data_shared/simulation_study_testing/'
+        self.data_path = '/project/kamoun_shared/data_shared/simulation_study_covariates/'
         self.run_cluster = 'LSF' #LSF or SLURM
         self.reserved_memory = 4
         self.queue = 'i2c2_normal'
@@ -52,7 +52,7 @@ class RunFIBERS:
         jobCount = 0
 
         #Baseline Positive Control
-        exp_name = 'BasePC'
+        exp_name = 'Covariates'
         if self.run_cluster == 'LSF':
             submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,exp_name)
             jobCount +=1
@@ -61,103 +61,6 @@ class RunFIBERS:
             jobCount +=1
         else:
             print('ERROR: Cluster type not found')
-
-        #Baseline Negative Control
-        exp_name = 'BaseNC'
-        if self.run_cluster == 'LSF':
-            submit_lsf_cluster_job(self,self.instance,self.pred_feature,'True',self.noise,self.total_feature,self.threshold,self.censor,exp_name)
-            jobCount +=1
-        elif self.run_cluster == 'SLURM':
-            submit_slurm_cluster_job(self,self.instance,self.pred_feature,'True',self.noise,self.total_feature,self.threshold,self.censor,exp_name)
-            jobCount +=1
-        else:
-            print('ERROR: Cluster type not found')
-
-        #Baseline Censoring Assessment
-        exp_name = "Censoring"
-        for censor in self.censoring:
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,censor,exp_name)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,censor,exp_name)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
-
-        # Total Instances Assessment
-        exp_name = "Instances"
-        for instance in self.instances:
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,exp_name)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,exp_name)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
-
-        # Baseline Noise Assessment
-        exp_name = "BaseNoise"
-        for noise in self.noises:
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,self.threshold,self.censor,exp_name)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,self.threshold,self.censor,exp_name)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
-
-        # Basic Total Features Assessment (no noise)
-        exp_name = "Features"
-        for total_feature in self.total_features:
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,total_feature,self.threshold,self.censor,exp_name)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,total_feature,self.threshold,self.censor,exp_name)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
-
-        # Noisy Total Features Assessment
-        exp_name = "FeaturesNoise"
-        noise = 0.2
-        for total_feature in self.total_features:
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,total_feature,self.threshold,self.censor,exp_name)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,total_feature,self.threshold,self.censor,exp_name)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
-
-        # Basic Thresholds Assessment
-        exp_name = "Threshold"
-        for threshold in self.thresholds:
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,threshold,self.censor,exp_name)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,threshold,self.censor,exp_name)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
-
-        # Noisy Thresholds Assessment
-        exp_name = "ThresholdNoise"
-        noise = 0.2
-        for threshold in self.thresholds:
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,threshold,self.censor,exp_name)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,threshold,self.censor,exp_name)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
 
         print(str(jobCount)+' jobs submitted successfully')
 

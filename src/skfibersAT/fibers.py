@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import pandas as pd
 from lifelines import KaplanMeierFitter
@@ -273,6 +274,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         """
         self.original_feature_matrix = original_feature_matrix
 
+        self.start_time = time.time()
         bin_feature_matrix_internal, bins_internal, \
             bin_scores_internal, maf_0_features = \
             fibers_algorithm(
@@ -306,6 +308,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.bin_scores = bin_scores_internal
         self.maf_0_features = maf_0_features
         self.hasTrained = True
+        end_time = time.time()
+        self.elapsed_time = end_time - self.start_time
         return self
 
     def transform(self, x):

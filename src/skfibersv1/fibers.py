@@ -1,3 +1,4 @@
+import time
 import pandas as pd
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
@@ -150,6 +151,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.bins = None
         self.bin_scores = None
         self.maf_0_features = None
+        self.elapsed_time = None
 
     def reboot_population(self):
         """
@@ -242,6 +244,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :return: self, bin_feature_matrix_internal, amino_acid_bins_internal, \
             amino_acid_bin_scores_internal, maf_0_features
         """
+        self.start_time = time.time()
         self.original_feature_matrix = original_feature_matrix
 
         bin_feature_matrix_internal, bins_internal, \
@@ -267,6 +270,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.bin_scores = bin_scores_internal
         self.maf_0_features = maf_0_features
         self.hasTrained = True
+        end_time = time.time()
+        self.elapsed_time = end_time - self.start_time
         return self
 
     def transform(self, x):
