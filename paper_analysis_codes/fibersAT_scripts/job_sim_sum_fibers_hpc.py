@@ -192,7 +192,7 @@ def main(argv):
         #Generate Figures:
         #Kaplan Meir Plot
         # fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
-        plot_kaplan_meir(durations_no, event_observed_no, event_observed_mm, durations_mm, 
+        plot_kaplan_meir(durations_no, event_observed_no, durations_mm, event_observed_mm,
                          show=True,save=False,output_folder=None,data_name=None)
 
         #Bin Population Heatmap

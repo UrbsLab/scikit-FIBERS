@@ -60,7 +60,7 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     # Sum instance values across features specified in the bin
     sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
     sorted_bin_list = list(sorted_bin_scores.keys())
-    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]].feature_list].sum(axis=1)
+    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]]].sum(axis=1)
     bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
 
     if not use_bin_sums:
@@ -96,7 +96,7 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     
     sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
     sorted_bin_list = list(sorted_bin_scores.keys())
-    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]].feature_list].sum(axis=1)
+    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]]].sum(axis=1)
     bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
 
     if not use_bin_sums:

@@ -25,7 +25,7 @@ import numpy as np
 # FDMR: female donor male recipient (HR: 1.07) expected prop:  0.327
 # ref: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5383387/#:~:text=Although%20findings%20are%20contradictory%20(10,graft%20loss%20in%20unadjusted%20analyses%3B
 
-def survival_data_simulation_categorical_covariates(instances=10000,total_features=100,predictive_features=10,feature_frequency_range=(0.1, 0.5),random_seed=None, threshold=None):
+def survival_data_simulation_categorical_covariates(instances=10000,total_features=100,predictive_features=5,feature_frequency_range=(0.1, 0.5),random_seed=None, threshold=None):
     #predictive_features = 2
     patient_censor_prob = 0.1
     random_features = total_features-predictive_features-5

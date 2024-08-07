@@ -34,25 +34,22 @@ class RunFIBERS:
 
         #Baseline Parameters
         self.instance = 10000
-        self.censor = 0.2
-        self.pred_feature = 10
+        self.pred_feature = 5
         self.nc = 'False'
-        self.noise = 0.0
+        self.censor = 0
+        self.noise = 0
         self.total_feature = 100
         self.threshold = 0
 
         #Varied Parameters
-        self.censoring = [0,0.5,0.8]
-        self.instances = [500,1000]
-        #self.pred_features = [10]
-        self.noises = [0.1,0.2,0.3,0.4,0.5]
-        self.total_features = [200,500,1000]
+        self.instances = [500, 1000]
+        self.total_features = [200, 500, 1000]
         self.thresholds = [1,2,3,4,5]
 
         jobCount = 0
 
         #Baseline Positive Control
-        exp_name = 'Covariates'
+        exp_name = 'BasePC'
         if self.run_cluster == 'LSF':
             submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,exp_name)
             jobCount +=1
@@ -61,6 +58,42 @@ class RunFIBERS:
             jobCount +=1
         else:
             print('ERROR: Cluster type not found')
+
+        # Total Instances Assessment
+        exp_name = "Instances"
+        for instance in self.instances:
+            if self.run_cluster == 'LSF':
+                submit_lsf_cluster_job(self,instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,exp_name)
+                jobCount +=1
+            elif self.run_cluster == 'SLURM':
+                submit_slurm_cluster_job(self,instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,exp_name)
+                jobCount +=1
+            else:
+                print('ERROR: Cluster type not found')
+
+        # Basic Total Features Assessment (no noise)
+        exp_name = "Features"
+        for total_feature in self.total_features:
+            if self.run_cluster == 'LSF':
+                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,total_feature,self.threshold,self.censor,exp_name)
+                jobCount +=1
+            elif self.run_cluster == 'SLURM':
+                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,total_feature,self.threshold,self.censor,exp_name)
+                jobCount +=1
+            else:
+                print('ERROR: Cluster type not found')
+
+        # Basic Thresholds Assessment
+        exp_name = "Threshold"
+        for threshold in self.thresholds:
+            if self.run_cluster == 'LSF':
+                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,threshold,self.censor,exp_name)
+                jobCount +=1
+            elif self.run_cluster == 'SLURM':
+                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,threshold,self.censor,exp_name)
+                jobCount +=1
+            else:
+                print('ERROR: Cluster type not found')
 
         print(str(jobCount)+' jobs submitted successfully')
 
@@ -77,7 +110,7 @@ def submit_slurm_cluster_job(self,instance,pred_feature,nc,noise,total_feature,t
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_simple_sim.py' +' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
+    sh_file.write('srun python job_covariate_sim.py' +' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -94,7 +127,7 @@ def submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,thr
     sh_file.write('#BSUB -M ' + str(self.reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_simple_sim.py'+' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
+    sh_file.write('python job_covariate_sim.py'+' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --l '+str(exp_name)+ '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

@@ -192,8 +192,11 @@ def main(argv):
         #Generate Figures:
         #Kaplan Meir Plot
         # fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
-        plot_kaplan_meir(durations_no, event_observed_no, event_observed_mm, durations_mm, 
-                         show=True,save=False,output_folder=None,data_name=None)
+        try:
+            plot_kaplan_meir(durations_no, event_observed_no, durations_mm, event_observed_mm,
+                            show=True,save=False,output_folder=None,data_name=None)
+        except Exception as e:
+            print(e)
 
         #Bin Population Heatmap
         group_names=["P", "R"]
@@ -263,8 +266,8 @@ def main(argv):
     filtering = 1
 
     #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
-    population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
-    population = population['feature_list']
+    # population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
+    population = top_bin_pop
     plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates

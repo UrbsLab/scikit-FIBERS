@@ -32,8 +32,11 @@ def main(argv):
 
     # Iterate over each CSV file (excluding the first one) and add its first row to the combined DataFrame
     for master_file in master_files:
-        data = pd.read_csv(master_file, nrows=1, header=0, names=header)
-        combined_data = pd.concat([combined_data, data], ignore_index=True)
+        try:
+            data = pd.read_csv(master_file, nrows=1, header=0, names=header)
+            combined_data = pd.concat([combined_data, data], ignore_index=True)
+        except FileNotFoundError:
+            print("File", master_file, "not found!")
 
     # Save the combined data to a new CSV file
     combined_data.to_csv(targetfolder+'/'+outputfolder+'_master_summary.csv', index=False)
