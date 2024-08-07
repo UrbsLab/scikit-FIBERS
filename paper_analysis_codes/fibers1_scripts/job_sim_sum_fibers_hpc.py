@@ -194,9 +194,10 @@ def main(argv):
         # fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
         try:
             plot_kaplan_meir(durations_no, event_observed_no, durations_mm, event_observed_mm,
-                            show=True,save=False,output_folder=None,data_name=None)
+                            show=False,save=True,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
         except Exception as e:
-            print(e)
+            print("Exception in KM Plot", e, "Dataset", data_name)
+            print(durations_no, event_observed_no, durations_mm, event_observed_mm, sep='\n')
 
         #Bin Population Heatmap
         group_names=["P", "R"]
