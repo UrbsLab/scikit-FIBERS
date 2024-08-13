@@ -15,7 +15,7 @@ from lifelines.statistics import logrank_test
 from lifelines import CoxPHFitter
 from lifelines import KaplanMeierFitter
 sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
-from src.skfibersAT.fibers import FIBERS #SOURCE CODE RUN
+from src_archive.skfibersAT.fibers import FIBERS #SOURCE CODE RUN
 from src.skfibersv2.methods.util import plot_feature_tracking
 from src.skfibersv2.methods.util import plot_kaplan_meir
 from src.skfibersv2.methods.util import cox_prop_hazard

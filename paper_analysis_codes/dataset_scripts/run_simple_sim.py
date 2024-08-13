@@ -11,7 +11,7 @@ class RunFIBERS:
         #self.write_path = '/project/kamoun_shared/ryanurb/'
         self.write_path = '/project/kamoun_shared/output_shared/bandheyh/'
         #self.data_path = '/project/kamoun_shared/ryanurb/data/simple_sim_datasets'
-        self.data_path = '/project/kamoun_shared/data_shared/simulation_study_testing/'
+        self.data_path = '/project/kamoun_shared/data_shared/simulation_study_simple/'
         self.run_cluster = 'LSF' #LSF or SLURM
         self.reserved_memory = 4
         self.queue = 'i2c2_normal'

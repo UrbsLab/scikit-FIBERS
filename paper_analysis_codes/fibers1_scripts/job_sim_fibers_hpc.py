@@ -5,7 +5,7 @@ import pickle
 import pandas as pd
 from lifelines import CoxPHFitter
 sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
-from src.skfibersv1.fibers import FIBERS #SOURCE CODE RUN
+from src_archive.skfibersv1.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
 covariates = None #Manually included in script

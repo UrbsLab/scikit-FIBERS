@@ -1,6 +1,6 @@
 import os
-from skfibersv2.fibers import FIBERS
-from skfibersv2.experiments.survival_sim_simple import survival_data_simulation
+from src.skfibers.fibers import FIBERS
+from src.skfibers.experiments.survival_sim_simple import survival_data_simulation
 from sklearn.metrics import classification_report
 
 current_working_directory = os.getcwd()
