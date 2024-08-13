@@ -23,7 +23,7 @@ def main(argv):
     parser.add_argument('--tp', dest='tournament_prop', help='trournament probability', type=float, default=0.2)
     parser.add_argument('--cp', dest='crossover_prob', help='crossover probability', type=float, default=0.5)
     parser.add_argument('--mi', dest='min_mutation_prob', help='minimum mutation probability', type=float, default=0.1)
-    parser.add_argument('--ma', dest='max_mutation_prob', help='maximum mutation probability', type=float, default=0.5)
+    parser.add_argument('--ma', dest='max_mutation_prob', help='maximum mutation probability', type=float, default=0.4)
     parser.add_argument('--mp', dest='merge_prob', help='merge probability', type=float, default=0.1)
     parser.add_argument('--ng', dest='new_gen', help='proportion of max population used to deterimine offspring population size', type=float, default=1.0)
     parser.add_argument('--e', dest='elitism', help='elite proportion of population protected from deletion', type=float, default=0.1)
