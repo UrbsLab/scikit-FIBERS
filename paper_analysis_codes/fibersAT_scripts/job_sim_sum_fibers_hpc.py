@@ -16,11 +16,11 @@ from lifelines import CoxPHFitter
 from lifelines import KaplanMeierFitter
 sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
 from src_archive.skfibersAT.fibers import FIBERS #SOURCE CODE RUN
-from src.skfibersv2.methods.util import plot_feature_tracking
-from src.skfibersv2.methods.util import plot_kaplan_meir
-from src.skfibersv2.methods.util import cox_prop_hazard
-# from src.skfibersv2.methods.util import plot_bin_population_heatmap
-from src.skfibersv2.methods.util import plot_custom_bin_population_heatmap
+from src.skfibers.methods.util import plot_feature_tracking
+from src.skfibers.methods.util import plot_kaplan_meir
+from src.skfibers.methods.util import cox_prop_hazard
+# from src.skfibers.methods.util import plot_bin_population_heatmap
+from src.skfibers.methods.util import plot_custom_bin_population_heatmap
 
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
