@@ -43,7 +43,7 @@ def main(argv):
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=str, default='None')
-    parser.add_argument('--cov', dest='covariates_used', help='random seed', type=bool, default=False)
+    parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=str, default='None')
 
     options=parser.parse_args(argv[1:])
 
@@ -159,7 +159,7 @@ def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,m
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ '--cov ' + str(covariates_used) + '--r '+str(random_seed)+'\n')
+        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ ' --cov ' + str(covariates_used) + '--r '+str(random_seed)+'\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -185,7 +185,7 @@ def submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,man
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ '--cov ' + str(covariates_used) +' --r '+str(random_seed)+'\n')
+        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ ' --cov ' + str(covariates_used) +' --r '+str(random_seed)+'\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

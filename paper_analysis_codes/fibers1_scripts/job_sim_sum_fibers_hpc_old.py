@@ -77,6 +77,8 @@ def main(argv):
     group_balance = []
     runtime = []
     tc = 0
+    gpc = 0
+    rpc = 0
     bin_size = []
     birth_iteration = []
 
@@ -127,6 +129,10 @@ def main(argv):
         runtime.append(fibers.elapsed_time)
         if str(bin.feature_list).count('T') > 0:
             tc += 1
+        if str(bin.feature_list).count('GPC') > 0:
+            gpc += 1
+        if str(bin.feature_list).count('RPC') > 0:
+            rpc += 1
         bin_size.append(bin.bin_size)
         birth_iteration.append(bin.birth_iteration)
 
@@ -162,7 +168,7 @@ def main(argv):
                     "Unadjusted HR", "Unadjusted HR (SD)", 
                     "Adjusted HR", "Adjusted HR (SD)", 
                     "Group Ratio", "Group Ratio (SD)",
-                    "Runtime", "Runtime (SD)", "TC1 Present", 
+                    "Runtime", "Runtime (SD)", "TC1 Present", "GPC Present", "RPC Present",
                     "Bin Size", "Bin Size (SD)", 
                     "Birth Iteration", "Birth Iteration (SD)"]
     
@@ -178,7 +184,7 @@ def main(argv):
                         None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
                         None if len(adj_HR) == 0 else np.mean(adj_HR), None if len(adj_HR) == 0 else np.std(adj_HR), 
                         np.mean(group_balance),np.std(group_balance),
-                        np.mean(runtime),np.std(runtime), tc,
+                        np.mean(runtime),np.std(runtime), tc, gpc, rpc,
                         np.mean(bin_size),np.std(bin_size), 
                         np.mean(birth_iteration),np.std(birth_iteration)]
     

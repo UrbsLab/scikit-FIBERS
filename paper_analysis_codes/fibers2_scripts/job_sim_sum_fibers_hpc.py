@@ -51,8 +51,12 @@ def main(argv):
     #Load/Process Dataset
     data = pd.read_csv(datapath)
 
-    true_risk_group = data[['TrueRiskGroup']]
-    data = data.drop('TrueRiskGroup', axis=1)
+    if 'TrueRiskGroup' in data.columns:
+        true_risk_group = data[['TrueRiskGroup']]
+        data = data.drop('TrueRiskGroup', axis=1)
+    else:
+        true_risk_group = None
+        covariates_flag = True
 
     #Define columns for replicate results summary:
     columns = ["Bin Features", "Threshold", "Fitness", "Pre-Fitness", "Log-Rank Score","Log-Rank p-value",
@@ -77,6 +81,8 @@ def main(argv):
     group_balance = []
     runtime = []
     tc = 0
+    gpc = 0
+    rpc = 0 
     bin_size = []
     birth_iteration = []
 
@@ -127,6 +133,10 @@ def main(argv):
         runtime.append(fibers.elapsed_time)
         if str(bin.feature_list).count('T') > 0:
             tc += 1
+        if str(bin.feature_list).count('T') > 0:
+            gpc += 1
+        if str(bin.feature_list).count('T') > 0:
+            rpc += 1
         bin_size.append(bin.bin_size)
         birth_iteration.append(bin.birth_iteration)
 
@@ -140,9 +150,11 @@ def main(argv):
         colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
         max_bins = 100
         max_features = 100
+        covariates = fibers.covariates
 
-        fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
-
+        if not covariates_flag:
+            fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+        
         # Feature Importance Estimates
         fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
@@ -162,13 +174,13 @@ def main(argv):
                     "Unadjusted HR", "Unadjusted HR (SD)", 
                     "Adjusted HR", "Adjusted HR (SD)", 
                     "Group Ratio", "Group Ratio (SD)",
-                    "Runtime", "Runtime (SD)", "TC1 Present", 
+                    "Runtime", "Runtime (SD)", "TC1 Present", "GPC Present", "RPC Present",
                     "Bin Size", "Bin Size (SD)", 
                     "Birth Iteration", "Birth Iteration (SD)"]
     
     df_master = pd.DataFrame(columns=master_columns)
     master_results_list = [algorithm,experiment,data_name,
-                        np.mean(accuracy),np.std(accuracy),
+                        np.nanmean(np.array(accuracy, dtype=np.float64)), np.nanstd(np.array(accuracy, dtype=np.float64)),
                         np.mean(num_P),np.std(num_P),
                         np.mean(num_R),np.std(num_R), ideal, 
                         np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
@@ -178,7 +190,7 @@ def main(argv):
                         None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
                         None if len(adj_HR) == 0 else np.mean(adj_HR), None if len(adj_HR) == 0 else np.std(adj_HR), 
                         np.mean(group_balance),np.std(group_balance),
-                        np.mean(runtime),np.std(runtime), tc,
+                        np.mean(runtime),np.std(runtime), tc, gpc, rpc,
                         np.mean(bin_size),np.std(bin_size), 
                         np.mean(birth_iteration),np.std(birth_iteration)]
     
@@ -197,7 +209,9 @@ def main(argv):
     #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
     population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
     population = population['feature_list']
-    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
+
+    if not covariates_flag:
+        plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
     gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)

@@ -41,7 +41,7 @@ def main(argv):
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
-    parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=bool, default=False)
+    parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
 
     options=parser.parse_args(argv[1:])
@@ -92,8 +92,10 @@ def main(argv):
     else:
         pop_clean = str(options.pop_clean)
     covariates_used = options.covariates_used
-    if covariates_used:
+    if covariates_used == 'Adv':
         covariates = ['AFRICAN-AMERICAN','ASIAN','HISPANIC','OTHER','WHITE','FDFR','FDMR','MDFR','MDMR']
+    elif covariates_used == 'Simple':
+        covariates = ['C_1', 'C_2']
     else:
         covariates = None
     random_seed = options.random_seed
@@ -105,8 +107,9 @@ def main(argv):
     #Load/Process Dataset
     data = pd.read_csv(datapath)
 
-    true_risk_group = data[['TrueRiskGroup']]
-    data = data.drop('TrueRiskGroup', axis=1)
+    if covariates == None:
+        true_risk_group = data[['TrueRiskGroup']]
+        data = data.drop('TrueRiskGroup', axis=1)
 
     #Job Definition
     fibers = FIBERS(outcome_label=outcome_label, outcome_type=outcome_type, iterations=iterations, pop_size=pop_size, tournament_prop=tournament_prop, 
