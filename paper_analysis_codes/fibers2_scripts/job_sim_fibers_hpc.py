@@ -41,6 +41,7 @@ def main(argv):
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
+    parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=bool, default=False)
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
 
     options=parser.parse_args(argv[1:])
@@ -86,11 +87,15 @@ def main(argv):
     max_thresh = options.max_thresh 
     #int_thresh = options.int_thresh
     thresh_evolve_prob = options.thresh_evolve_prob
-    covariates = None #Manually included in script
     if options.pop_clean == 'None':
         pop_clean = None
     else:
         pop_clean = str(options.pop_clean)
+    covariates_used = options.covariates_used
+    if covariates_used:
+        covariates = ['AFRICAN-AMERICAN','ASIAN','HISPANIC','OTHER','WHITE','FDFR','FDMR','MDFR','MDMR']
+    else:
+        covariates = None
     random_seed = options.random_seed
 
     # Get Dataset Name

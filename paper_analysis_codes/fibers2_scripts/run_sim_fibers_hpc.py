@@ -43,6 +43,7 @@ def main(argv):
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=str, default='None')
+    parser.add_argument('--cov', dest='covariates_used', help='random seed', type=bool, default=False)
 
     options=parser.parse_args(argv[1:])
 
@@ -79,7 +80,11 @@ def main(argv):
     max_thresh = options.max_thresh 
     #int_thresh = options.int_thresh
     thresh_evolve_prob = options.thresh_evolve_prob
-    #covariates = None #Manually included in script
+    covariates_used = options.covariates_used
+    # if covariates_used:
+    #     covariates = []
+    # else:
+    #     covariates = None #Manually included in script
     pop_clean = options.pop_clean
     #random_seed = options.random_seed
     algorithm = 'Fibers2.0' #hard coded here
@@ -120,7 +125,7 @@ def main(argv):
                 submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,seed)
+                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,covariates_used,seed)
                 jobCount +=1
             elif run_cluster == 'SLURM':
                 submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
@@ -136,7 +141,7 @@ def main(argv):
 def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,random_seed): 
+                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,covariates_used,random_seed): 
     job_ref = str(time.time())
     job_name = 'FIBERS_'+data_name+'_' +str(random_seed)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -154,7 +159,7 @@ def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,m
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+' --r '+str(random_seed)+'\n')
+        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ '--cov ' + str(covariates_used) + '--r '+str(random_seed)+'\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -162,7 +167,7 @@ def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,m
 def submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,random_seed): 
+                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,covariates_used,random_seed): 
     job_ref = str(time.time())
     job_name = 'FIBERS_'+data_name+'_' +str(random_seed)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -180,7 +185,7 @@ def submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,man
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+' --r '+str(random_seed)+'\n')
+        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ '--cov ' + str(covariates_used) +' --r '+str(random_seed)+'\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 
