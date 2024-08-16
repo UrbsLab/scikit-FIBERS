@@ -54,6 +54,7 @@ def main(argv):
     if 'TrueRiskGroup' in data.columns:
         true_risk_group = data[['TrueRiskGroup']]
         data = data.drop('TrueRiskGroup', axis=1)
+        covariates_flag = False
     else:
         true_risk_group = None
         covariates_flag = True
