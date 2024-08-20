@@ -1,22 +1,25 @@
 import numpy as np
 import pandas as pd
 import copy
+import math
 from itertools import combinations
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import KMeans
 from .bin import BIN
+from .pareto import PARETO
 import warnings
 
 
 class BIN_SET:
     def __init__(self,manual_bin_init,df,feature_names,pop_size,min_bin_size,max_bin_init_size,
-                 group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,log_rank_weighting,group_strata_min,
-                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariates,random):
+                group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,log_rank_weighting,group_strata_min,
+                outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariates, naive_survival_optimization, random):
         #Initialize bin population
         self.bin_pop = []
         self.offspring_pop = []
         self.feature_tracking = [0]*len(feature_names)
+        self.pareto = PARETO()
 
         if isinstance(manual_bin_init, pd.DataFrame): # Load manually curated or previously trained bin population
             for index, row in manual_bin_init.iterrows():
@@ -25,50 +28,68 @@ class BIN_SET:
                 loaded_bin = [item.strip("[]'") for item in feature_list]
                 loaded_thresh = row[1]
                 birth_iteration = row[10]
-                new_bin = BIN()
+                new_bin = BIN(self.pareto)
                 new_bin.initialize_manual(feature_names,loaded_bin,loaded_thresh,group_thresh,min_thresh,max_thresh,birth_iteration)
                 # Bin metric score evaluation
                 new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
-                # Fitness metric calculation based on bin metric score
-                new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names) 
+                                    censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates], naive_survival_optimization)
                 #Add new bin to population
-                self.bin_pop.append(new_bin)
+                if fitness_metric == 'pareto':
+                    self.bin_pop.append(new_bin)
+                    # If a bin is added to the front, all bin's pre-fitness must be recalculated
+                    if self.pareto.update_front(new_bin.log_rank_score, new_bin.bin_size, ['max', 'min']):
+                        for bin in self.bin_pop:
+                            bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+                else:
+                    new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+                    self.bin_pop.append(new_bin) 
 
         #Random bin initialization
         while len(self.bin_pop) < pop_size:
-            new_bin = BIN()
+            new_bin = BIN(self.pareto)
             new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random)
             # Check for duplicate rules based on feature list and threshold
             while self.equivalent_bin_in_pop(new_bin,iteration): # May slow down evolutionary cycles if new bins aren't found right away
                 new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
             # Bin metric score evaluation
             new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                                censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
-            # Fitness metric calculation based on bin metric score
-            new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names) 
+                                censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates], naive_survival_optimization)
             #Add new bin to population
-            self.bin_pop.append(new_bin)
-
+            if fitness_metric == 'pareto':
+                self.bin_pop.append(new_bin)
+                if self.pareto.update_front(new_bin.log_rank_score, new_bin.bin_size, ['max', 'min']):
+                    # If a bin is added to the front, all bin's pre-fitness must be recalculated
+                    for bin in self.bin_pop:
+                        bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+                new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+            else: # Fitness metric calculation based on bin metric score
+                new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization) 
+                self.bin_pop.append(new_bin)
 
     def update_feature_tracking(self, feature_names):
         for bin in self.bin_pop:
             for feature in bin.feature_list:
                 index = feature_names.index(feature)
                 self.feature_tracking[index] += bin.pre_fitness
-
-
+    
+    
     def custom_sort_key(self, obj):
         return (-obj.pre_fitness,obj.group_threshold,obj.bin_size,-obj.group_strata_prop)
-        
-
-    def global_fitness_update(self,penalty):
+    
+    """
+    def custom_sort_key(self, obj):
+        if obj.log_rank_score == None:
+            return (-obj.pre_fitness,-obj.residuals_score, -obj.low_risk_area, obj.group_threshold,obj.bin_size,-obj.group_strata_prop)
+        else:
+            return (-obj.pre_fitness,-obj.log_rank_score, -obj.low_risk_area, obj.group_threshold,obj.bin_size,-obj.group_strata_prop)
+    """
+    def global_fitness_update(self,penalty):  
         self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
         # Sort bin population first by pre-fitness, then by group_theshold, then by bin_size, then by group_strata_prop (to form a global bin ranking)
         # Sort DataFrame by maximizing column A (descending) and minimizing column B (ascending) for ties
         decay = 0.2
         self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
-        previous_objective_list = [None,None,None,None]
+        previous_objective_list = [None,None,None,None,None,None]
         index = -1
 
         for bin in self.bin_pop:
@@ -76,13 +97,12 @@ class BIN_SET:
                 bin.fitness = 0
                 index += 1 
             else:
-                objective_list = [bin.pre_fitness, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
+                objective_list = [bin.pre_fitness, bin.log_rank_score, bin.low_risk_area, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
                 if objective_list != previous_objective_list: 
                     index += 1 #Only advance bin ranking if next bin is different across at least one objective
                 bin.fitness = np.exp(-index / (len(self.bin_pop)*decay)) 
 
-            previous_objective_list = [bin.pre_fitness, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
-
+            previous_objective_list = [bin.pre_fitness, bin.log_rank_score, bin.low_risk_area, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
 
     def select_parent_pair(self,tournament_prop,random):
         #Tournament Selection
@@ -113,21 +133,23 @@ class BIN_SET:
 
     def generate_offspring(self,crossover_prob,mutation_prob,merge_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,max_bin_size,
                            max_bin_init_size,min_thresh,max_thresh,df,outcome_type,fitness_metric,log_rank_weighting,
-                           outcome_label,censor_label,int_thresh,group_thresh,group_strata_min,penalty,residuals,covariates,random):
+                           outcome_label,censor_label,int_thresh,group_thresh,group_strata_min,penalty,residuals,covariates, naive_survival_optimization, random):
         #print("Random Seed Check - genoff: "+ str(random.random()))
         # Clone Parents
-        offspring_1 = BIN()
-        offspring_2 = BIN()
+        offspring_1 = BIN(self.pareto)
+        offspring_2 = BIN(self.pareto)
         offspring_1.copy_parent(parent_list[0],iteration)
         offspring_2.copy_parent(parent_list[1],iteration)
+
         #if iteration == 49:
         #    print('Parent1:'+str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
         #    print('Parent2:'+str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
 
         if random.random() < merge_prob: #Generate a single novel bin that is the combination of the two parent bins (yielding 3 total bins created during this mating)
-            offspring_3 = BIN()
+            offspring_3 = BIN(self.pareto)
             offspring_3.copy_parent(parent_list[0],iteration)
             offspring_3.merge(parent_list[1],max_bin_size,threshold_evolving,max_thresh,random)
+
             # Check for duplicate rules based on feature list and threshold
             #if iteration == 49:
             #    print('merge')
@@ -136,12 +158,19 @@ class BIN_SET:
                 #if iteration == 49:
                 #    print(str(offspring_3.feature_list)+'_'+str(offspring_3.group_threshold))
             offspring_3.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                                int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
-            offspring_3.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
+                                int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates], naive_survival_optimization)
+            offspring_3.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
             #if iteration == 49:
             #    print(str(offspring_3.feature_list)+'_'+str(offspring_3.group_threshold))
             if not self.equivalent_bin_in_pop(offspring_3,iteration):
-                self.offspring_pop.append(offspring_3)
+                if fitness_metric == 'pareto':
+                    self.offspring_pop.append(offspring_3)
+                    if self.pareto.update_front(offspring_3.log_rank_score, offspring_3.bin_size, ["max", "min"]):
+                        for bin in self.bin_pop:
+                            bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+                    offspring_3.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+                else: # Fitness metric calculation based on bin metric score
+                    self.offspring_pop.append(offspring_3)
 
         # Crossover
         offspring_1.uniform_crossover(offspring_2,crossover_prob,threshold_evolving,random)
@@ -164,15 +193,22 @@ class BIN_SET:
 
         # Offspring 1 Evalution 
         offspring_1.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
-        offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates], naive_survival_optimization)
+        offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
 
         #Add New Offspring 1 to the Population
         #if iteration == 49:
         #    print(str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
         if not self.equivalent_bin_in_pop(offspring_1,iteration):
-            self.offspring_pop.append(offspring_1)
-
+            if fitness_metric == 'pareto':
+                self.offspring_pop.append(offspring_1)
+                if self.pareto.update_front(offspring_1.log_rank_score, offspring_1.bin_size, ["max", "min"]):
+                    for bin in self.bin_pop:
+                        bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+                offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+            else: 
+                self.offspring_pop.append(offspring_1)
+        # Fitness metric calculation based on bin metric score
         #if iteration == 49:
         #    print('off2')
         # Check for duplicate bins based on feature list and threshold
@@ -183,15 +219,22 @@ class BIN_SET:
 
         # Offspring 2 Evalution 
         offspring_2.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
-        offspring_2.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates], naive_survival_optimization)
+        offspring_2.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization) 
 
         #Add New Offspring 2 to the Population
         #if iteration == 49:
         #    print(str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
         if not self.equivalent_bin_in_pop(offspring_2,iteration):
-            self.offspring_pop.append(offspring_2)
-
+            if fitness_metric == 'pareto':
+                self.offspring_pop.append(offspring_2)
+                if self.pareto.update_front(offspring_2.log_rank_score, offspring_2.bin_size, ["max", "min"]):
+                    for bin in self.bin_pop:
+                        bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+                offspring_2.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization)
+            else:
+                self.offspring_pop.append(offspring_2)
+        # Fitness metric calculation based on bin metric score
 
     def equivalent_bin_in_pop(self,new_bin,iteration):
         for existing_bin in self.offspring_pop:
@@ -292,6 +335,8 @@ class BIN_SET:
         while self.bin_pop[x].fitness == 1:
             x+=1 #gets the bin index where fitness begins to drop
         elite_count = int(pop_size*(elitism))
+        if (elite_count < len(self.pareto.bin_front)):
+            elite_count = len(self.pareto.bin_front)
         if elite_count < x+1: #
             elite_count = x #count is -1 for indexing below
 
@@ -343,6 +388,18 @@ class BIN_SET:
         self.bin_pop = self.bin_pop + self.offspring_pop
         self.offspring_pop = []
 
+    def sharing_penalization(self, sharing_thresh):
+        for bin in self.bin_pop:
+            penalty = 1
+            p1 = (bin.log_rank_score, bin.low_risk_area)
+            # penalize bins with similar results only if it is not in the pareto front
+            if p1 not in self.pareto.bin_front:
+                for other in self.bin_pop:
+                    p2 = (other.log_rank_score, other.low_risk_area)
+                    dist = math.dist(p1, p2)
+                    temp = max(0, (1 - dist / sharing_thresh))
+                    penalty += temp ** 0.5
+                bin.pre_fitness = float(bin.pre_fitness / penalty)
 
     def sort_feature_lists(self):
         for bin in self.bin_pop:
@@ -351,6 +408,10 @@ class BIN_SET:
 
     def report_pop(self):
         self.sort_feature_lists()
+        pd.set_option('display.max_colwidth', None) # prevent truncation of dataframe
+        pd.set_option('display.max_rows', None)
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.width', None)
         pop_df = pd.DataFrame([vars(instance) for instance in self.bin_pop])
         print(pop_df)
 
@@ -369,6 +430,21 @@ class BIN_SET:
         for bin in self.bin_pop:
             if bin.group_strata_prop >= group_strata_min:
                 temp_pop.append(bin)
+            else:
+                if bin in self.pareto.bin_front:
+                    self.pareto.delete_from_front(bin.log_rank_score, bin.low_risk_area)
         self.bin_pop = temp_pop
 
+    def get_pareto_front(self):
+        pareto_front = []
+        for bin in self.bin_pop:
+            if (bin.log_rank_score, bin.bin_size) in self.pareto.bin_front:
+                pareto_front.append(bin)
+        return pareto_front
 
+    def get_min_area(self):
+        min = None
+        for bin in self.bin_pop:
+            if min == None or bin.low_risk_area < float(min) :
+                min = bin.low_risk_area
+        return min

@@ -2,11 +2,15 @@ import numpy as np
 import pandas as pd
 import copy
 from lifelines import CoxPHFitter
+from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
 from scipy.stats import ranksums
+from scipy.integrate import simps  # for numerical integration
+import matplotlib.pyplot as plt    # testing purposes
+import sys                         # testing purposes
 
 class BIN:
-    def __init__(self):
+    def __init__(self, pareto=None):
         self.feature_list = [] # List of feature names (across which instance values are summed)
         self.group_threshold = None # Threshold after which an instance is place in the 'above threshold' group - determines group strata of instances
         self.fitness = None # Bin fitness (higher fitness is better) - proportional to parent selection probability, and inversely proportional to deletion probability
@@ -17,6 +21,7 @@ class BIN:
         self.group_strata_prop = None # Proportion of instances in the smallest group (e.g. 0.5 --> equal number of instances in each group)
         self.count_bt = None # Instance count at/below threshold
         self.count_at = None # Instance count above threshold
+        self.low_risk_area = None
         self.birth_iteration = None # Iteration where bin was introduced to population
         self.deletion_prop = None
         self.cluster = None
@@ -27,7 +32,10 @@ class BIN:
         self.HR_p_value = None
         self.adj_HR = None
         self.adj_HR_CI = None
+        self.is_merge = False
         self.adj_HR_p_value = None
+        # added features
+        self.pareto = pareto
 
 
     def update_deletion_prop(self,deletion_prop, cluster):
@@ -68,7 +76,7 @@ class BIN:
 
 
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df):
+                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df, naive_survival_optimization):
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
         bin_df = pd.DataFrame({'feature_sum':feature_sums})
@@ -81,9 +89,9 @@ class BIN:
             best_score = None
             thresh_score = 0
             for threshold in range(min_thresh, max_thresh + 1):
-                log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,residuals,covariate_df)
-                if fitness_metric == 'log_rank':
+                log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_at, low_risk_area = self.evaluate_for_threshold(threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+                        log_rank_weighting,residuals,covariate_df, naive_survival_optimization)
+                if fitness_metric == 'log_rank' or fitness_metric == 'pareto':
                     thresh_score = log_rank_score
 
                 elif fitness_metric == 'residuals': 
@@ -92,30 +100,35 @@ class BIN:
                 elif fitness_metric == 'log_rank_residuals':
                     thresh_score = log_rank_score * residuals_score
 
+                if naive_survival_optimization == True:
+                    thresh_score *= low_risk_area
+
                 if best_score == None or thresh_score > best_score:
                     self.log_rank_score = log_rank_score
                     self.log_rank_p_value = p_value
                     self.residuals_score = residuals_score
                     self.residuals_p_value = residuals_p_value
                     self.group_threshold = threshold
-                    self.count_bt= count_bt
+                    self.count_bt = count_bt
                     self.count_at = count_at
+                    self.low_risk_area = low_risk_area
                     best_score = thresh_score
 
         else: #Use the given group threshold to evaluate the bin
-            log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,residuals,covariate_df)
+            log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at, low_risk_area = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+                        log_rank_weighting,residuals,covariate_df, naive_survival_optimization)
             self.log_rank_score = log_rank_score
             self.log_rank_p_value = p_value
             self.residuals_score = residuals_score
             self.residuals_p_value = residuals_p_value
             self.count_bt = count_bt
             self.count_at = count_at
+            self.low_risk_area = low_risk_area
         self.bin_size = len(self.feature_list)
 
 
-    def evaluate_for_threshold(self,threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df):
-        # Apply selected evaluation strategy/metric(s)
+    def evaluate_for_threshold(self,threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df, naive_survival_optimization):
+        # Ap y selected evaluation strategy/metric(s)
         if outcome_type == 'survival':
             residuals_score = None
             residuals_p_value = None
@@ -123,17 +136,45 @@ class BIN:
             p_value = None
             count_bt = None
             count_at = None
+            low_risk_area = None
 
-            if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals':
+            low_df = bin_df[bin_df['feature_sum'] <= threshold]
+            high_df = bin_df[bin_df['feature_sum'] > threshold]
+            low_outcome = low_df[outcome_label].to_list()
+            high_outcome = high_df[outcome_label].to_list()
+            low_censor = low_df[censor_label].to_list()
+            high_censor = high_df[censor_label].to_list()
+            count_bt = len(low_outcome)
+            count_at = len(high_outcome)
+
+            # FINDING AREA UNDER CURVE
+            kmf1 = KaplanMeierFitter()
+
+            if (low_df.size == 0 or high_df.size == 0):
+                log_rank_score = 0
+                p_value = None
+                residuals_score = 0
+                residuals_p_value = None
+                low_risk_area = 0
+                return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at, low_risk_area
+            
+            # fit the model for 1st cohort
+            kmf1.fit(low_outcome, low_censor, label='At/Below Bin Threshold')
+
+            # Extracting the fitted survival function
+            scale_factor = 10       # scaling and rounding to prevent inaccuracy with np.trapz with high accuracy, small data
+            round_num = 5
+            survival_times = kmf1.survival_function_.index.values
+            survival_times = np.around(survival_times, round_num)
+            survival_probabilities = kmf1.survival_function_['At/Below Bin Threshold'].values
+            survival_probabilities_scaled = np.around(survival_probabilities, round_num) * scale_factor
+            
+            # Calculating the area under the fitted Kaplan-Meier curve using the trapezoidal rule
+            low_risk_area = np.trapz(survival_probabilities_scaled, survival_times)
+            low_risk_area = low_risk_area / scale_factor
+
+            if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals' or fitness_metric == 'pareto':
                 #Create dataframes including instances from either strata-groups
-                low_df = bin_df[bin_df['feature_sum'] <= threshold]
-                high_df = bin_df[bin_df['feature_sum'] > threshold]
-                low_outcome = low_df[outcome_label].to_list()
-                high_outcome = high_df[outcome_label].to_list()
-                low_censor = low_df[censor_label].to_list()
-                high_censor = high_df[censor_label].to_list()
-                count_bt = len(low_outcome)
-                count_at = len(high_outcome)
                 try:
                     results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
                     log_rank_score = results.test_statistic #test all thresholds by default in initial pop.
@@ -154,8 +195,10 @@ class BIN:
                     residuals_p_value = None
                 else:
                     try:
-                        results = ranksums(low_residuals_df, high_residuals_df)
-                        residuals_score = abs(results.statistic) 
+                        results = ranksums(low_residuals_df, high_residuals_df, alternative='less')
+                        # ideal high risk group: we want positive residuals (death occurred earlier than expected)
+                        # ideal low risk group: we want negative residuals (death occurred later than expected)
+                        residuals_score = -results.statistic 
                         residuals_p_value = results.pvalue
                     except:
                         residuals_score = 0
@@ -166,7 +209,7 @@ class BIN:
         else:
             print("Specified outcome_type not supported")
 
-        return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at
+        return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at, low_risk_area
     
     
     def copy_parent(self,parent,iteration):
@@ -189,6 +232,7 @@ class BIN:
                 if feature in self.feature_list:
                     self.feature_list.remove(feature)
                     other_offspring.feature_list.append(feature)
+
                 else:
                     other_offspring.feature_list.remove(feature)
                     self.feature_list.append(feature)
@@ -207,7 +251,6 @@ class BIN:
         if len(self.feature_list) == 0: #Initialize new bin if empty after crossover
             feature_count = random.randint(min_bin_size,max_bin_init_size)
             self.feature_list = random.sample(feature_names,feature_count)
-            
 
         elif len(self.feature_list) == 1: # Addition and Swap Only (to avoid empy bins)
             for feature in self.feature_list:
@@ -223,7 +266,8 @@ class BIN:
             # Enforce minimum bin size
             while len(self.feature_list) < min_bin_size: 
                 other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
-                self.feature_list.append(random.choice(other_features))
+                random_feature = random.choice(other_features)
+                self.feature_list.append(random_feature)
 
         else: # Addition, Deletion, or Swap 
             mutate_options = ['A','D','S'] #Add, delete, swap
@@ -243,10 +287,12 @@ class BIN:
             # Enforce minimum bin size
             while len(self.feature_list) < min_bin_size: 
                 other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
-                self.feature_list.append(random.choice(other_features))
+                random_feature = random.choice(other_features)
+                self.feature_list.append(random_feature)
             # Enforce maximum bin size
             while len(self.feature_list) > max_bin_size: 
-                self.feature_list.remove(random.choice(self.feature_list))
+                feature = random.choice(self.feature_list)
+                self.feature_list.remove(feature)
 
         # Apply mutation to thresholding if threshold_evolving
         if threshold_evolving:
@@ -255,7 +301,7 @@ class BIN:
                     pass
                 else:
                     thresh_list = [i for i in range(min_thresh,max_thresh+1)] #random.randint(min_thresh,max_thresh)
-                    thresh_list.pop(thresh_list.index(self.group_threshold)) #pick a feature not already in the bin
+                    thresh_list.pop(thresh_list.index(self.group_threshold)) #pick a threshold other than itself
                     random_thresh = random.choice(thresh_list)
                     self.group_threshold = random_thresh
 
@@ -282,8 +328,7 @@ class BIN:
             if self.group_threshold > max_thresh:
                 self.group_threshold = max_thresh
 
-
-    def calculate_pre_fitness(self,group_strata_min,penalty,fitness_metric,feature_names):
+    def calculate_pre_fitness(self,group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization=False):
         # Penalize fitness if group counts are beyond the minimum group strata parameter (Ryan Check below)
         self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_at),self.count_at/(self.count_bt+self.count_at))
         if self.group_strata_prop == 0.0:
@@ -306,6 +351,12 @@ class BIN:
                     self.pre_fitness = (1-penalty) * self.log_rank_score * self.residuals_score
                 else:
                     self.pre_fitness = self.log_rank_score * self.residuals_score
+            
+            if fitness_metric == 'pareto':
+                self.pre_fitness = self.pareto.get_pareto_fitness(self.log_rank_score, self.bin_size, None)
+            
+            if naive_survival_optimization == True:
+                self.pre_fitness *= self.low_risk_area
 
 
     def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):
@@ -326,12 +377,136 @@ class BIN:
     
 
     def bin_report(self):
+        pd.set_option('display.max_colwidth', None) # prevent truncation of dataframe
         columns = ['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Log-Rank Score:', 'Log-Rank p-value:' ,'Bin Size:', 'Group Ratio:', 
-                    'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:','Residuals Score:','Residuals p-value']
+                    'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:','Residuals Score:','Residuals p-value', 'Area']
         report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.pre_fitness,self.log_rank_score, self.log_rank_p_value,
-                                   self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration,self.residuals_score,self.residuals_p_value]],columns=columns,index=None)
+                                   self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration,self.residuals_score,self.residuals_p_value,self.low_risk_area]],columns=columns,index=None)
         return report_df
     
+    def get_bin_composition(self, df,feature_names, predictive_features, threshold):
+        predictive_feature_list = []
+        for x in range(predictive_features):
+            name = 'P_' + str(x + 1)
+            predictive_feature_list.append(name)
+
+        outcome_label = "Duration"
+        feature_df = df.loc[:,feature_names]
+        feature_sums = feature_df[self.feature_list].sum(axis=1)
+        predictive_feature_sums = feature_df[predictive_feature_list].sum(axis=1)
+
+        sum_df = pd.DataFrame({'feature_sum':feature_sums})
+        real_sum_df = pd.DataFrame({'real_feature_sum': predictive_feature_sums})
+    
+        bin_df = pd.concat([df, sum_df, real_sum_df],axis=1)
+
+        
+        low_df = bin_df[bin_df['feature_sum'] <= self.group_threshold]
+        real_low_df = bin_df[bin_df['real_feature_sum'] <= threshold]
+        high_df = bin_df[bin_df['feature_sum'] > self.group_threshold]
+        real_high_df = bin_df[bin_df['real_feature_sum'] > threshold]
+
+
+        real_low_african_american = real_low_df[real_low_df['AFRICAN-AMERICAN'] == 1]
+        real_low_aa_ct = len(real_low_african_american[outcome_label].to_list())
+        low_african_american = low_df[low_df['AFRICAN-AMERICAN'] == 1]
+        bin_low_aa_ct = len(low_african_american[outcome_label].to_list())
+        
+        real_high_african_american = real_high_df[real_high_df['AFRICAN-AMERICAN'] == 1]
+        real_high_aa_ct = len(real_high_african_american[outcome_label].to_list())
+        high_african_american = high_df[high_df['AFRICAN-AMERICAN'] == 1]
+        bin_high_aa_ct = len(high_african_american[outcome_label].to_list())
+
+        real_low_white = real_low_df[real_low_df['WHITE'] == 1]
+        real_low_white_ct = len(real_low_white[outcome_label].to_list())
+        low_white = low_df[low_df['WHITE'] == 1]
+        bin_low_white_ct = len(low_white[outcome_label].to_list())
+
+        real_high_white = real_high_df[real_high_df['WHITE'] == 1]
+        real_high_white_ct = len(real_high_white[outcome_label].to_list())
+        high_white = high_df[high_df['WHITE'] == 1]
+        bin_high_white_ct = len(high_white[outcome_label].to_list())
+
+        real_low_hispanic = real_low_df[real_low_df['HISPANIC'] == 1]
+        real_low_hispanic_ct = len(real_low_hispanic[outcome_label].to_list())
+        low_hispanic = low_df[low_df['HISPANIC'] == 1]
+        bin_low_hispanic_ct = len(low_hispanic[outcome_label].to_list())
+
+        real_high_hispanic = real_high_df[real_high_df['HISPANIC'] == 1]
+        real_high_hispanic_ct = len(real_high_hispanic[outcome_label].to_list())
+        high_hispanic = high_df[high_df['HISPANIC'] == 1]
+        bin_high_hispanic_ct = len(high_hispanic[outcome_label].to_list())
+
+        real_low_asian = real_low_df[real_low_df['ASIAN'] == 1]
+        real_low_asian_ct = len(real_low_asian[outcome_label].to_list())
+        low_asian = low_df[low_df['ASIAN'] == 1]
+        bin_low_asian_ct = len(low_asian[outcome_label].to_list())
+
+        real_high_asian = real_high_df[real_high_df['ASIAN'] == 1]
+        real_high_asian_ct = len(real_high_asian[outcome_label].to_list())
+        high_asian = high_df[high_df['ASIAN'] == 1]
+        bin_high_asian_ct = len(high_asian[outcome_label].to_list())
+
+        real_low_other = real_low_df[real_low_df['OTHER'] == 1]
+        real_low_other_ct = len(real_low_other[outcome_label].to_list())
+        low_other = low_df[low_df['OTHER'] == 1]
+        bin_low_other_ct = len(low_other[outcome_label].to_list())
+
+        real_high_other = real_high_df[real_high_df['OTHER'] == 1]
+        real_high_other_ct = len(real_high_other[outcome_label].to_list())
+        high_other = high_df[high_df['OTHER'] == 1]
+        bin_high_other_ct = len(high_other[outcome_label].to_list())
+
+        real_low_mdmr = real_low_df[real_low_df['MDMR'] == 1]
+        real_low_mdmr_ct = len(real_low_mdmr[outcome_label].to_list())
+        low_mdmr = low_df[low_df['MDMR'] == 1]
+        bin_low_mdmr_ct = len(low_mdmr[outcome_label].to_list())
+
+        real_high_mdmr = real_high_df[real_high_df['MDMR'] == 1]
+        real_high_mdmr_ct = len(real_high_mdmr[outcome_label].to_list())
+        high_mdmr = high_df[high_df['MDMR'] == 1]
+        bin_high_mdmr_ct = len(high_mdmr[outcome_label].to_list())
+
+        real_low_fdfr = real_low_df[real_low_df['FDFR'] == 1]
+        real_low_fdfr_ct = len(real_low_fdfr[outcome_label].to_list())
+        low_fdfr = low_df[low_df['FDFR'] == 1]
+        bin_low_fdfr_ct = len(low_fdfr[outcome_label].to_list())
+
+        real_high_fdfr = real_high_df[real_high_df['FDFR'] == 1]
+        real_high_fdfr_ct = len(real_high_fdfr[outcome_label].to_list())
+        high_fdfr = high_df[high_df['FDFR'] == 1]
+        bin_high_fdfr_ct = len(high_fdfr[outcome_label].to_list())
+
+        real_low_fdmr = real_low_df[real_low_df['FDMR'] == 1]
+        real_low_fdmr_ct = len(real_low_fdmr[outcome_label].to_list())
+        low_fdmr = low_df[low_df['FDMR'] == 1]
+        bin_low_fdmr_ct = len(low_fdmr[outcome_label].to_list())
+
+        real_high_fdmr = real_high_df[real_high_df['FDMR'] == 1]
+        real_high_fdmr_ct = len(real_high_fdmr[outcome_label].to_list())
+        high_fdmr = high_df[high_df['FDMR'] == 1]
+        bin_high_fdmr_ct = len(high_fdmr[outcome_label].to_list())
+
+        real_low_mdfr = real_low_df[real_low_df['MDFR'] == 1]
+        real_low_mdfr_ct = len(real_low_mdfr[outcome_label].to_list())
+        low_mdfr = low_df[low_df['MDFR'] == 1]
+        bin_low_mdfr_ct = len(low_mdfr[outcome_label].to_list())
+
+        real_high_mdfr = real_high_df[real_high_df['MDFR'] == 1]
+        real_high_mdfr_ct = len(real_high_mdfr[outcome_label].to_list())
+        high_mdfr = high_df[high_df['MDFR'] == 1]
+        bin_high_mdfr_ct = len(high_mdfr[outcome_label].to_list())
+
+        return real_low_aa_ct, bin_low_aa_ct, real_high_aa_ct, bin_high_aa_ct, \
+    real_low_white_ct, bin_low_white_ct, real_high_white_ct, bin_high_white_ct, \
+    real_low_hispanic_ct, bin_low_hispanic_ct, real_high_hispanic_ct, bin_high_hispanic_ct, \
+    real_low_asian_ct, bin_low_asian_ct, real_high_asian_ct, bin_high_asian_ct, \
+    real_low_other_ct, bin_low_other_ct, real_high_other_ct, bin_high_other_ct, \
+    real_low_mdmr_ct, bin_low_mdmr_ct, real_high_mdmr_ct, bin_high_mdmr_ct, \
+    real_low_fdfr_ct, bin_low_fdfr_ct, real_high_fdfr_ct, bin_high_fdfr_ct, \
+    real_low_fdmr_ct, bin_low_fdmr_ct, real_high_fdmr_ct, bin_high_fdmr_ct, \
+    real_low_mdfr_ct, bin_low_mdfr_ct, real_high_mdfr_ct, bin_high_mdfr_ct
+
 
     def bin_short_report(self):
         columns = ['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Bin Size:', 'Group Ratio:','Birth Iteration:']
