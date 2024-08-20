@@ -69,8 +69,8 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             df.at[i,col] = 1
 
     #for low risk instances, fill in predictive features
-    for i in range(hr_count,len(low_binary_list)): #for each unique binary combo for low risk
-        binary_string = low_binary_list[i]
+    for i in range(hr_count,hr_count + len(low_binary_list)): #for each unique binary combo for low risk
+        binary_string = low_binary_list[i - hr_count]
         for col, value in zip(predictive_names, [int(bit) for bit in binary_string]):
             df.at[i, col] = value
 
