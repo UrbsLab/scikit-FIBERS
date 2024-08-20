@@ -346,7 +346,7 @@ def plot_adj_HR_metric_product(residuals,bin_pop,show=True,save=False,output_fol
 
 
 def cox_prop_hazard(bin_df, outcome_label, censor_label): #make bin variable beetween 0 and 1
-    cph = CoxPHFitter()
+    cph = CoxPHFitter(penalizer=0.0001)
     cph.fit(bin_df,outcome_label,event_col=censor_label, show_progress=False)
     return cph.summary
 

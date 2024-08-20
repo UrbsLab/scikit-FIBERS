@@ -5,15 +5,17 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, threshold = 0, 
-                             feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
-                             class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
+def survival_data_simulation_3_groups(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, 
+                                    med_risk_proportion=0.25, threshold1 = 0, threshold2 = 1,
+                                    feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.1), 
+                                    class1_time_to_event_range=(1.25, 0.1), class2_time_to_event_range=(1, 0.1), 
+                                    censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
     Note: MAF (minor allele frequency) cutoff refers to the threshold
     separating rare variant features from common features
 
-    :param instances: dataset size
+    :param instances: dataset sizen
     :param total_features: total number of features in dataset
     :param predictive_features: total number of predictive features in the ideal bin
     :param low_risk_proportion: the proportion of instances to be labeled as (no fail class)
@@ -37,9 +39,10 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
         np.random.seed(random_seed)
 
     lr_count = int(instances*low_risk_proportion)
-    hr_count = instances - lr_count
+    mr_count = int(instances*med_risk_proportion)
+    hr_count = instances - lr_count - mr_count
 
-    high_binary_list,low_binary_list = check_parameters(predictive_features, threshold, hr_count, lr_count)
+    high_binary_list, med_binary_list, low_binary_list = check_parameters(predictive_features, threshold1, threshold2, hr_count, mr_count, lr_count)
 
     # Creating an empty dataframe to use as a starting point for the eventual feature matrix
     df = pd.DataFrame(np.zeros((instances, total_features + 2)))
@@ -48,7 +51,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     df.columns = predictive_names + random_names + ['TrueRiskGroup', 'Duration']
 
     # Assigning class according to low_risk_proportion parameter
-    class_list = [1] * hr_count + [0] * lr_count
+    class_list = [2] * hr_count + [1] * mr_count + [0] * lr_count
     df['TrueRiskGroup'] = class_list
 
     # Identify target MAF for each feature in the dataset.
@@ -63,19 +66,31 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             df.at[i, col] = value
 
     for i in range(len(high_binary_list),hr_count): #random assignment
-        one_count = random.randint(threshold+1,predictive_features) #Get random count of 1's
+        one_count = random.randint(threshold2+1,predictive_features) #Get random count of 1's
+        sampled_cols = random.sample(predictive_names,one_count) # Get columns to add 1's
+        for col in sampled_cols:
+            df.at[i,col] = 1
+
+    # for med risk instances fill in predictive features
+    for i in range(hr_count, hr_count + len(med_binary_list)): #for each unique binary combo for med risk
+        binary_string = med_binary_list[i - hr_count]
+        for col, value in zip(predictive_names, [int(bit) for bit in binary_string]):
+            df.at[i, col] = value
+
+    for i in range(hr_count + len(med_binary_list), hr_count + len(med_binary_list) + mr_count): #random assignment
+        one_count = random.randint(threshold1+1,threshold2) #Get random count of 1's
         sampled_cols = random.sample(predictive_names,one_count) # Get columns to add 1's
         for col in sampled_cols:
             df.at[i,col] = 1
 
     #for low risk instances, fill in predictive features
-    for i in range(hr_count,hr_count + len(low_binary_list)): #for each unique binary combo for low risk
-        binary_string = low_binary_list[i - hr_count]
+    for i in range(hr_count + mr_count, hr_count + mr_count + len(low_binary_list)): #for each unique binary combo for low risk
+        binary_string = low_binary_list[i - hr_count - mr_count]
         for col, value in zip(predictive_names, [int(bit) for bit in binary_string]):
             df.at[i, col] = value
 
-    for i in range(hr_count+len(low_binary_list),instances): #random assignment
-        one_count = random.randint(0,threshold) #Get random count of 1's
+    for i in range(hr_count + mr_count + len(low_binary_list),instances): #random assignment
+        one_count = random.randint(0,threshold1) #Get random count of 1's
         sampled_cols = random.sample(predictive_names,one_count) # Get columns to add 1's
         for col in sampled_cols:
             df.at[i,col] = 1
@@ -114,7 +129,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             no_qualify_count = 0
             for i in sorted_indexes:
                 if changed_count < change_count:
-                    if int(df.iloc[i][predictive_names].sum()) > threshold+1: 
+                    if int(df.iloc[i][predictive_names].sum()) > threshold2+1: 
                         #print(df[feature_name].sum())
                         df.at[i,feature_name] = 0
                         
@@ -162,11 +177,13 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             print("Warning: Random feature '"+str(feature)+"' has all 1's in high risk group")
 
     #Final Predictive Feature Check
-    final_check(df,hr_count,predictive_names,threshold,instances)
+    final_check(df,hr_count,mr_count,predictive_names,threshold1,threshold2,instances)
 
     # Assigning Gaussian according to class
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
     df_1 = df[df['TrueRiskGroup'] == 1].sample(frac=1).reset_index(drop=True)
+    df_2 = df[df['TrueRiskGroup'] == 2].sample(frac=1).reset_index(drop=True)
+
     #df_0 = df[df['TrueRiskGroup'] == 0]
     #df_1 = df[df['TrueRiskGroup'] == 1]
     df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0],
@@ -175,7 +192,11 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0],
                                                 class1_time_to_event_range[1], size=len(df_1)),
                                a_min=0, a_max=None)
-    df = pd.concat([df_1, df_0])
+    df_2['Duration'] = np.clip(np.random.normal(class2_time_to_event_range[0],
+                                                class2_time_to_event_range[1], size=len(df_1)),
+                               a_min=0, a_max=None)
+    
+    df = pd.concat([df_2, df_1, df_0])
 
     df = censor(df, censoring_frequency, random_seed)
 
@@ -184,6 +205,8 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     #df_1 = df[df['TrueRiskGroup'] == 1]
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
     df_1 = df[df['TrueRiskGroup'] == 1].sample(frac=1).reset_index(drop=True)
+    df_2 = df[df['TrueRiskGroup'] == 2].sample(frac=1).reset_index(drop=True)
+
 
     if noise_frequency > 0:
         swap_count = int(min(len(df_0), len(df_1)) * noise_frequency)
@@ -194,7 +217,15 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             df_0['Duration'].iloc[i], df_1['Duration'].iloc[i] = \
                 df_1['Duration'].iloc[i].copy(), df_0['Duration'].iloc[i].copy()
 
-    df = pd.concat([df_0, df_1]).sample(frac=1).reset_index(drop=True)
+        indexes = random.sample(list(range(min(len(df_1), len(df_2)))), swap_count)
+        for i in indexes:
+            df_1['Censoring'].iloc[i], df_2['Censoring'].iloc[i] = \
+                df_2['Censoring'].iloc[i].copy(), df_1['Censoring'].iloc[i].copy()
+            df_1['Duration'].iloc[i], df_2['Duration'].iloc[i] = \
+                df_2['Duration'].iloc[i].copy(), df_1['Duration'].iloc[i].copy()
+
+
+    df = pd.concat([df_0, df_1, df_2]).sample(frac=1).reset_index(drop=True)
     print("Random Number Check: "+str(random.randint(0,100000)))
 
     # Simulation of Covariates ---------------------------------------------
@@ -255,8 +286,9 @@ def count_ones(binary):
     return sum(int(bit) for bit in binary)
 
 
-def generate_binary_numbers(predictive_features, threshold):
+def generate_binary_numbers(predictive_features, threshold1, threshold2):
     high_binary_list = []
+    med_binary_list = []
     low_binary_list = []
     unique_count = 0
     for i in range(2 ** predictive_features):
@@ -264,23 +296,30 @@ def generate_binary_numbers(predictive_features, threshold):
         binary = bin(i)[2:]  # Convert the number to binary (remove '0b' prefix)
         # Ensure the binary number has n digits by padding with zeros if necessary
         padded_binary = binary.zfill(predictive_features)
-        if count_ones(padded_binary) > threshold:
+        if count_ones(padded_binary) > threshold2:
             high_binary_list.append(padded_binary)
+        elif count_ones(padded_binary) > threshold1:
+            med_binary_list.append(padded_binary)
         else:
             low_binary_list.append(padded_binary)
     print("Unique binary numbers: "+str(unique_count))
           
-    return high_binary_list,low_binary_list
+    return high_binary_list,med_binary_list,low_binary_list
 
 
-def check_parameters(predictive_features, threshold, hr_count, lr_count):
+def check_parameters(predictive_features, threshold1, threshold2, hr_count, mr_count, lr_count):
     #calculate number of  P binary combos with 1sum > threshold (high risk)
-    high_binary_list,low_binary_list = generate_binary_numbers(predictive_features, threshold)
+    high_binary_list,med_binary_list,low_binary_list = generate_binary_numbers(predictive_features, threshold1, threshold2)
     hr_unique = len(high_binary_list)
     print("Unique HR Combos: "+str(hr_unique))
     #check that number of unique combinations isn't > (high risk instances)
     if hr_unique > hr_count:
         print("Warning: not enough high risk instances to include all unique predictive feature combinations")
+    mr_unique = len(med_binary_list)
+    print("Unique MR Combos: "+str(mr_unique))
+    #check that the number of unique combinations isnt't > (low risk instances)
+    if mr_unique > mr_count:
+        print("Warning: not enough low risk instances to include all unique predictive feature combinations")
     #calculate the number of P binary comabos with 1sum <= threshold
     lr_unique = len(low_binary_list)
     print("Unique LR Combos: "+str(lr_unique))
@@ -288,7 +327,7 @@ def check_parameters(predictive_features, threshold, hr_count, lr_count):
     if lr_unique > lr_count:
         print("Warning: not enough low risk instances to include all unique predictive feature combinations")
 
-    return high_binary_list,low_binary_list
+    return high_binary_list, med_binary_list, low_binary_list
 
 
 def censor(df, censoring_frequency, random_seed=None): # May need simplification!!!!!!!!! Ryan - 3/1/24 (random sampling) - also check random feature MAF 
@@ -313,19 +352,25 @@ def censor(df, censoring_frequency, random_seed=None): # May need simplification
     return df
 
 
-def final_check(df,hr_count,predictive_names,threshold,instances):
+def final_check(df,hr_count, mr_count, predictive_names,threshold1, threshold2,instances):
     #Final Predictive Feature Check
     lowered_check = 0
     for i in range(0,hr_count): #high risk group check
-        if df.iloc[i][predictive_names].sum() <= threshold:
+        if df.iloc[i][predictive_names].sum() <= threshold2:
+            lowered_check += 1
+    for i in range(hr_count, hr_count + mr_count):
+        if df.iloc[i][predictive_names].sum() <= threshold1:
             lowered_check += 1
     if lowered_check > 0:
         print("Warning: this many rows lowered too much: "+str(lowered_check))
 
     raised_check = 0
     for i in range(hr_count,instances): #low risk group check
-        if df.iloc[i][predictive_names].sum() > threshold:
+        if df.iloc[i][predictive_names].sum() > threshold2:
             raised_check +=1
+    for i in range(hr_count, hr_count + mr_count):
+        if df.iloc[i][predictive_names].sum() > threshold1:
+            lowered_check += 1
     if raised_check > 0:
         print("Warning: this many rows raised too much: "+str(raised_check))
 

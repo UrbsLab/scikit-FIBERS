@@ -5,9 +5,9 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, threshold = 0, 
+def survival_data_area_simulation(instances=10000, total_features=100, predictive_features=10, survivability_features=1,low_risk_proportion=0.5, survivability_proportion=0.1, threshold = 0, survivability_threshold = 0,
                              feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
-                             class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
+                             class1_time_to_event_range=(1, 0.2), survivability_benefit=(0.1, 0.01), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
     Note: MAF (minor allele frequency) cutoff refers to the threshold
@@ -16,6 +16,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     :param instances: dataset size
     :param total_features: total number of features in dataset
     :param predictive_features: total number of predictive features in the ideal bin
+    :param survivability_features: total number of features benefitting survivability
     :param low_risk_proportion: the proportion of instances to be labeled as (no fail class)
     :param threshold: The threshold used to deterimine simulated high vs. low risk instance. Any bin sum higher than threshold is high risk.
     :param feature_frequency_range: the max and min freature frequency for a given column in data. (e.g. 0.1 to 0.4)
@@ -24,6 +25,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     :param class0_time_to_event_range: (min, max) time to event as a tuple (should be larger (e.g. 100 to 200)
     :param class1_time_to_event_range: (min, max) time to event as a tuple (should be smaller but a bit overlapping \
                                         with above range (e.g. 20 to 150)
+    :param survivability_benefit: percent increase in survivability for those with feature, regardless of risk group
     :param censoring_frequency: proportion of instances that are censored (0 = censored, 1 = not censored)
     :param covariates_to_sim: number of covariates to simulate - that are each partially correlated with outcome
     :param covariates_signal_range: range of values determining covariate correlation with True Risk Group
@@ -44,8 +46,9 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     # Creating an empty dataframe to use as a starting point for the eventual feature matrix
     df = pd.DataFrame(np.zeros((instances, total_features + 2)))
     predictive_names = ["P_" + str(i + 1) for i in range(predictive_features)]
-    random_names = ["R_" + str(i + 1) for i in range(total_features - predictive_features)]
-    df.columns = predictive_names + random_names + ['TrueRiskGroup', 'Duration']
+    survivability_names = ["S_" + str(i + 1) for i in range (survivability_features)]
+    random_names = ["R_" + str(i + 1) for i in range(total_features - predictive_features - survivability_features)]
+    df.columns = predictive_names + survivability_names + random_names + ['TrueRiskGroup', 'Duration']
 
     # Assigning class according to low_risk_proportion parameter
     class_list = [1] * hr_count + [0] * lr_count
@@ -140,6 +143,25 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             if new_sum != predictive_one_counts[index]:
                 print("Warning: Feature "+str(feature_name)+"'only raised to "+str(new_sum)+" one's count.")
 
+    # Generate Survivability Feature Values -------------------------------
+    feature_index = 0
+    for feature in survivability_names:
+        one_count = int(instances * (1 - survivability_proportion))
+        row_indexes = [random.randint(0, instances-1) for _ in range(one_count)]
+        for row in row_indexes:
+            df.at[row,feature] = 1
+        feature_index += 1 
+
+    # check that no random column has all 0's for low groups and all 1's for high group
+    for feature in survivability_names:
+        sum_of_LR = df.iloc[0:hr_count+1][feature].sum()
+        if sum_of_LR == 0:
+            print("Warning: Random feature '"+str(feature)+"' has all 0's in low risk group")
+
+    for feature in survivability_names:
+        sum_of_LR = df.iloc[hr_count:instances+1][feature].sum()
+        if sum_of_LR == hr_count:
+            print("Warning: Random feature '"+str(feature)+"' has all 1's in high risk group")
 
     # Generate Random Feature Values -------------------------------
     feature_index = 0
@@ -175,8 +197,26 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0],
                                                 class1_time_to_event_range[1], size=len(df_1)),
                                a_min=0, a_max=None)
-    df = pd.concat([df_1, df_0])
+   
+    survivability_count = 0
+    for row in range(df_0.shape[0]):
+        for i in range(survivability_features):
+            if df_0.iloc[row, predictive_features + i] == 0:
+              survivability_count += 1
+        if survivability_count > survivability_threshold:
+          df_0.at[row, 'Duration'] *= (1 + np.random.normal(survivability_benefit[0], survivability_benefit[1]))
+        survivability_count = 0
 
+    for row in range(df_1.shape[0]):
+        for i in range(survivability_features):
+            if df_1.iloc[row, predictive_features + i] == 0:
+              survivability_count += 1
+        if survivability_count > survivability_threshold:
+          df_1.at[row, 'Duration'] *= (1 + np.random.normal(survivability_benefit[0], survivability_benefit[1]))
+        survivability_count = 0
+
+
+    df = pd.concat([df_1, df_0])
     df = censor(df, censoring_frequency, random_seed)
 
 

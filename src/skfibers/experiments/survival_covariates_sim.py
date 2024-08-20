@@ -23,7 +23,7 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
 
     #P1_values = []
     #P2_values = []
-    PC1_values = []
+    TC1_values = []
     #PC2_values = [] #test
     patient_censoring_times = []
     administrative_censoring_times = []
@@ -48,12 +48,12 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
         #P1 = int(random.random() < 0.3)
         #P2 = int(random.random() < 0.3)
             
-        #PC1 = int(random.random() > 0.5 + recipient_factor/2 + donor_factor/2)
+        #TC1 = int(random.random() > 0.5 + recipient_factor/2 + donor_factor/2)
         #if random.random() > 0.2:
-        #    PC1 = int(random.random() > recipient_factor/2 + donor_factor/2)
+        #    TC1 = int(random.random() > recipient_factor/2 + donor_factor/2)
         #else:
-        #    PC1 = int(random.random() > 0.5)
-        PC1 = int(random.random() > recipient_factor/2 + donor_factor/2)
+        #    TC1 = int(random.random() > 0.5)
+        TC1 = int(random.random() > recipient_factor/2 + donor_factor/2)
         #feature_frequency = random.uniform(feature_frequency_range[0], feature_frequency_range[1]) #test
         #PC2 = int(random.random() < feature_frequency) #test
 
@@ -84,7 +84,7 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
 
         #P1_values.append(P1)
         #P2_values.append(P2)
-        PC1_values.append(PC1)
+        TC1_values.append(TC1)
         #PC2_values.append(PC2) #test
         patient_censoring_times.append(patient_censoring_time)
         administrative_censoring_times.append(administrative_censoring_time)
@@ -118,7 +118,7 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
 
     # Create a DataFrame to store the data
     df = pd.DataFrame({
-        'PC_1': PC1_values,
+        'TC_1': TC1_values,
         #'PC_2': PC2_values, #test
         'C_1': recipient_factors,
         'C_2': donor_factors,
@@ -134,7 +134,7 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
    
 
     data = pd.DataFrame({
-        'PC_1': PC1_values,
+        'TC_1': TC1_values,
         #'PC_2': PC2_values, #test
         'C_1': recipient_factors,
         'C_2': donor_factors,
