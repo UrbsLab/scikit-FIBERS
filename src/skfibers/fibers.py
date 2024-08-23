@@ -28,7 +28,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=100,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
                  max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=0,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
                  log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh_list = [1,4],min_thresh=0,max_thresh=5, 
-                 int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False):
+                 int_thresh=True,thresh_evolve_prob=0.5,multi_thresholding = True,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False):
 
         """
         A Scikit-Learn compatible implementation of the FIBERS Algorithm.
@@ -69,7 +69,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param max_thresh: for adaptive bin thresholding - the maximum group_thresh allowed
         :param int_thresh: boolean indicating that adaptive bin thresholds are limited to positive intergers
         :param thresh_evolve_prob: probability that adaptive bin thresholding will evolve vs. be selected for the bin deterministically
-
+        :param multi_thresholding: for multi_risk group survival analysis; if true, FIBERS will evaluate 2-group and 3-group bins simultaneously
+        
         ..
             Manual Bin Initialization Parameters
 
@@ -177,6 +178,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if thresh_evolve_prob < 0 or thresh_evolve_prob > 1:
             raise Exception("'thresh_evolve_prob' param must be an int or float from 0 - 1")
         
+        if not multi_thresholding == True and not multi_thresholding == False and not multi_thresholding == 'True' and not multi_thresholding == 'False':
+            raise Exception("'multi_thresholding' param must be a boolean, i.e. True or False")
+        
         if not isinstance(manual_bin_init, pd.DataFrame) and not manual_bin_init == None:
             raise Exception("'manual_bin_init' param must be either None or DataFame that includes columns for 'feature_list' and 'group_threshold' ")
 
@@ -221,6 +225,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.max_thresh = max_thresh
         self.int_thresh = int_thresh
         self.thresh_evolve_prob = thresh_evolve_prob
+        self.multi_thresholding = multi_thresholding
         self.manual_bin_init = manual_bin_init
         self.covariates = covariates
         self.pop_clean = pop_clean
@@ -330,7 +335,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
         self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh_list,self.min_thresh,self.max_thresh,
-                           self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
+                           self.int_thresh,self.multi_thresholding,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
                            self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates,random)
         #Global fitness update
         self.set.global_fitness_update(self.penalty) #Exerimental
@@ -367,7 +372,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
                 # Generate Offspring - clone, crossover, mutation, evaluation, add to population
                 self.set.generate_offspring(self.crossover_prob,mutation_prob,self.merge_prob,self.iterations,iteration,parent_list,self.feature_names,
-                                            threshold_evolving,self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
+                                            threshold_evolving,self.multi_thresholding,self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
                                             self.df,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
                                             self.group_thresh_list,self.group_strata_min,self.penalty,self.residuals,self.covariates,random)
             # Add Offspring to Population
@@ -543,13 +548,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
         #self.set.bin_pop = sorted(self.set.bin_pop, key=lambda x: x.fitness,reverse=True)
         top_bin = self.set.bin_pop[0]
         if initialize:
-            col_list = ['Iteration','Top Bin', 'Low Threshold', 'High Threshold', 'Fitness', 'Pre-Fitness', 'Log-Rank Score', 'Log-Rank p-value', 'Bin Size', 'Group Ratio',
+            col_list = ['Iteration','Top Bin', 'Threshold(s)', 'Fitness', 'Pre-Fitness', 'Log-Rank Score', 'Log-Rank p-value', 'Bin Size', 'Group Ratio',
                          'Count At/Below Threshold', 'Count Between Thresholds','Count Above Threshold','Birth Iteration','Residuals Score','Residuals p-value','Elapsed Time']
             self.perform_track_df = pd.DataFrame(columns=col_list)
             if self.verbose:
                 print(col_list)
 
-        tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold_list[0], top_bin.group_threshold_list[1],top_bin.fitness,top_bin.pre_fitness,
+        tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold_list,top_bin.fitness,top_bin.pre_fitness,
                            top_bin.log_rank_score,top_bin.log_rank_p_value,top_bin.bin_size,top_bin.group_strata_prop,top_bin.count_bt,top_bin.count_mt,
                            top_bin.count_at,top_bin.birth_iteration,top_bin.residuals_score,top_bin.residuals_p_value,self.elapsed_time]
         if self.verbose:
@@ -612,17 +617,28 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # Create evaluation dataframe including bin sum feature with 
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
 
-        low_df = bin_df[bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[0]]
-        # mid_df = bin_df[(bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[0]) & (bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[1])]
-        mid_df = bin_df[(bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[0]) & (bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[1])]
-        high_df = bin_df[bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[1]]
+        num_thresh = len(self.set.bin_pop[bin_index].group_threshold_list)
+        if num_thresh == 2:
+            low_df = bin_df[bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[0]]
+            mid_df = bin_df[(bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[0]) & (bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[1])]
+            high_df = bin_df[bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[1]]
 
-        low_outcome = low_df[self.outcome_label].to_list()
-        mid_outcome = mid_df[self.outcome_label].to_list()
-        high_outcome = high_df[self.outcome_label].to_list()
-        low_censor = low_df[self.censor_label].to_list()
-        mid_censor = mid_df[self.censor_label].to_list()
-        high_censor = high_df[self.censor_label].to_list()
+            low_outcome = low_df[self.outcome_label].to_list()
+            mid_outcome = mid_df[self.outcome_label].to_list()
+            high_outcome = high_df[self.outcome_label].to_list()
+            low_censor = low_df[self.censor_label].to_list()
+            mid_censor = mid_df[self.censor_label].to_list()
+            high_censor = high_df[self.censor_label].to_list()
+        else:
+            low_df = bin_df[bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[0]]
+            high_df = bin_df[bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[0]]
+
+            low_outcome = low_df[self.outcome_label].to_list()
+            mid_outcome = None
+            high_outcome = high_df[self.outcome_label].to_list()
+            low_censor = low_df[self.censor_label].to_list()
+            mid_censor = None
+            high_censor =high_df[self.censor_label].to_list()
         df = None
         return low_outcome, mid_outcome, high_outcome, low_censor, mid_censor, high_censor
     

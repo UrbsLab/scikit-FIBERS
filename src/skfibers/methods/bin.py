@@ -39,20 +39,22 @@ class BIN:
         self.cluster = cluster
 
 
-    def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,low_thresh,high_thresh,min_thresh,max_thresh,iteration,random):
+    def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh_list,multi_thresholding,min_thresh,max_thresh,iteration,random):
         self.birth_iteration = iteration
         # Initialize features in bin
         feature_count = random.randint(min_bin_size,max_bin_init_size)
         self.feature_list = random.sample(feature_names,feature_count)
         self.bin_size = len(self.feature_list)
-        if low_thresh is not None and high_thresh is not None: # Defined group threshold
-            self.group_threshold_list = [low_thresh, high_thresh]
+        if group_thresh_list is not None: # Defined group threshold
+            self.group_threshold_list = group_thresh_list
         else: # Adaptive group threshold
             self.group_threshold_list = [random.randint(min_thresh, max_thresh), random.randint(min_thresh, max_thresh)]
-            while self.group_threshold_list[0] == self.group_threshold_list[1]:
-               self.group_threshold_list = [random.randint(min_thresh, max_thresh), random.randint(min_thresh, max_thresh)]
-            self.group_threshold_list.sort()
-
+            
+            if self.group_threshold_list[0] == self.group_threshold_list[1] or not multi_thresholding:
+                self.group_threshold_list = self.group_threshold_list[:-1]
+                
+            else:
+                self.group_threshold_list.sort()
     
 
     def initialize_manual(self,feature_names,loaded_bin,loaded_thresh_list,low_thresh,high_thresh,min_thresh,max_thresh,birth_iteration):
@@ -81,7 +83,7 @@ class BIN:
 
 
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh_list,threshold_evolving,iterations,iteration,residuals,covariate_df):
+                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh_list,threshold_evolving,multi_thresholding,iterations,iteration,residuals,covariate_df):
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
         bin_df = pd.DataFrame({'feature_sum':feature_sums})
@@ -89,37 +91,61 @@ class BIN:
         # Create evaluation dataframe including bin sum feature with
         bin_df = pd.concat([bin_df,outcome_df,censor_df],axis=1)
 
-        if (group_thresh_list is None and not threshold_evolving) or (group_thresh_list is None and iteration == iterations-1): #Adaptive thresholding activated (always applied on last iteration)
+        if (group_thresh_list is None) and (not threshold_evolving or iteration == iterations-1): #Adaptive thresholding activated (always applied on last iteration)
             # Select best thresholds by evaluating all considered
             best_score = None
             thresh_score = 0
-            for low_thresh in range(min_thresh, max_thresh):
-                for high_thresh in range(low_thresh + 1, max_thresh + 1):
-                    log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at = self.evaluate_for_thresholds(low_thresh, high_thresh,bin_df,outcome_label,censor_label,
-                                                                                                                              outcome_type,fitness_metric, log_rank_weighting,residuals,covariate_df)
-                    if fitness_metric == 'log_rank':
-                        thresh_score = log_rank_score
+            if multi_thresholding:
+                for low_thresh in range(min_thresh, max_thresh):
+                        for high_thresh in range(low_thresh + 1, max_thresh + 1):
+                            log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at = self.evaluate_for_thresholds([low_thresh, high_thresh],bin_df,outcome_label,censor_label,
+                                                                                                                                    outcome_type,fitness_metric, log_rank_weighting,residuals,covariate_df)
+                            if fitness_metric == 'log_rank':
+                                thresh_score = log_rank_score
 
-                    elif fitness_metric == 'residuals': 
-                        thresh_score = residuals_score
+                            elif fitness_metric == 'residuals': 
+                                thresh_score = residuals_score
 
-                    elif fitness_metric == 'log_rank_residuals':
-                        thresh_score = log_rank_score * residuals_score
+                            elif fitness_metric == 'log_rank_residuals':
+                                thresh_score = log_rank_score * residuals_score
 
-                    if best_score is None or thresh_score > best_score:
-                        self.log_rank_score = log_rank_score
-                        self.log_rank_p_value = p_value
-                        self.residuals_score = residuals_score
-                        self.residuals_p_value = residuals_p_value
-                        self.group_threshold_list = [low_thresh, high_thresh]
-                        self.count_bt= count_bt
-                        self.count_mt = count_mt
-                        self.count_at = count_at
-                        best_score = thresh_score
+                            if best_score is None or thresh_score > best_score:
+                                self.log_rank_score = log_rank_score
+                                self.log_rank_p_value = p_value
+                                self.residuals_score = residuals_score
+                                self.residuals_p_value = residuals_p_value
+                                self.group_threshold_list = [low_thresh, high_thresh]
+                                self.count_bt= count_bt
+                                self.count_mt = count_mt
+                                self.count_at = count_at
+                                best_score = thresh_score
+                            
+            for low_thresh in range(min_thresh, max_thresh + 1):
+                        log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at = self.evaluate_for_thresholds([low_thresh],bin_df,outcome_label,censor_label,
+                                                                                                                                outcome_type,fitness_metric, log_rank_weighting,residuals,covariate_df)
+                        if fitness_metric == 'log_rank':
+                            thresh_score = log_rank_score
+
+                        elif fitness_metric == 'residuals': 
+                            thresh_score = residuals_score
+
+                        elif fitness_metric == 'log_rank_residuals':
+                            thresh_score = log_rank_score * residuals_score
+
+                        if best_score is None or thresh_score > best_score:
+                            self.log_rank_score = log_rank_score
+                            self.log_rank_p_value = p_value
+                            self.residuals_score = residuals_score
+                            self.residuals_p_value = residuals_p_value
+                            self.group_threshold_list = [low_thresh]
+                            self.count_bt= count_bt
+                            self.count_mt = count_mt
+                            self.count_at = count_at
+                            best_score = thresh_score
 
         else: #Use the given group threshold to evaluate the bin
-            low_thresh, high_thresh = self.group_threshold_list
-            log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at = self.evaluate_for_thresholds(low_thresh,high_thresh,bin_df,outcome_label,censor_label,outcome_type,
+            # low_thresh, high_thresh = self.group_threshold_list
+            log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at = self.evaluate_for_thresholds(self.group_threshold_list,bin_df,outcome_label,censor_label,outcome_type,
                                                                                                                               fitness_metric,log_rank_weighting,residuals,covariate_df)
             self.log_rank_score = log_rank_score
             self.log_rank_p_value = p_value
@@ -133,8 +159,16 @@ class BIN:
         self.bin_size = len(self.feature_list)
 
 
-    def evaluate_for_thresholds(self,low_thresh,high_thresh,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df):
+    def evaluate_for_thresholds(self,group_thresh_list,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df):
         # Apply selected evaluation strategy/metric(s)
+        low_thresh = None
+        high_thresh = None
+        num_thresh = len(group_thresh_list)
+        if num_thresh == 2:
+            low_thresh, high_thresh = group_thresh_list
+        else:
+            low_thresh = group_thresh_list[0]
+        
         if outcome_type == 'survival':
             residuals_score = None
             residuals_p_value = None
@@ -147,25 +181,39 @@ class BIN:
             if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals':
                 #Create dataframes including instances from either strata-groups
                 low_df = bin_df[bin_df['feature_sum'] <= low_thresh]
-                mid_df = bin_df[(bin_df['feature_sum'] > low_thresh) & (bin_df['feature_sum'] <= high_thresh)]
-                high_df = bin_df[bin_df['feature_sum'] > high_thresh]
+                if num_thresh == 2:
+                    mid_df = bin_df[(bin_df['feature_sum'] > low_thresh) & (bin_df['feature_sum'] <= high_thresh)]
+                    high_df = bin_df[bin_df['feature_sum'] > high_thresh]
+                else: 
+                    high_df = bin_df[bin_df['feature_sum'] > low_thresh]
                 
                 low_outcome = low_df[outcome_label].to_list()
-                mid_outcome = mid_df[outcome_label].to_list()
+                # mid_outcome = mid_df[outcome_label].to_list()
                 high_outcome = high_df[outcome_label].to_list()
                 
                 low_censor = low_df[censor_label].to_list()
-                mid_censor = mid_df[censor_label].to_list()
+                # mid_censor = mid_df[censor_label].to_list()
                 high_censor = high_df[censor_label].to_list()
                 
                 count_bt = len(low_outcome)
-                count_mt = len(mid_outcome)
+                # count_mt = len(mid_outcome)
                 count_at = len(high_outcome)
 
-                combined_outcomes = low_outcome + mid_outcome + high_outcome # event_durations for all individuals
-                combined_groups = [0] * len(low_outcome) + [1] * len(mid_outcome)  + [2] * len(high_outcome) # Assign group 0 to low_outcome and group 1 to high_outcome (group labels for each individual)
-                combined_censors = low_censor + mid_censor + high_censor # event_observed (censoring) for all individuals
-                
+                if num_thresh == 2:
+                    mid_outcome = mid_df[outcome_label].to_list()
+                    mid_censor = mid_df[censor_label].to_list()
+                    count_mt = len(mid_outcome)
+                    
+                    combined_outcomes = low_outcome + mid_outcome + high_outcome # event_durations for all individuals
+                    combined_groups = [0] * len(low_outcome) + [1] * len(mid_outcome)  + [2] * len(high_outcome) # Assign group 0 to low_outcome and group 1 to high_outcome (group labels for each individual)
+                    combined_censors = low_censor + mid_censor + high_censor # event_observed (censoring) for all individuals
+                    
+                else:
+                    count_mt = 0
+                    combined_outcomes = low_outcome + high_outcome
+                    combined_groups = [0] * len(low_outcome) + [1] * len(high_outcome)
+                    combined_censors = low_censor + high_censor
+
                 try:
                     # results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
                     results = multivariate_logrank_test(combined_outcomes, combined_groups, event_observed=combined_censors, weightings=log_rank_weighting)
@@ -216,7 +264,7 @@ class BIN:
         self.birth_iteration = iteration
 
 
-    def uniform_crossover(self,other_offspring,crossover_prob,threshold_evolving,random):
+    def uniform_crossover(self,other_offspring,crossover_prob,threshold_evolving,multi_thresholding,max_thresh,random):
         # Create list of feature names unique to one list or another
         set1 = set(self.feature_list)
         set2 = set(other_offspring.feature_list)
@@ -233,64 +281,54 @@ class BIN:
                     other_offspring.feature_list.remove(feature)
                     self.feature_list.append(feature)
 
-        """
-        set1_th = set(self.group_threshold_list)
-        set2_th = set(other_offspring.group_threshold_list)
-        unique_to_list1_th = set1_th - set2_th
-        unique_to_list2_th = set2_th - set1_th
-        unique_th = list(sorted(unique_to_list1_th.union(unique_to_list2_th)))
-
-        for th in unique_th:
-            if random.random() < crossover_prob:
-                if th in self.group_threshold_list:
-                    self.group_threshold_list.remove(th)
-                    other_offspring.group_threshold_list.append(th)
-                else:
-                    other_offspring.group_threshold_list.remove(th)
-                    self.group_threshold_list.append(th)
-                    """
-        # Ensure group_threshold_list always has exactly 2 thresholds
-        def crossover_threshold(threshold_list1, threshold_list2):
+        def crossover_threshold(threshold_list1, threshold_list2, crossover_prob, max_thresh, random):
             set1_th = set(threshold_list1)
             set2_th = set(threshold_list2)
             unique_to_list1_th = set1_th - set2_th
             unique_to_list2_th = set2_th - set1_th
-            unique_th = list(sorted(unique_to_list1_th.union(unique_to_list2_th)))
 
-            for th in unique_th:
-                if random.random() < crossover_prob:
-                    if th in threshold_list1 and len(threshold_list1) > 2:
+            # Crossover unique thresholds based on probability
+            if random.random() < crossover_prob:
+                for th in unique_to_list1_th:
+                    if len(threshold_list1) > 1:
                         threshold_list1.remove(th)
                         threshold_list2.append(th)
-                    elif th in threshold_list2 and len(threshold_list2) > 2:
+                for th in unique_to_list2_th:
+                    if len(threshold_list2) > 1:
                         threshold_list2.remove(th)
                         threshold_list1.append(th)
-            
-            # If any list ends up with less than 2 thresholds, restore previous state
-            if len(threshold_list1) < 2:
-                threshold_list1.extend(threshold_list2[:2 - len(threshold_list1)])
+
+            # Ensure both threshold lists have at least 1 threshold
+            if len(threshold_list1) < 1:
+                threshold_list1.append(min(threshold_list2))
                 threshold_list2 = list(set(threshold_list2) - set(threshold_list1))
             
-            if len(threshold_list2) < 2:
-                threshold_list2.extend(threshold_list1[:2 - len(threshold_list2)])
+            if len(threshold_list2) < 1:
+                threshold_list2.append(min(threshold_list1))
                 threshold_list1 = list(set(threshold_list1) - set(threshold_list2))
 
-            return threshold_list1[:2], threshold_list2[:2]
+            # Ensure no threshold list has more than 2 thresholds
+            threshold_list1 = threshold_list1[:2]
+            threshold_list2 = threshold_list2[:2]
+
+            # Ensure thresholds are within bounds
+            threshold_list1 = [min(max(0, th), max_thresh) for th in threshold_list1]
+            threshold_list2 = [min(max(0, th), max_thresh) for th in threshold_list2]
+
+            return sorted(threshold_list1), sorted(threshold_list2)
 
         if threshold_evolving:
-            self.group_threshold_list, other_offspring.group_threshold_list = crossover_threshold(
-                self.group_threshold_list, other_offspring.group_threshold_list)
-        # Apply crossover to thresholding if threshold_evolving
-        """
-        if threshold_evolving:
-            if random.random() < crossover_prob:
-                temp = self.group_threshold
-                self.group_threshold = other_offspring.group_threshold
-                other_offspring.group_threshold = temp
-        """
+            if multi_thresholding:
+                self.group_threshold_list, other_offspring.group_threshold_list = crossover_threshold(
+                    self.group_threshold_list, other_offspring.group_threshold_list, crossover_prob, max_thresh, random)
+            else:
+                if random.random() < crossover_prob:
+                    temp = self.group_threshold_list[0]
+                    self.group_threshold_list[0] = other_offspring.group_threshold_list[0]
+                    other_offspring.group_threshold_list[0] = temp
 
 
-    def mutation(self,mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random):
+    def mutation(self,mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,multi_thresholding,min_thresh,max_thresh,random):
         self.feature_list = sorted(self.feature_list)
 
         if len(self.feature_list) == 0: #Initialize new bin if empty after crossover
@@ -336,31 +374,36 @@ class BIN:
             # Enforce maximum bin size
             while len(self.feature_list) > max_bin_size:
                 self.feature_list.remove(random.choice(self.feature_list))
-        """
-        # Apply mutation to thresholding if threshold_evolving
+
         if threshold_evolving:
-            if random.random() < mutation_prob:
-                if min_thresh == max_thresh:
-                    pass
-                else:
-                    thresh_list = [i for i in range(min_thresh,max_thresh+1)] #random.randint(min_thresh,max_thresh)
-                    thresh_list.pop(thresh_list.index(self.group_threshold)) #pick a feature not already in the bin
-                    random_thresh = random.choice(thresh_list)
-                    self.group_threshold = random_thresh
-        """
-        if threshold_evolving:
-            for th in self.group_threshold_list:
-                th_list = [i for i in range(min_thresh, max_thresh+1)]
-                th_list.pop(th_list.index(self.group_threshold_list[0]))
-                th_list.pop(th_list.index(self.group_threshold_list[1]))
+            th_list = [i for i in range(min_thresh, max_thresh+1)]
+            th_list.pop(th_list.index(self.group_threshold_list[0]))    
+            if len(self.group_threshold_list) == 1: # Addition and Swap Only (to avoid empy bins)
+                mutate_options = ['A', 'S'] # Add, swap
                 if random.random() < mutation_prob:
-                    th = random.choice(th_list)
-            
+                    mutate_type = random.choice(mutate_options)
+                    if mutate_type == 'A' and multi_thresholding: # Add (only if multi_thresholding)
+                        self.group_threshold_list.append(random.choice(th_list))
+                    else: # Swap
+                        self.group_threshold_list[0] = random.choice(th_list)
+            elif multi_thresholding: # Delete, swap
+                th_list.pop(th_list.index(self.group_threshold_list[1]))
+                mutate_options = ['D', 'S'] # Delete, swap
+                if random.random() < mutation_prob:
+                    mutate_type = random.choice(mutate_options)
+                    if mutate_type == 'D': # Delete
+                        if random.random() < 0.5:
+                            self.group_threshold_list = self.group_threshold_list[:-1]
+                        else:
+                            self.group_threshold_list = self.group_threshold_list[-1:]
+                    else: # Swap
+                        self.group_threshold_list[0] = random.choice(th_list)
+                        if random.random() < mutation_prob:
+                            self.group_threshold_list[1] = random.choice(th_list)
             self.group_threshold_list.sort()
 
 
-
-    def merge(self,other_parent,max_bin_size,threshold_evolving,max_thresh,random):
+    def merge(self,other_parent,max_bin_size,threshold_evolving,multi_thresholding,max_thresh,random):
         # Merge feature lists of two parents
         # Create list of feature names unique to one list or another
         set1 = set(self.feature_list)
@@ -376,31 +419,50 @@ class BIN:
 
         # Merge threshold lists of two parents
         if threshold_evolving:
-            set1_th = set(self.group_threshold_list)
-            set2_th = set(other_parent.group_threshold_list)
-            unique_to_list2_th = set2_th - set1_th
-            self.group_threshold_list = self.group_threshold_list + list(unique_to_list2_th)
-            self.group_threshold_list.sort()
-            # Ensure that only 2 thresholds exist
-            while len(self.group_threshold_list) > 2:
-                self.group_threshold_list.remove(random.choice(self.group_threshold_list))
+            if multi_thresholding:
+                set1_th = set(self.group_threshold_list)
+                set2_th = set(other_parent.group_threshold_list)
+                unique_to_list2_th = set2_th - set1_th
+                unique_to_list1_th = set1_th - set2_th
 
-            if self.group_threshold_list[0] == 0 or other_parent.group_threshold_list[0] == 0:
-                self.group_threshold_list[0] += 1
-                if self.group_threshold_list[0] == self.group_threshold_list[1]:
-                    self.group_threshold_list[1] += 1
-            # self.group_threshold += other_parent.group_threshold
-            #Enforce maximum group threshold
-            if self.group_threshold_list[1] > max_thresh:
-                self.group_threshold_list[1] = max_thresh
-                if self.group_threshold_list[0] == self.group_threshold_list[1]:
-                    self.group_threshold_list[0] -= 1
+                # Combine thresholds
+                merged_thresholds = sorted(self.group_threshold_list + list(unique_to_list2_th))
+                
+                # Determine whether to keep 1 or 2 thresholds
+                if len(merged_thresholds) > 1 and random.random() < 0.5:
+                    self.group_threshold_list = random.sample(merged_thresholds, 2)
+                else:
+                    self.group_threshold_list = [random.choice(merged_thresholds)]
+                
+                self.group_threshold_list.sort()
+
+                # Ensure that only 2 thresholds exist
+                while len(self.group_threshold_list) > 2:
+                    self.group_threshold_list.remove(random.choice(self.group_threshold_list))
+
+                if unique_to_list2_th is None and unique_to_list1_th is None:
+                    self.group_threshold_list = list(np.asarray(self.group_threshold_list) + 1)
+                # Enforce maximum threshold
+                if len(self.group_threshold_list) > 1 and self.group_threshold_list[1] > max_thresh:
+                    self.group_threshold_list[1] = max_thresh
+                    if self.group_threshold_list[0] == self.group_threshold_list[1]:
+                        self.group_threshold_list[0] = max(0, self.group_threshold_list[1] - 1)
+            else:
+                if self.group_threshold_list[0] == 0 or other_parent.group_threshold_list[0] == 0:
+                    self.group_threshold_list[0] += 1
+                self.group_threshold_list[0] += other_parent.group_threshold_list[0]
+                #Enforce maximum group threshold
+                if self.group_threshold_list[0] > max_thresh:
+                    self.group_threshold_list[0] = max_thresh
 
 
     def calculate_pre_fitness(self,group_strata_min,penalty,fitness_metric,feature_names):
         # Penalize fitness if group counts are beyond the minimum group strata parameter (Ryan Check below)
-        self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_mt+self.count_at),self.count_mt/(self.count_bt+self.count_mt+self.count_at),
+        if len(self.group_threshold_list) == 2:
+            self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_mt+self.count_at),self.count_mt/(self.count_bt+self.count_mt+self.count_at),
                                      self.count_at/(self.count_bt+self.count_mt+self.count_at))
+        else:
+            self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_at),self.count_at/(self.count_bt+self.count_at))
         if self.group_strata_prop == 0.0:
             self.pre_fitness = 0.0
         else:
@@ -441,16 +503,16 @@ class BIN:
     
 
     def bin_report(self):
-        columns = ['Features in Bin:', 'Low Threshold:', 'High Threshold:','Fitness','Pre-Fitness:', 'Log-Rank Score:', 'Log-Rank p-value:' ,'Bin Size:', 'Group Ratio:', 
+        columns = ['Features in Bin:', 'Threshold(s)','Fitness','Pre-Fitness:', 'Log-Rank Score:', 'Log-Rank p-value:' ,'Bin Size:', 'Group Ratio:', 
                     'Count At/Below Low Threshold:', 'Count Between Tresholds','Count Above High Threshold:','Birth Iteration:','Residuals Score:','Residuals p-value']
-        report_df = pd.DataFrame([[self.feature_list, self.group_threshold_list[0], self.group_threshold_list[1], self.fitness,self.pre_fitness,self.log_rank_score, 
+        report_df = pd.DataFrame([[self.feature_list, self.group_threshold_list, self.fitness,self.pre_fitness,self.log_rank_score, 
                                    self.log_rank_p_value, self.bin_size, self.group_strata_prop, self.count_bt, self.count_mt, self.count_at, self.birth_iteration,
                                    self.residuals_score,self.residuals_p_value]], columns=columns,index=None)
         return report_df
     
 
     def bin_short_report(self):
-        columns = ['Features in Bin:', 'Low Threshold:', 'High Threshold:', 'Fitness','Pre-Fitness:', 'Bin Size:', 'Group Ratio:','Birth Iteration:']
-        report_df = pd.DataFrame([[self.feature_list, self.group_threshold_list[0], self.group_threshold_list[1], self.fitness,self.pre_fitness, self.bin_size, 
+        columns = ['Features in Bin:', 'Threshold(s)', 'Fitness','Pre-Fitness:', 'Bin Size:', 'Group Ratio:','Birth Iteration:']
+        report_df = pd.DataFrame([[self.feature_list, self.group_threshold_list, self.fitness,self.pre_fitness, self.bin_size, 
                                    self.group_strata_prop,self.birth_iteration]],columns=columns,index=None).T
         return report_df

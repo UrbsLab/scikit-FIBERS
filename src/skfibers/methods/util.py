@@ -17,45 +17,68 @@ def transform_value(n,cycle_length):
     return remainder
 
 
-def plot_pareto(bin_pop,show=True,save=False,output_folder=None,data_name=None):
+def plot_pareto(bin_pop, show=True, save=False, output_folder=None, data_name=None):
     # Initialize lists to store Pareto-optimal solutions
     pareto_pre_fitness = []
     pareto_bin_size = []
     group_strata_prop = []
     group_threshold = []
+    shapes = []
+    sizes = []
 
     for bin in bin_pop:
         pareto_pre_fitness.append(bin.pre_fitness)
         pareto_bin_size.append(bin.bin_size)
         group_strata_prop.append(bin.group_strata_prop)
-        group_threshold.append(bin.group_threshold)
-    group_threshold = [(x+1)*5 for x in group_threshold]
-    pareto_df = pd.DataFrame({'Pre-Fitness': pareto_pre_fitness, 'Bin Size': pareto_bin_size})
+        
+        # Calculate average threshold and determine shape
+        if len(bin.group_threshold_list) == 1:  # 2-group bin
+            avg_threshold = bin.group_threshold_list[0]
+            shapes.append('o')  # Circle for 2-group bins
+        else:  # 3-group bin
+            avg_threshold = sum(bin.group_threshold_list) / len(bin.group_threshold_list)
+            shapes.append('s')  # Square for 3-group bins
+        
+        sizes.append((avg_threshold + 1) * 5)  # Adjust size based on average threshold
+        group_threshold.append(avg_threshold)
+    
+    pareto_df = pd.DataFrame({
+        'Pre-Fitness': pareto_pre_fitness,
+        'Bin Size': pareto_bin_size,
+        'Shape': shapes,
+        'Size': sizes,
+        'Group Strata Prop': group_strata_prop
+    })
 
-    mask = paretoset(pareto_df,sense=["max","min"])
+    mask = paretoset(pareto_df[['Pre-Fitness', 'Bin Size']], sense=["max", "min"])
     paretoset_fibers = pareto_df[mask]
 
-    plt.figure(figsize=(5, 5))
-    plt.scatter(pareto_df["Pre-Fitness"], pareto_df["Bin Size"], zorder=10, label="All Bins", alpha=0.8,c=group_strata_prop, cmap='viridis', s=group_threshold)
-    plt.legend()
+    plt.figure(figsize=(6, 6))
+
+    # Plot all bins with different shapes
+    for shape in pareto_df['Shape'].unique():
+        df_shape = pareto_df[pareto_df['Shape'] == shape]
+        plt.scatter(df_shape['Pre-Fitness'], df_shape['Bin Size'], label=f'All Bins ({shape})', 
+                    alpha=0.8, c=df_shape['Group Strata Prop'], cmap='viridis', 
+                    s=df_shape['Size'], marker=shape)
+
+    # Highlight non-dominated bins
+    for shape in paretoset_fibers['Shape'].unique():
+        df_shape = paretoset_fibers[paretoset_fibers['Shape'] == shape]
+        plt.scatter(df_shape['Pre-Fitness'], df_shape['Bin Size'], label=f'Non-Dominated ({shape})',
+                    s=df_shape['Size'], marker=shape, edgecolor='orange', linewidth=1.5, facecolor='none')
+
     plt.xlabel("Pre-Fitness")
     plt.ylabel("Bin Size")
     plt.colorbar(label='Group Strata Prop.')  # Add colorbar to show the intensity scale
-    plt.scatter(
-        paretoset_fibers["Pre-Fitness"],
-        paretoset_fibers["Bin Size"],
-        zorder=5,
-        c='orange',
-        label="Non-Dominated",
-        s=150,
-        alpha=1,
-    )
     plt.grid(True, alpha=0.5, ls="--", zorder=0)
     plt.tight_layout()
+
     if save:
-        plt.savefig(output_folder+'/'+data_name+'_pop_pareto.png', bbox_inches="tight")
+        plt.savefig(output_folder + '/' + data_name + '_pop_pareto.png', bbox_inches="tight")
     if show:
         plt.show()
+
 
 
 def plot_feature_tracking(feature_names,feature_tracking,max_features=40,show=True,save=False,output_folder=None,data_name=None): 
@@ -84,18 +107,28 @@ def plot_feature_tracking(feature_names,feature_tracking,max_features=40,show=Tr
 def plot_kaplan_meir(low_outcome,low_censor,mid_outcome, mid_censor,high_outcome, high_censor,show=True,save=False,output_folder=None,data_name=None):
     kmf1 = KaplanMeierFitter()
 
-    # fit the model for 1st cohort
-    kmf1.fit(low_outcome, low_censor, label='At/Below Bin Low Threshold')
-    a1 = kmf1.plot_survival_function()
+    if mid_outcome is not None: # bin has 3 groups
+        # fit the model for 1st cohort
+        kmf1.fit(low_outcome, low_censor, label='At/Below Bin Low Threshold')
+        a1 = kmf1.plot_survival_function()
+
+        # fit the model for 2nd cohort
+        kmf1.fit(mid_outcome, mid_censor, label = 'Between Bin Thresholds')
+        kmf1.plot_survival_function()
+
+        # fit the model for 3rd cohort
+        kmf1.fit(high_outcome, high_censor, label='Above Bin High Threshold')
+        kmf1.plot_survival_function(ax=a1)
+    else: # bin has 2 groups
+        # fit the model for 1st cohort
+        kmf1.fit(low_outcome, low_censor, label='At/Below Bin Threshold')
+        a1 = kmf1.plot_survival_function()
+
+        # fit the model for 2nd cohort
+        kmf1.fit(high_outcome, high_censor, label='Above Bin Threshold')
+        kmf1.plot_survival_function(ax=a1)
+    
     a1.set_ylabel('Survival Probability')
-
-    # fit the model for 2nd cohort
-    kmf1.fit(mid_outcome, mid_censor, label = 'Between Bin Thresholds')
-    kmf1.plot_survival_function()
-
-    # fit the model for 3rd cohort
-    kmf1.fit(high_outcome, high_censor, label='Above Bin High Threshold')
-    kmf1.plot_survival_function(ax=a1)
     a1.set_xlabel('Time After Event')
 
     if save:
@@ -130,17 +163,25 @@ def plot_fitness_progress(perform_track_df,show=True,save=False,output_folder=No
 def plot_threshold_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
     # Extract columns for plotting
     time = perform_track_df['Iteration']
-    df_l = perform_track_df[['Low Threshold']]
-    df_h = perform_track_df[['High Threshold']]
+    thresholds = perform_track_df['Threshold(s)']
+    
+    # Initialize lists to hold low and high thresholds
+    df_l = []
+    df_h = []
 
+    for th_list in thresholds:
+        if len(th_list) > 0:
+            df_l.append(th_list[0])
+            if len(th_list) > 1:
+                df_h.append(th_list[1])
+            else:
+                df_h.append(None)  # Fill with None if only one threshold exists
+    
     # Plot the data
     plt.figure(figsize=(5, 3))
-    colors = ['blue','red']  # Manually set colors
-    for i, column in enumerate(df_l.columns):
-        plt.plot(time, df_l[column], label=column, color=colors[i])
-    for i, column in enumerate(df_h.columns):
-        plt.plot(time, df_h[column], label=column, color=colors[i+1])
-    
+    plt.plot(time, df_l, label='Low Threshold', color='blue')
+    if any(df_h):  # Check if there's at least one high threshold to plot
+        plt.plot(time, df_h, label='High Threshold', color='red')
 
     # Add labels and title
     plt.xlabel('Iteration')
