@@ -93,7 +93,7 @@ def main(argv):
         pop_clean = str(options.pop_clean)
     covariates_used = options.covariates_used
     if covariates_used == 'Adv':
-        covariates = ['AFRICAN-AMERICAN','ASIAN','HISPANIC','OTHER','WHITE','FDFR','FDMR','MDFR','MDMR']
+        covariates = ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','FDFR','FDMR','MDFR','MDMR']
     elif covariates_used == 'Simple':
         covariates = ['C_1', 'C_2']
     else:
