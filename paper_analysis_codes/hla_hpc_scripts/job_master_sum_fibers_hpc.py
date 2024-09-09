@@ -83,8 +83,10 @@ def main(argv):
     #Custom heatmaps that combines the top bins across data imputations for each random seed (10 figures)
     all_top_bins = []
     all_bin_labels = []
+    all_feature_names = set()
     for random_seed in range(0, random_seeds):  #for each replicate
         top_bin_pop = []
+        replicate_feature_names = set()
         for replicate in range(1,replicates+1): #one indexed datasets
             data_name = base_name+'_'+str(replicate)
 
@@ -96,6 +98,8 @@ def main(argv):
             bin_index = 0 #top bin
             bin = fibers.set.bin_pop[bin_index]
             feature_names = fibers.feature_names
+            all_feature_names.update(set(feature_names))
+            replicate_feature_names.update(set(feature_names))
             top_bin_pop.append(bin)
             all_top_bins.append(bin)
             all_bin_labels.append("Seed_" + str(random_seed)+" Imp_"+str(replicate))
@@ -119,10 +123,10 @@ def main(argv):
         #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
         population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
         population = population['feature_list']
-        plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=None,save=True,show=False,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
+        plot_custom_top_bin_population_heatmap(population, list(replicate_feature_names), group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=None,save=True,show=False,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
 
         #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
-        gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, all_bin_labels=None,show=False,save=True,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
+        gdf = plot_bin_population_heatmap(population, list(replicate_feature_names), filtering=filtering, all_bin_labels=None,show=False,save=True,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
 
         #Generate feature frequency barplot
         pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
@@ -148,10 +152,10 @@ def main(argv):
     #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates and random seeds
     population = pd.DataFrame([vars(instance) for instance in all_top_bins])
     population = population['feature_list']
-    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=all_bin_labels,save=True,show=False,output_folder=imp_sum_path,data_name=base_name)
+    plot_custom_top_bin_population_heatmap(population, list(all_feature_names), group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=all_bin_labels,save=True,show=False,output_folder=imp_sum_path,data_name=base_name)
 
     #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
-    gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, all_bin_labels=all_bin_labels,show=False,save=True,output_folder=imp_sum_path,data_name=base_name)
+    gdf = plot_bin_population_heatmap(population, list(all_feature_names), filtering=filtering, all_bin_labels=all_bin_labels,show=False,save=True,output_folder=imp_sum_path,data_name=base_name)
 
     #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),

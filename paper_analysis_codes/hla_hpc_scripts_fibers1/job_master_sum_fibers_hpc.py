@@ -89,93 +89,93 @@ def main(argv):
     # Save the combined data to a new CSV file
     combined_data.to_csv(targetfolder+'/'+outputfolder+'_summary.csv', index=False)
 
-    #Custom heatmaps that combines the top bins across data imputations for each random seed (10 figures)
-    all_top_bins = []
-    all_bin_labels = []
-    for random_seed in range(0, random_seeds):  #for each replicate
-        top_bin_pop = []
-        for replicate in range(1,replicates+1): #one indexed datasets
-            data_name = base_name+'_'+str(replicate)
+    # #Custom heatmaps that combines the top bins across data imputations for each random seed (10 figures)
+    # all_top_bins = []
+    # all_bin_labels = []
+    # for random_seed in range(0, random_seeds):  #for each replicate
+    #     top_bin_pop = []
+    #     for replicate in range(1,replicates+1): #one indexed datasets
+    #         data_name = base_name+'_'+str(replicate)
 
-            #Unpickle FIBERS Object
-            with open(targetfolder+'/'+data_name+'/'+data_name+'_'+str(random_seed)+'_fibers.pickle', 'rb') as f:
-                fibers = pickle.load(f)
+    #         #Unpickle FIBERS Object
+    #         with open(targetfolder+'/'+data_name+'/'+data_name+'_'+str(random_seed)+'_fibers.pickle', 'rb') as f:
+    #             fibers = pickle.load(f)
 
-            #Get top bin object for current fibers population
-            bin_index = 0 #top bin
+    #         #Get top bin object for current fibers population
+    #         bin_index = 0 #top bin
 
-            # Ordering the bin scores from best to worst
-            durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = fibers.get_duration_event(bin_index)
-            results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
-                                event_observed_B=event_observed_mm)
-            bin = fibers.bins[top_bin]
-            bin_feature_list = fibers.bins[top_bin]
-            top_bin_pop.append(bin)
-            data_preped = fibers.check_x_y(data, None)
-            data_preped, feature_names = prepare_data(data_preped, fibers.duration_name, fibers.label_name, covariates)
+    #         # Ordering the bin scores from best to worst
+    #         durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = fibers.get_duration_event(bin_index)
+    #         results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
+    #                             event_observed_B=event_observed_mm)
+    #         bin = fibers.bins[top_bin]
+    #         bin_feature_list = fibers.bins[top_bin]
+    #         top_bin_pop.append(bin)
+    #         data_preped = fibers.check_x_y(data, None)
+    #         data_preped, feature_names = prepare_data(data_preped, fibers.duration_name, fibers.label_name, covariates)
 
-            top_bin_pop.append(bin)
-            all_top_bins.append(bin)
-            all_bin_labels.append("Seed_" + str(random_seed)+" Imp_"+str(replicate))
+    #         top_bin_pop.append(bin)
+    #         all_top_bins.append(bin)
+    #         all_bin_labels.append("Seed_" + str(random_seed)+" Imp_"+str(replicate))
 
-        #Generate Top-bin Custom Heatmap across replicates
-        # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
-        all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
-        max_bins = 100
-        max_features = 100
-        group_names = []
-        legend_group_info = ['Not in Bin']
-        colors = [(.95, .95, 1)]
-        filtering = 1
-        i = 0
-        for locus in loci_list:
-            group_names.append('MM_'+str(locus))
-            legend_group_info.append(locus)
-            colors.append(all_colors[i])
-            i += 1
+    #     #Generate Top-bin Custom Heatmap across replicates
+    #     # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
+    #     all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
+    #     max_bins = 100
+    #     max_features = 100
+    #     group_names = []
+    #     legend_group_info = ['Not in Bin']
+    #     colors = [(.95, .95, 1)]
+    #     filtering = 1
+    #     i = 0
+    #     for locus in loci_list:
+    #         group_names.append('MM_'+str(locus))
+    #         legend_group_info.append(locus)
+    #         colors.append(all_colors[i])
+    #         i += 1
 
-        #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
-        sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
-        sorted_bin_list = list(sorted_bin_scores.keys())
-        population = [fibers.bins[i] for i in sorted_bin_list]
+    #     #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
+    #     sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
+    #     sorted_bin_list = list(sorted_bin_scores.keys())
+    #     population = [fibers.bins[i] for i in sorted_bin_list]
 
-        plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=None,save=True,show=False,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
+    #     plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=None,save=True,show=False,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
 
-        #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
-        gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, all_bin_labels=None,show=False,save=True,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
+    #     #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
+    #     gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, all_bin_labels=None,show=False,save=True,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
 
-        #Generate feature frequency barplot
-        pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
-                        ylabel='Count Across Top Bins', xlabel='Dataset Feature')
-        plt.savefig(imp_sum_path+'/'+base_name+'_rs_'+str(random_seed)+'_top_bins_feature_frequency_barplot.png', bbox_inches="tight")
+    #     #Generate feature frequency barplot
+    #     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
+    #                     ylabel='Count Across Top Bins', xlabel='Dataset Feature')
+    #     plt.savefig(imp_sum_path+'/'+base_name+'_rs_'+str(random_seed)+'_top_bins_feature_frequency_barplot.png', bbox_inches="tight")
 
-    #Generate Top-bin Custom Heatmap across replicates and random seeds
-    # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
-    all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
-    max_bins = 100
-    max_features = 100
-    group_names = []
-    legend_group_info = ['Not in Bin']
-    colors = [(.95, .95, 1)]
-    filtering = 1
-    i = 0
-    for locus in loci_list:
-        group_names.append('MM_'+str(locus))
-        legend_group_info.append(locus)
-        colors.append(all_colors[i])
-        i += 1
+    # #Generate Top-bin Custom Heatmap across replicates and random seeds
+    # # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
+    # all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
+    # max_bins = 100
+    # max_features = 100
+    # group_names = []
+    # legend_group_info = ['Not in Bin']
+    # colors = [(.95, .95, 1)]
+    # filtering = 1
+    # i = 0
+    # for locus in loci_list:
+    #     group_names.append('MM_'+str(locus))
+    #     legend_group_info.append(locus)
+    #     colors.append(all_colors[i])
+    #     i += 1
 
-    #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates and random seeds
-    population = all_top_bins
-    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=all_bin_labels,save=True,show=False,output_folder=imp_sum_path,data_name=base_name)
+    # #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates and random seeds
+    # population = all_top_bins
+    # plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=all_bin_labels,save=True,show=False,output_folder=imp_sum_path,data_name=base_name)
 
-    #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
-    gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, all_bin_labels=all_bin_labels,show=False,save=True,output_folder=imp_sum_path,data_name=base_name)
+    # #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
+    # gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, all_bin_labels=all_bin_labels,show=False,save=True,output_folder=imp_sum_path,data_name=base_name)
 
-    #Generate feature frequency barplot
-    pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
-                    ylabel='Count Across Top Bins', xlabel='Dataset Feature')
-    plt.savefig(imp_sum_path+'/'+base_name+'_top_bins_feature_frequency_barplot.png', bbox_inches="tight")
+    # #Generate feature frequency barplot
+    # pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
+    #                 ylabel='Count Across Top Bins', xlabel='Dataset Feature')
+    # plt.savefig(imp_sum_path+'/'+base_name+'_top_bins_feature_frequency_barplot.png', bbox_inches="tight")
 
 
 def match_prefix(feature, group_names):
