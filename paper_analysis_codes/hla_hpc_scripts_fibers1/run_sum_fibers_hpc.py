@@ -30,7 +30,7 @@ def main(argv):
     replicates = options.replicates
     loci_list = options.loci_list
 
-    algorithm = 'Fibers2.0' #hard coded here
+    algorithm = 'Fibers1.0' #hard coded here
 
     #Folder Management------------------------------
     #Main Write Path-----------------

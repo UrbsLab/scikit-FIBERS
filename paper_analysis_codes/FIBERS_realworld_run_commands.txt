@@ -6,27 +6,14 @@
 # copy files
 # cp /project/kamoun_shared/data_shared/harsh_new_imp/* /project/kamoun_shared/data_shared/harsh_new_imp/*
 
-cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/hla_hpc_scripts
-
-# New Test all
+# Test FIBERS 2
 cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/hla_hpc_scripts/
 python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_test_new_full --i 50 --ps 50 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
 python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_test_new_full --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
 python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_test_new_full --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
 
-# BUG Test
-### DRB1, DQA1, DQB1 (NO Ag Covariates adjusted)
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o bug_test_hla_3locus_noagcov_baseline --i 100 --ps 50 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list None
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o bug_test_hla_3locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_bug_test_hla_3locus_noagcov_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
-
-### DRB1, DQA1, DQB1 - Ag Covariates adjusted
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o bug_test_hla_3locus_baseline --i 100 --ps 50 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o bug_test_hla_3locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_bug_test_hla_3locus_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
-
-
-# Initial Runs
+# FIBERS 2 Runs
+cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/hla_hpc_scripts/
 ### DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted
 python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
 python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
@@ -36,30 +23,6 @@ python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --
 python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
 python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_baseline --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_atf --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.1 --dp 0 --f log_rank --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_atf --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_atf --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_residual --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.1 --dp 0 --f residuals --t 0 --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_residual --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_residual --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_dpf --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.1 --dp 5 --f log_rank --t 0 --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_dpf --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_dpf --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_vmr --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 0 --f log_rank --t 0 --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_vmr --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_vmr --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_lrf --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.1 --dp 0 --f log_rank_residuals --t 0 --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_lrf --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_lrf --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_3locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_3locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_3locus_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
-
 python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on_log_rank --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
 python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on_log_rank --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
 python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_all_on_log_rank --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
@@ -68,68 +31,28 @@ python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --
 python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on_residuals --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
 python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_all_on_residuals --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 
-# All Runs/Analyses
-# Fibers Settings - Iter 500, Pop 200, Div = 5 Thresh = None MaxThresh = 10 Fitness = log_rank_residuals rare_filter = 0.0
+# Test FIBERS 2
+cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/hla_hpc_scripts_fibers1/
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_test_new_full --i 50 --ps 50 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_test_new_full --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_test_new_full --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
 
-### DRB1, DQA1, DQB1 - Ag Covariates adjusted
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_3locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_3locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_3locus_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
-
-### DRB1, DQA1, DQB1 + DRB345 - Ag Covariates adjusted
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_4locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_4locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_4locus_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
+# FIBERS 2 Runs
+cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/hla_hpc_scripts_fibers1/
 ### DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_all_on --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.1 --dp 0 --f log_rank --t 0 --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
 python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
 python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_baseline --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 
-### DRB1, DQA1, DQB1 
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_3locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list None
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_3locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_3locus_noagcov_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on_log_rank --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on_log_rank --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_all_on_log_rank --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 
-### DRB1, DQA1, DQB1 + DRB345 
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_4locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list None
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_4locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_4locus_noagcov_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-### DRB1, DQA1, DQB1, DRB345 + A, B, C 
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_noagcov_baseline --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list None
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_noagcov_baseline --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-# Fibers Settings - Iter 500, Pop 200, Div = 5 Thresh = None MaxThresh = 10 Fitness = log_rank_residuals rare_filter = 0.01
-
-### DRB1, DQA1, DQB1 - Ag Covariates adjusted
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_3locus_baseline --ra 0.01 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_3locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_filtered_3locus_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
-
-### DRB1, DQA1, DQB1 + DRB345 - Ag Covariates adjusted
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_4locus_baseline --ra 0.01 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_4locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_filtered_4locus_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-### DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_7locus_baseline --ra 0.01 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_7locus_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_filtered_7locus_baseline --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-### DRB1, DQA1, DQB1 
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_3locus_noagcov_baseline --ra 0.01 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1 --cov-list None
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_3locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_filtered_3locus_noagcov_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1 --rc LSF --rm 16 --q i2c2_normal
-
-### DRB1, DQA1, DQB1 + DRB345 
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_4locus_noagcov_baseline --ra 0.01 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list DRB1,DQA1,DQB1,DRB345 --cov-list None
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_4locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_filtered_4locus_noagcov_baseline --rs 10 --re 10 --loci-list DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
-
-### DRB1, DQA1, DQB1, DRB345 + A, B, C 
-python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_7locus_noagcov_baseline --ra 0.01 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f log_rank_residuals --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list None
-python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_filtered_7locus_noagcov_baseline --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
-python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_filtered_7locus_noagcov_baseline --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on_residuals --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.5 --dp 5 --f residuals --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o hla_7locus_all_on_residuals --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_hla_7locus_all_on_residuals --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
 

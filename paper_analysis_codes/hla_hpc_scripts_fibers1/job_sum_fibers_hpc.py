@@ -10,10 +10,49 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 #from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import ListedColormap
-#from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score
+from lifelines.statistics import logrank_test
+from lifelines import CoxPHFitter
+from lifelines import KaplanMeierFitter
 sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
-from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
+from src_archive.skfibersv1.fibers import FIBERS #SOURCE CODE RUN
+from src.skfibers.methods.util import plot_feature_tracking
+from src.skfibers.methods.util import plot_kaplan_meir
+from src.skfibers.methods.util import cox_prop_hazard
+# from src.skfibers.methods.util import plot_bin_population_heatmap
+from src.skfibers.methods.util import plot_custom_bin_population_heatmap
+
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
+
+
+covariates = [
+              'shared', 'DCD', 'DON_AGE', 'donage_slope_ge18', 'dcadcodanox', 'dcadcodcva', 'dcadcodcnst', 'dcadcodoth', 'don_cmv_negative',
+              'don_htn_0c', 'ln_don_wgt_kg_0c', 'ln_don_wgt_kg_0c_s55', 'don_ecd', 'age_ecd', 'yearslice', 'REC_AGE_AT_TX',
+              'rec_age_spline_35', 'rec_age_spline_50', 'rec_age_spline_65', 'diab_noted', 'age_diab', 'dm_can_age_spline_50',
+              'can_dgn_htn_ndm', 'can_dgn_pk_ndm', 'can_dgn_gd_ndm', 'rec_prev_ki_tx', 'rec_prev_ki_tx_dm', 'rbmi_0c', 'rbmi_miss',
+              'rbmi_gt_20', 'rbmi_DM', 'rbmi_gt_20_DM', 'ln_c_hd_m', 'ln_c_hd_0c', 'ln_c_hd_m_ptx', 'PKPRA_MS', 'PKPRA_1080',
+              'PKPRA_GE80', 'hispanic', 'CAN_RACE_BLACK', 'CAN_RACE_asian', 'CAN_RACE_WHITE', 'Agmm0']
+
+
+def prepare_data(df, duration_name, label_name, covariates):
+    # Make list of feature names (i.e. columns that are not outcome, censor, or covariates)
+    feature_names = list(df.columns)
+    if covariates != None:
+        exclude = covariates + [duration_name,label_name]
+    else:
+        exclude = [duration_name,label_name]
+    feature_names = [item for item in feature_names if item not in exclude]
+
+    # Remove invariant feature columns (data cleaning)
+    cols_to_drop = []
+    for col in feature_names:
+        if len(df[col].unique()) == 1:
+            cols_to_drop.append(col)
+    df.drop(columns=cols_to_drop, inplace=True)
+    feature_names = [item for item in feature_names if item not in cols_to_drop]
+    print("Dropped "+str(len(cols_to_drop))+" invariant feature columns.")
+
+    return df, feature_names
 
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
@@ -24,6 +63,7 @@ def main(argv):
     parser.add_argument('--o', dest='outputpath', help='', type=str, default = 'myOutputPath') #full path/filename
     parser.add_argument('--r', dest='random_seeds', help='random seeds in experiment', type=int, default='None')
     parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1')
+
     #parser.add_argument('--f', dest='figures_only', help='random seeds in experiment', type=str, default='False')
 
     options=parser.parse_args(argv[1:])
@@ -36,26 +76,40 @@ def main(argv):
     #Get algorithm name
     outputfolder  = outputpath.split('/')[-1]
     algorithm = outputfolder.split('_')[0]
-    experiment = outputfolder.replace(algorithm+'_',"") #Unique experiment is identified by the output folder name
 
     #Get experiment name
     data_file = datapath.split('/')[-1]
     data_name = data_file.rstrip('.csv')
-
+    experiment = data_name.split('_')[0]
+    ideal_count = int(data_name.split('_')[6])
+    ideal_threshold = int(data_name.split('_')[8])
     target_folder = outputpath+'/'+data_name #target output subfolder
 
     #Make local summary output folder
     if not os.path.exists(target_folder+'/'+'summary'):
         os.mkdir(target_folder+'/'+'summary')  
 
+    #Load/Process Dataset
+    data = pd.read_csv(datapath)
+
+    true_risk_group = data[['TrueRiskGroup']]
+    data = data.drop('TrueRiskGroup', axis=1)
+
     #Define columns for replicate results summary:
-    columns = ["Dataset Filename","Random Seed","Bin Features", "Threshold", "Fitness", "Pre-Fitness", "Log-Rank Score","Log-Rank p-value",
+    columns = ["Bin Features", "Threshold", "Fitness", "Pre-Fitness", "Log-Rank Score","Log-Rank p-value",
                "Bin Size", "Group Ratio", "Count At/Below Threshold", "Count Above Threshold", "Birth Iteration", 
                "Deletion Probability", "Cluster", "Residual", "Residual p-value", "Unadjusted HR", "Unadjusted HR CI",
-               "Unadjusted HR p-value", "Adjusted HR", "Adjusted HR CI", "Adjusted HR p-value", "Runtime"]
+               "Unadjusted HR p-value", "Adjusted HR", "Adjusted HR CI", "Adjusted HR p-value", "Number of P", 
+               "Number of R", "Ideal Iteration", "Accuracy", "Runtime", "Dataset Filename"]
     df = pd.DataFrame(columns=columns)
 
     #Make intial lists to store metrics across replications
+    accuracy = []
+    num_P = []
+    num_R = []
+    ideal = 0
+    ideal_iter = []
+    ideal_thresh = 0
     threshold = []
     log_rank = []
     residuals = []
@@ -63,8 +117,10 @@ def main(argv):
     adj_HR = []
     group_balance = []
     runtime = []
+    tc = 0
     bin_size = []
     birth_iteration = []
+
     top_bin_pop = []
     feature_names = None
 
@@ -75,38 +131,94 @@ def main(argv):
             fibers = pickle.load(f)
         #Get top bin object for current fibers population
         bin_index = 0 #top bin
-        bin = fibers.set.bin_pop[bin_index]
-        feature_names = fibers.feature_names
+
+                # Ordering the bin scores from best to worst
+        durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = fibers.get_duration_event(bin_index)
+        results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
+                               event_observed_B=event_observed_mm)
+        
+        bin = fibers.bins[top_bin]
+        bin_feature_list = fibers.bins[top_bin]
         top_bin_pop.append(bin)
+        data_preped = fibers.check_x_y(data, None)
+        data_preped, feature_names = prepare_data(data_preped, fibers.duration_name, fibers.label_name, covariates)
+        population = feature_names
+
+        group_threshold = 0
+        log_rank_score = results.test_statistic
+        log_rank_score_p_value = results.p_value
+        bin_bin_size = len(fibers.bins[top_bin])
+        count_bt = len(durations_no)
+        count_at = len(durations_mm)
+        group_strata_prop = min(count_bt/(count_bt+count_at),count_at/(count_bt+count_at))
+        bin_birth_iteration = np.nan
+        ideal_iteration_calc = ideal_iteration(ideal_count, bin_feature_list, bin_birth_iteration)
+        
+        summary, bin_HR, bin_HR_CI, bin_HR_p_value = get_cox_prop_hazard_unadjust(fibers, data)
+        summary, bin_adj_HR, bin_adj_HR_CI, bin_adj_HR_p_value = get_cox_prop_hazard_adjusted(fibers, data)
 
 
-        results_list = [data_name,random_seed, bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score,
-                        bin.log_rank_p_value, bin.bin_size, bin.group_strata_prop, bin.count_bt, bin.count_at, 
-                        bin.birth_iteration, bin.deletion_prop, bin.cluster, bin.residuals_score, bin.residuals_p_value,
-                        bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
-                        fibers.elapsed_time] 
+
+        residuals_score = None
+
+        results_list = [bin_feature_list, group_threshold, 
+                        np.nan, np.nan, log_rank_score,
+                        log_rank_score_p_value, bin_bin_size, group_strata_prop, count_bt, count_at, 
+                        bin_birth_iteration, np.nan, np.nan, residuals_score, np.nan,
+                        # residuals not implemted in script
+                        # bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
+                        bin_HR, bin_HR_CI, bin_HR_p_value, bin_adj_HR, bin_adj_HR_CI, bin_adj_HR_p_value,
+                        np.nan, 
+                        np.nan,
+                        accuracy_score(fibers.predict(data),true_risk_group) if true_risk_group is not None else None,
+                        np.nan, data_name] 
         df.loc[len(df)] = results_list
 
         #Update metric lists
-        threshold.append(bin.group_threshold)
-        if bin.log_rank_score != None:
-            log_rank.append(bin.log_rank_score)
-        if bin.residuals_score != None:
-            residuals.append(bin.residuals_score)
-        if bin.HR != None:
-            unadj_HR.append(bin.HR)
-        if bin.adj_HR != None:
-            adj_HR.append(bin.adj_HR)
-        group_balance.append(bin.group_strata_prop)
+        accuracy.append(accuracy_score(fibers.predict(data),true_risk_group) if true_risk_group is not None else None)
+        num_P.append(str(bin_feature_list).count('P'))
+        num_R.append(str(bin_feature_list).count('R'))
+        if ideal_iteration(ideal_count, bin_feature_list, bin_birth_iteration) != None:
+            ideal += 1
+            ideal_iter.append(bin_birth_iteration)
+        if group_threshold == ideal_threshold:
+            ideal_thresh += 1
+        threshold.append(group_threshold)
+        if log_rank_score != None:
+            log_rank.append(log_rank_score)
+        if residuals_score != None:
+            residuals.append(residuals_score)
+        if bin_HR != None:
+            unadj_HR.append(bin_HR)
+        if bin_adj_HR != None:
+            adj_HR.append(bin_adj_HR)
+        group_balance.append(group_strata_prop)
         runtime.append(fibers.elapsed_time)
-        bin_size.append(bin.bin_size)
-        birth_iteration.append(bin.birth_iteration)
+        if str(bin_feature_list).count('T') > 0:
+            tc += 1
+        bin_size.append(bin_bin_size)
+        birth_iteration.append(bin_birth_iteration)
 
-        #Generate Bin Population Heatmap 
+        #Generate Figures:
+        #Kaplan Meir Plot
+        # fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+        try:
+            plot_kaplan_meir(durations_no, event_observed_no, durations_mm, event_observed_mm,
+                            show=False,save=True,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+        except Exception as e:
+            print("Exception in KM Plot", e, "Dataset", data_name)
+            print(durations_no, event_observed_no, durations_mm, event_observed_mm, sep='\n')
+        
+        sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
+        sorted_bin_list = list(sorted_bin_scores.keys())
+        population = [fibers.bins[i] for i in sorted_bin_list]
+
+        #Generate Top-bin Custom Heatmap across replicates
         # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
         all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
         max_bins = 100
         max_features = 100
+        filtering = 1
         group_names = []
         legend_group_info = ['Not in Bin']
         colors = [(.95, .95, 1)]
@@ -117,35 +229,47 @@ def main(argv):
             colors.append(all_colors[i])
             i += 1
 
-        fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+        # fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+        plot_custom_bin_population_heatmap(population, feature_names, group_names, legend_group_info, colors, max_bins, 
+                                           max_features, show=False, save=True,
+                                           output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
-        # Feature Importance Estimates
-        fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+        # Feature Importance Estimates - No Feature Tracking Estimates in FIBERS-AT
+        # fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
     #Save replicate results as csv
+
     df.to_csv(target_folder+'/'+'summary'+'/'+data_name+'_summary'+'.csv', index=False)
 
     #Generate experiment summary 'master list'
     master_columns = ["Algorithm","Experiment", "Dataset", 
+                    "Accuracy", "Accuracy (SD)", 
+                    "Number of P", "Number of P (SD)",
+                    "Number of R", "Number of R (SD)", "Ideal Bin", 
+                    "Iteration of Ideal Bin", "Iteration of Ideal Bin (SD)", "Ideal Threshold", 
                     "Threshold", "Threshold (SD)",
                     "Log-Rank Score", "Log-Rank Score (SD)", 
                     "Residual", "Residual (SD)", 
                     "Unadjusted HR", "Unadjusted HR (SD)", 
                     "Adjusted HR", "Adjusted HR (SD)", 
                     "Group Ratio", "Group Ratio (SD)",
-                    "Runtime", "Runtime (SD)", 
+                    "Runtime", "Runtime (SD)", "TC1 Present", 
                     "Bin Size", "Bin Size (SD)", 
                     "Birth Iteration", "Birth Iteration (SD)"]
     
     df_master = pd.DataFrame(columns=master_columns)
     master_results_list = [algorithm,experiment,data_name,
+                        np.mean(accuracy),np.std(accuracy),
+                        np.mean(num_P),np.std(num_P),
+                        np.mean(num_R),np.std(num_R), ideal, 
+                        np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
                         np.mean(threshold),np.std(threshold), 
                         None if len(log_rank) == 0 else np.mean(log_rank), None if len(log_rank) == 0 else np.std(log_rank) ,
                         None if len(residuals) == 0 else np.mean(residuals), None if len(residuals) == 0 else np.std(residuals), 
                         None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
                         None if len(adj_HR) == 0 else np.mean(adj_HR), None if len(adj_HR) == 0 else np.std(adj_HR), 
                         np.mean(group_balance),np.std(group_balance),
-                        np.mean(runtime),np.std(runtime), 
+                        np.mean(runtime),np.std(runtime), tc,
                         np.mean(bin_size),np.std(bin_size), 
                         np.mean(birth_iteration),np.std(birth_iteration)]
     
@@ -169,17 +293,18 @@ def main(argv):
         colors.append(all_colors[i])
         i += 1
 
-    population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
-    population = population['feature_list']
+    #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
+    # population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
+    population = top_bin_pop
     plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
-    #Generate Top-bin Basic Heatmap (no filtering) across replicates
+    #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
     gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
                      ylabel='Count Across Top Bins', xlabel='Feature')
-    plt.savefig(target_folder+'/'+'summary'+'/'+data_name+'_top_bins_feature_frequency_barplot.png', bbox_inches="tight")
+    plt.savefig(target_folder+'/'+'summary'+'/'+data_name+'_feature_frequency_barplot.png', bbox_inches="tight")
 
 
 
@@ -200,6 +325,79 @@ def match_prefix(feature, group_names):
 
     return "None"
 
+def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=False):
+    if not fibers.hasTrained:
+        raise Exception("FIBERS must be fit first")
+    
+    # PREPARE DATA ---------------------------------------
+    df = fibers.check_x_y(x, y)
+    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, covariates)
+
+    # Sum instance values across features specified in the bin
+    sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
+    sorted_bin_list = list(sorted_bin_scores.keys())
+    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]]].sum(axis=1)
+    bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
+
+    if not use_bin_sums:
+        # Transform bin feature values according to respective bin threshold
+        bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= 0 else 1)
+
+    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_name],df.loc[:,fibers.label_name]],axis=1)
+    summary = None
+    HR, HR_CI, HR_p_value = None, None, None
+    try:
+        summary = cox_prop_hazard(bin_df,fibers.duration_name,fibers.label_name)
+        HR = summary['exp(coef)'].iloc[0]
+        HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+        HR_p_value = summary['p'].iloc[0]
+    except:
+        HR = 0
+        HR_CI = None
+        HR_p_value = None
+        pass
+
+    df = None
+    return summary, HR, HR_CI, HR_p_value
+
+def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=False):
+    if not fibers.hasTrained:
+        raise Exception("FIBERS must be fit first")
+
+    # PREPARE DATA ---------------------------------------
+    df = fibers.check_x_y(x, y)
+    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, covariates)
+
+    # Sum instance values across features specified in the bin
+    
+    sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
+    sorted_bin_list = list(sorted_bin_scores.keys())
+    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]]].sum(axis=1)
+    bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
+
+    if not use_bin_sums:
+        # Transform bin feature values according to respective bin threshold
+        bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= 0 else 1)
+
+    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_name],df.loc[:,fibers.label_name]],axis=1)
+    summary = None
+    adj_HR, adj_HR_CI, adj_HR_p_value = None, None, None
+
+    try:
+        bin_df = pd.concat([bin_df,df.loc[:,covariates]],axis=1)
+        summary = cox_prop_hazard(bin_df,fibers.duration_name,fibers.label_name)
+        adj_HR = summary['exp(coef)'].iloc[0]
+        adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+        adj_HR_p_value = summary['p'].iloc[0]
+    except:
+        adj_HR = 0
+        adj_HR_CI = None
+        adj_HR_p_value = None
+        pass
+
+    df = None
+    return summary, adj_HR, adj_HR_CI, adj_HR_p_value
+
 def plot_bin_population_heatmap(population, feature_names,filtering=None,show=True,save=False,output_folder=None,data_name=None):
     """
     :param population: a list where each element is a list of specified features
@@ -209,7 +407,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
     feature_count = len(feature_names)
     bin_names = []
     for i in range(len(population)):
-        bin_names.append("Bin " + str(i + 1))
+        bin_names.append("Seed " + str(i + 1))
 
     feature_index_map = {}
     for i in range(feature_count):
@@ -276,8 +474,8 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
     legend_elements = [mpatches.Patch(color='aliceblue', label='Not in Bin'),
                         mpatches.Patch(color='darkblue', label='Included in Bin')]
     plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5),fontsize=fontsize)
-    plt.xlabel('Dataset Features',fontsize=fontsize)
-    plt.ylabel('Bins',fontsize=fontsize)
+    plt.xlabel('Features',fontsize=fontsize)
+    plt.ylabel('Top Bins',fontsize=fontsize)
 
     if save:
         plt.savefig(output_folder+'/'+data_name+'_top_bins_basic_pop_heatmap.png', bbox_inches="tight")

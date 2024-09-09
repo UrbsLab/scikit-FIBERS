@@ -14,6 +14,15 @@ sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
 from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
+covariates = [
+              'shared', 'DCD', 'DON_AGE', 'donage_slope_ge18', 'dcadcodanox', 'dcadcodcva', 'dcadcodcnst', 'dcadcodoth', 'don_cmv_negative',
+              'don_htn_0c', 'ln_don_wgt_kg_0c', 'ln_don_wgt_kg_0c_s55', 'don_ecd', 'age_ecd', 'yearslice', 'REC_AGE_AT_TX',
+              'rec_age_spline_35', 'rec_age_spline_50', 'rec_age_spline_65', 'diab_noted', 'age_diab', 'dm_can_age_spline_50',
+              'can_dgn_htn_ndm', 'can_dgn_pk_ndm', 'can_dgn_gd_ndm', 'rec_prev_ki_tx', 'rec_prev_ki_tx_dm', 'rbmi_0c', 'rbmi_miss',
+              'rbmi_gt_20', 'rbmi_DM', 'rbmi_gt_20_DM', 'ln_c_hd_m', 'ln_c_hd_0c', 'ln_c_hd_m_ptx', 'PKPRA_MS', 'PKPRA_1080',
+              'PKPRA_GE80', 'hispanic', 'CAN_RACE_BLACK', 'CAN_RACE_asian', 'CAN_RACE_WHITE', 'Agmm0']
+
+
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description='')
@@ -94,8 +103,17 @@ def main(argv):
 
             #Get top bin object for current fibers population
             bin_index = 0 #top bin
-            bin = fibers.set.bin_pop[bin_index]
-            feature_names = fibers.feature_names
+
+            # Ordering the bin scores from best to worst
+            durations_no, durations_mm, event_observed_no, event_observed_mm, top_bin = fibers.get_duration_event(bin_index)
+            results = logrank_test(durations_no, durations_mm, event_observed_A=event_observed_no,
+                                event_observed_B=event_observed_mm)
+            bin = fibers.bins[top_bin]
+            bin_feature_list = fibers.bins[top_bin]
+            top_bin_pop.append(bin)
+            data_preped = fibers.check_x_y(data, None)
+            data_preped, feature_names = prepare_data(data_preped, fibers.duration_name, fibers.label_name, covariates)
+
             top_bin_pop.append(bin)
             all_top_bins.append(bin)
             all_bin_labels.append("Seed_" + str(random_seed)+" Imp_"+str(replicate))
@@ -117,8 +135,10 @@ def main(argv):
             i += 1
 
         #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
-        population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
-        population = population['feature_list']
+        sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
+        sorted_bin_list = list(sorted_bin_scores.keys())
+        population = [fibers.bins[i] for i in sorted_bin_list]
+
         plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=None,save=True,show=False,output_folder=imp_sum_path,data_name=base_name+'_rs_'+str(random_seed))
 
         #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
@@ -146,8 +166,7 @@ def main(argv):
         i += 1
 
     #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates and random seeds
-    population = pd.DataFrame([vars(instance) for instance in all_top_bins])
-    population = population['feature_list']
+    population = all_top_bins
     plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering, all_bin_labels=all_bin_labels,save=True,show=False,output_folder=imp_sum_path,data_name=base_name)
 
     #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
