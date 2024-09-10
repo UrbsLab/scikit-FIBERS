@@ -42,12 +42,14 @@ def prepare_data(df, duration_name, label_name, covariates):
     else:
         exclude = [duration_name,label_name]
     feature_names = [item for item in feature_names if item not in exclude]
-
+    
+    print("Exclude", exclude)
     # Remove invariant feature columns (data cleaning)
     cols_to_drop = []
     for col in feature_names:
         if len(df[col].unique()) == 1:
             cols_to_drop.append(col)
+    print("Cols to drop", cols_to_drop)
     df.drop(columns=cols_to_drop, inplace=True)
     feature_names = [item for item in feature_names if item not in cols_to_drop]
     print("Dropped "+str(len(cols_to_drop))+" invariant feature columns.")
@@ -79,7 +81,6 @@ def main(argv):
     else:
         cov_list = options.cov_list.split(',')
     rare_filter = options.rare_filter
-    print(loci_list)
 
     #Hard Coded Covariate Information
     #If there is a colinearity issue with calculating residuals, Keith indicated that we can remove dcadcodoth and/or PKPRA_MS from covariate list
@@ -139,7 +140,8 @@ def main(argv):
     if not os.path.exists(target_folder+'/'+'summary'):
         os.mkdir(target_folder+'/'+'summary')  
 
-    #Load/Process Dataset
+    print(datapath)
+
     data = pd.read_csv(datapath)
 
     #Identify MM features to include as independent features
@@ -168,7 +170,9 @@ def main(argv):
         MM_feature_list = [x for x in MM_feature_list if x not in columns_to_remove]
 
 
-    #Define columns for replicate results summary:
+    
+
+#Define columns for replicate results summary:
     columns = ["Dataset Filename","Random Seed","Bin Features", "Threshold", "Fitness", "Pre-Fitness", "Log-Rank Score","Log-Rank p-value",
                "Bin Size", "Group Ratio", "Count At/Below Threshold", "Count Above Threshold", "Birth Iteration", 
                "Deletion Probability", "Cluster", "Residual", "Residual p-value", "Unadjusted HR", "Unadjusted HR CI",
@@ -186,7 +190,7 @@ def main(argv):
     bin_size = []
     birth_iteration = []
     top_bin_pop = []
-    all_feature_names = set()
+    feature_names = None
 
     #Create top bin summary across replicates
     for random_seed in range(0, random_seeds):  #for each replicate
@@ -205,29 +209,28 @@ def main(argv):
         bin_feature_list = fibers.bins[top_bin]
         top_bin_pop.append(bin)
 
-        # feature_names = MM_feature_list + covariates + [fibers.duration_name] + [fibers.label_name]
-        # print("Feature Names", feature_names) #temporary
-        # for i in feature_names:
-        #     if i not in data.columns:
-        #         print(i)
-        # data = data[feature_names]
+        feature_names = MM_feature_list + covariates + [fibers.duration_name] + [fibers.label_name]
+        print("Feature Names", feature_names) #temporary
+        for i in feature_names:
+            if i not in data.columns:
+                print(i)
+        data = data[feature_names]
 
-        # # Remove invariant feature columns (data cleaning)
-        # cols_to_drop = []
-        # for col in feature_names:
-        #     if len(data[col].unique()) == 1:
-        #         cols_to_drop.append(col)
-        # print("Cols to drop", cols_to_drop)
-        # data.drop(columns=cols_to_drop, inplace=True)
-        # feature_names = [item for item in feature_names if item not in cols_to_drop]
-        # MM_feature_list = [item for item in MM_feature_list if item not in cols_to_drop]
-        # covariates = [item for item in covariates if item not in cols_to_drop]
+        # Remove invariant feature columns (data cleaning)
+        cols_to_drop = []
+        for col in feature_names:
+            if len(data[col].unique()) == 1:
+                cols_to_drop.append(col)
+        print("Cols to drop", cols_to_drop)
+        data.drop(columns=cols_to_drop, inplace=True)
+        feature_names = [item for item in feature_names if item not in cols_to_drop]
+        MM_feature_list = [item for item in MM_feature_list if item not in cols_to_drop]
+        covariates = [item for item in covariates if item not in cols_to_drop]
 
-        # print("Dropped "+str(len(cols_to_drop))+" invariant feature columns.")
-        # 
-        data_preped = fibers.check_x_y(data, None)
-        data_preped, feature_names = prepare_data(data_preped, fibers.duration_name, fibers.label_name, covariates)
-        all_feature_names.update(set(feature_names))
+        print("Dropped "+str(len(cols_to_drop))+" invariant feature columns.")
+        # data_preped = fibers.check_x_y(data, None)
+        # data_preped, feature_names = prepare_data(data_preped, fibers.duration_name, fibers.label_name, covariates)
+        # population = feature_names
 
         group_threshold = 0
         log_rank_score = results.test_statistic
@@ -238,17 +241,17 @@ def main(argv):
         group_strata_prop = min(count_bt/(count_bt+count_at),count_at/(count_bt+count_at))
         bin_birth_iteration = np.nan
         
-        summary, bin_HR, bin_HR_CI, bin_HR_p_value = get_cox_prop_hazard_unadjust(fibers, data)
-        summary, bin_adj_HR, bin_adj_HR_CI, bin_adj_HR_p_value = get_cox_prop_hazard_adjusted(fibers, data)
+        summary, bin_HR, bin_HR_CI, bin_HR_p_value = get_cox_prop_hazard_unadjust(fibers, data.copy(), covariates, MM_feature_list)
+        summary, bin_adj_HR, bin_adj_HR_CI, bin_adj_HR_p_value = get_cox_prop_hazard_adjusted(fibers, data.copy(), covariates, MM_feature_list)
 
         residuals_score = None
 
-        # results_list = [data_name,random_seed, bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score,
-        #                 bin.log_rank_p_value, bin.bin_size, bin.group_strata_prop, bin.count_bt, bin.count_at, 
-        #                 bin.birth_iteration, bin.deletion_prop, bin.cluster, bin.residuals_score, bin.residuals_p_value,
-        #                 bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
-        #                 fibers.elapsed_time] 
-        # df.loc[len(df)] = results_list
+        results_list = [data_name,random_seed, bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score,
+                        bin.log_rank_p_value, bin.bin_size, bin.group_strata_prop, bin.count_bt, bin.count_at, 
+                        bin.birth_iteration, bin.deletion_prop, bin.cluster, bin.residuals_score, bin.residuals_p_value,
+                        bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
+                        fibers.elapsed_time] 
+        df.loc[len(df)] = results_list
 
         results_list = [data_name,random_seed, bin_feature_list, group_threshold, 
                         np.nan, np.nan, log_rank_score,
@@ -306,9 +309,9 @@ def main(argv):
             i += 1
 
         # fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
-        # plot_custom_bin_population_heatmap(population, feature_names, group_names, legend_group_info, colors, max_bins, 
-        #                                    max_features, show=False, save=True,
-        #                                    output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+        plot_custom_bin_population_heatmap(population, feature_names, group_names, legend_group_info, colors, max_bins, 
+                                           max_features, show=False, save=True,
+                                           output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
         # Feature Importance Estimates - No Feature Tracking Estimates in FIBERS-AT
         # fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
@@ -364,10 +367,10 @@ def main(argv):
     #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
     # population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
     population = top_bin_pop
-    plot_custom_top_bin_population_heatmap(population, list(all_feature_names), group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
+    plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
-    gdf = plot_bin_population_heatmap(population, list(all_feature_names), filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)
+    gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)
 
     #Generate feature frequency barplot
     pd.DataFrame(gdf.sum(axis=0), columns=['Count']).sort_values('Count', ascending=False).plot.bar(figsize=(12, 4),
@@ -393,25 +396,28 @@ def match_prefix(feature, group_names):
 
     return "None"
 
-def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=False):
+def get_cox_prop_hazard_unadjust(fibers, data, covariates, feature_names, bin_index=0, use_bin_sums=False):
     if not fibers.hasTrained:
         raise Exception("FIBERS must be fit first")
-    
-    # PREPARE DATA ---------------------------------------
-    df = fibers.check_x_y(x, y)
-    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, covariates)
 
     # Sum instance values across features specified in the bin
     sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))
     sorted_bin_list = list(sorted_bin_scores.keys())
-    feature_sums = df.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]]].sum(axis=1)
+
+    try:
+        for x in fibers.bins[sorted_bin_list[bin_index]]:
+            if x not in data.loc[:,feature_names].columns:
+                print(x)
+        feature_sums = data.loc[:,feature_names][fibers.bins[sorted_bin_list[bin_index]]].sum(axis=1)
+    except Exception as e:
+        raise e 
     bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
 
     if not use_bin_sums:
         # Transform bin feature values according to respective bin threshold
         bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= 0 else 1)
 
-    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_name],df.loc[:,fibers.label_name]],axis=1)
+    bin_df = pd.concat([bin_df,data.loc[:,fibers.duration_name],data.loc[:,fibers.label_name]],axis=1)
     summary = None
     HR, HR_CI, HR_p_value = None, None, None
     try:
@@ -428,14 +434,12 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     df = None
     return summary, HR, HR_CI, HR_p_value
 
-def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=False):
+def get_cox_prop_hazard_adjusted(fibers, data, covariates, feature_names, bin_index=0, use_bin_sums=False):
     if not fibers.hasTrained:
         raise Exception("FIBERS must be fit first")
 
     # PREPARE DATA ---------------------------------------
-    df = fibers.check_x_y(x, y)
-    df, feature_names = prepare_data(df, fibers.duration_name, fibers.label_name, covariates)
-
+    df = data
     # Sum instance values across features specified in the bin
     
     sorted_bin_scores = dict(sorted(fibers.bin_scores.items(), key=lambda item: item[1], reverse=True))

@@ -40,7 +40,7 @@ def main(argv):
     #         negative_control=nc, random_seed=42)
     _, data = survival_data_simulation_categorical_covariates(instances=instance,total_features=total_feature,
                                                            predictive_features=pred_feature,feature_frequency_range=(0.1, 0.5),random_seed=None, threshold=threshold)
-    data.drop('OTHER', axis=1, inplace=True)
+    # data.drop('OTHER', axis=1, inplace=True)
     data.to_csv(full_data_name_path, index=False)
     print('Dataset Simulation Complete')
 

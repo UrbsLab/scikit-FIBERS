@@ -17,6 +17,9 @@ def main(argv):
     parser.add_argument('--rs', dest='random_seeds', help='number of random seeds to run', type=int, default= 10)
     parser.add_argument('--re', dest='replicates', help='number of data replicates', type=int, default= 10)
     parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1')
+    parser.add_argument('--cov-list', dest='cov_list', help='loci covariates to include',type=str, default= 'A,B,C,DRB1,DQA1,DQB1')
+    parser.add_argument('--ra', dest='rare_filter', help='rare frequency used for data cleaning', type=float, default=0)
+
 
     options=parser.parse_args(argv[1:])
 
@@ -29,6 +32,11 @@ def main(argv):
     random_seeds = options.random_seeds
     replicates = options.replicates
     loci_list = options.loci_list
+    if options.cov_list == 'None':
+        cov_list = 'None'
+    else:
+        cov_list = options.cov_list
+    rare_filter = options.rare_filter
 
     algorithm = 'Fibers1.0' #hard coded here
 
@@ -64,10 +72,10 @@ def main(argv):
         data_name = base_name+'_'+str(replicate)
 
         if run_cluster == 'LSF':
-            submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list)
+            submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list,cov_list,rare_filter)
             jobCount +=1
         elif run_cluster == 'SLURM':
-            submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list)
+            submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list,cov_list,rare_filter)
             jobCount +=1
         else:
             print('ERROR: Cluster type not found')
@@ -75,7 +83,7 @@ def main(argv):
     print(str(jobCount)+' jobs submitted successfully')
 
     
-def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
+def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list,cov_list, rare_filter): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
     job_ref = str(time.time())
     job_name = 'Sum_FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -87,12 +95,13 @@ def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,r
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) +' --loci-list '+ str(loci_list)+ '\n')
+    sh_file.write('srun python job_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) 
+                  +' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
 
-def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list): #UPENN - Legacy mode (using shell file) - memory on head node
+def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,loci_list, cov_list, rare_filter): #UPENN - Legacy mode (using shell file) - memory on head node
     job_ref = str(time.time())
     job_name = 'Sum_FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -104,7 +113,8 @@ def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,ran
     sh_file.write('#BSUB -M ' + str(reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) +' --loci-list '+ str(loci_list) + '\n')
+    sh_file.write('python job_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) 
+                  +' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

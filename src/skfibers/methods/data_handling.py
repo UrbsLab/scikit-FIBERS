@@ -26,7 +26,10 @@ def calculate_residuals(df,covariates, feature_names, outcome_label,censor_label
     # Fit a Cox proportional hazards model to the DataFrame
     var_list = covariates+[outcome_label,censor_label]
     logging.info("Fitting COX Model")
-    cph = CoxPHFitter()
+    if covariates == ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','OTHER','FDFR','FDMR','MDFR','MDMR']:
+        cph = CoxPHFitter(penalizer=0.0001)
+    else:
+        cph = CoxPHFitter()
     cph.fit(df.loc[:,var_list], duration_col=outcome_label, event_col=censor_label, show_progress=True)
 
     # Calculate the residuals using the Schoenfeld residuals method

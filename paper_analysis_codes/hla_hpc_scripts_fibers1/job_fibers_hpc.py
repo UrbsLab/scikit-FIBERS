@@ -71,7 +71,7 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
 
     if not use_bin_sums:
         # Transform bin feature values according to respective bin threshold
-        bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= fibers.bins[sorted_bin_list[bin_index]].threshold else 1)
+        bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= 0 else 1)
 
     bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_name],df.loc[:,fibers.label_name]],axis=1)
     summary = None
@@ -107,7 +107,7 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
 
     if not use_bin_sums:
         # Transform bin feature values according to respective bin threshold
-        bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= fibers.set.bin_pop[bin_index].group_threshold else 1)
+        bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= 0 else 1)
 
     bin_df = pd.concat([bin_df,df.loc[:,fibers.outcome_label],df.loc[:,fibers.label_name]],axis=1)
     summary = None
@@ -141,7 +141,6 @@ def main(argv):
     parser.add_argument('--ol', dest='outcome_label', help='outcome column label', type=str, default='Duration')  
     parser.add_argument('--i', dest='iterations', help='iterations', type=int, default=100)
     parser.add_argument('--ps', dest='pop_size', help='population size', type=int, default=50)
-    parser.add_argument('--pi', dest='manual_bin_init', help='directory path to population initialization file', type=str, default = 'None') #full path/filename
     parser.add_argument('--cp', dest='crossover_prob', help='crossover probability', type=float, default=0.5)
     parser.add_argument('--mup', dest='mutation_prob', help='mutation probability', type=float, default=0.5)
     parser.add_argument('--e', dest='elitism', help='elite proportion of population protected from deletion', type=float, default=0.1)
@@ -238,7 +237,7 @@ def main(argv):
         for j in range(locus_range_dict[locus][0],locus_range_dict[locus][1]+1):
             MM_feature_list.append('MM_'+str(locus)+'_'+str(j))
 
-    features = MM_feature_list + covariates + [outcome_label] + [censor_label]
+    features = MM_feature_list + [outcome_label] + [censor_label]
     print(features) #temporary
     data = data[features]
 

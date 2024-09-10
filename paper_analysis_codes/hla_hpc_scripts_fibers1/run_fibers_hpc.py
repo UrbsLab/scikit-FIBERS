@@ -24,7 +24,6 @@ def main(argv):
     parser.add_argument('--ol', dest='outcome_label', help='outcome column label', type=str, default='Duration')  
     parser.add_argument('--i', dest='iterations', help='iterations', type=int, default=100)
     parser.add_argument('--ps', dest='pop_size', help='population size', type=int, default=50)
-    parser.add_argument('--pi', dest='manual_bin_init', help='directory path to population initialization file', type=str, default = 'None') #full path/filename
     parser.add_argument('--cp', dest='crossover_prob', help='crossover probability', type=float, default=0.5)
     parser.add_argument('--mup', dest='mutation_prob', help='mutation probability', type=float, default=0.5)
     parser.add_argument('--e', dest='elitism', help='elite proportion of population protected from deletion', type=float, default=0.1)
@@ -32,8 +31,6 @@ def main(argv):
     parser.add_argument('--ba', dest='max_number_of_groups_with_feature', help='maximum number of bin with said features', type=int, default=2)
     parser.add_argument('--c', dest='censor_label', help='censor column label', type=str, default='Censoring')
     parser.add_argument('--g', dest='group_strata_min', help='group strata minimum', type=float, default=0.2)
-    parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
-
 
     options=parser.parse_args(argv[1:])
 
