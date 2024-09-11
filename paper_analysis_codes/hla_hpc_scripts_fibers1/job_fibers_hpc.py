@@ -109,11 +109,11 @@ def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
         # Transform bin feature values according to respective bin threshold
         bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= 0 else 1)
 
-    bin_df = pd.concat([bin_df,df.loc[:,fibers.outcome_label],df.loc[:,fibers.label_name]],axis=1)
+    bin_df = pd.concat([bin_df,df.loc[:,fibers.duration_name],df.loc[:,fibers.label_name]],axis=1)
     summary = None
     try:
         bin_df = pd.concat([bin_df,df.loc[:,covariates]],axis=1)
-        summary = cox_prop_hazard(bin_df,fibers.outcome_label,fibers.label_name)
+        summary = cox_prop_hazard(bin_df,fibers.duration_name,fibers.label_name)
         # fibers.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
         # fibers.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
         # fibers.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
