@@ -58,6 +58,7 @@ class BIN:
     
 
     def initialize_manual(self,feature_names,loaded_bin,loaded_thresh_list,low_thresh,high_thresh,min_thresh,max_thresh,birth_iteration):
+        num_thresh = len(loaded_thresh_list)
         if birth_iteration == None:
             self.birth_iteration = 0
         else:
