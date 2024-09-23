@@ -262,8 +262,10 @@ class BIN_SET:
                 else:
                     # Get similarity score to top bin in cluster
                     similarity = cos_sim[bin_index][max_index] #compare the current bin to the top bin in this cluster
-                    self.bin_pop[bin_index].update_deletion_prop((1/bin.fitness)*similarity+(1/bin.fitness), cluster) # Assign deletion probability as the inverse of fitness * similarity
-
+                    try:
+                        self.bin_pop[bin_index].update_deletion_prop((1/bin.fitness)*similarity+(1/bin.fitness), cluster) # Assign deletion probability as the inverse of fitness * similarity
+                    except ZeroDivisionError:
+                        self.bin_pop[bin_index].update_deletion_prop((1/1e-6)*similarity+(1/1e-6), cluster)
         # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
         # Delete remaining bins required (from non-elite set) based on bin selection that is inversely proportional to bin fitness
         while len(self.bin_pop) > pop_size:

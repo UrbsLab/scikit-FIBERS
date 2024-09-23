@@ -637,8 +637,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
         summary = None
+
+        penalizer = None
+        if self.covariates == ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','OTHER','FDFR','FDMR','MDFR','MDMR']:
+            penalizer = 0.0001
+
         try:
-            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label,penalizer)
             self.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
             self.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
             self.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
@@ -669,9 +674,14 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
         summary = None
+
+        penalizer = None
+        if self.covariates == ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','OTHER','FDFR','FDMR','MDFR','MDMR']:
+            penalizer = 0.0001
+
         try:
             bin_df = pd.concat([bin_df,df.loc[:,self.covariates]],axis=1)
-            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label, penalizer)
             self.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
             self.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
             self.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]

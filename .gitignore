@@ -40,6 +40,7 @@ data/
 src/Data1.csv
 sampledata.csv
 output/
+src/skfibersv2
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
