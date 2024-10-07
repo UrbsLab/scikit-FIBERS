@@ -6,7 +6,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, threshold = 0, 
-                             feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
+                             feature_frequency_range=(0.1, 0.4), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
                              class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, negative_control=False, random_seed=None):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
@@ -165,11 +165,11 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     # Assigning Gaussian according to class
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
     df_1 = df[df['TrueRiskGroup'] == 1].sample(frac=1).reset_index(drop=True)
-    cutoff = (class0_time_to_event_range[0] + class1_time_to_event_range[0]) / 2.0
-    df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=cutoff+0.001, a_max=None)
-    df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=cutoff)
-    #df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=0, a_max=None)
-    #df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=None)
+    #cutoff = (class0_time_to_event_range[0] + class1_time_to_event_range[0]) / 2.0
+    #df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=cutoff+0.001, a_max=None)
+    #df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=cutoff)
+    df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=0, a_max=None)
+    df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=None)
     df = pd.concat([df_1, df_0])
     df = censor(df, censoring_frequency, random_seed)
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
@@ -246,7 +246,8 @@ def censor(df, censoring_frequency, random_seed=None): # May need simplification
         if random_seed:
             np.random.seed(random_seed + count)
         for index in range(len(df)):
-            prob = 0.5 #df['Duration'].iloc[index] / max_duration
+            #prob = 0.5 #df['Duration'].iloc[index] / max_duration
+            prob = df['Duration'].iloc[index] / max_duration
             choice = np.random.choice([0, 1], 1, p=[prob, 1 - prob])
             if censor_count >= inst_to_censor:
                 break
