@@ -213,7 +213,132 @@ class BIN_SET:
         return False
         
 
-    def similarity_bin_deletion(self,pop_size,diversity_pressure,random):
+    def similarity_bin_deletion_new(self,pop_size,diversity_pressure,elitism,random):
+        # Elitism Preparation
+        elite_count = int(pop_size*(elitism))
+        # Ensure that each similarity cluster will protect at least the top fitness bin
+        if diversity_pressure > elite_count:
+            elite_count = diversity_pressure
+
+        # Automatically delete bins with a fitness of 0
+        delete_indexes = []
+        i = 0
+        for bin in self.bin_pop:
+            if bin.fitness == 0 and len(delete_indexes)<(len(self.bin_pop)-pop_size):
+                delete_indexes.append(i)
+            i += 1
+        delete_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes
+        for index in delete_indexes:
+            del self.bin_pop[index]
+
+        #Prepare for deletion
+        list_of_feature_lists = []
+        for bin in self.bin_pop:
+            bin_composition = copy.deepcopy(bin.feature_list)
+            bin_composition.append('Thresh_'+str(bin.group_threshold))
+            list_of_feature_lists.append(bin_composition)
+
+        # Vectorize the lists using TF-IDF
+        vectorizer = TfidfVectorizer(analyzer=lambda x: x)
+        X = vectorizer.fit_transform(list_of_feature_lists)
+
+        # Calculate pairwise cosine similarity
+        cos_sim = cosine_similarity(X)
+
+        # Cluster the lists using KMeans
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            seed = random.randint(0,100)
+            kmeans = KMeans(n_clusters=diversity_pressure, n_init='auto',random_state=seed).fit(cos_sim)
+            group_labels = kmeans.labels_
+
+        #For each group find elites (to preserve) i.e. assign 0 deletion probability othewise assign deletion probability
+        top_cluster_fitness = []
+        cluster_dictionary_list = []
+        for cluster in range(0,diversity_pressure):
+            cluster_dictionary = {}
+            # Get bin indexes and respective fitness scores for bins in this cluster
+            bin_indexs = [i for i, x in enumerate(group_labels) if x == cluster]
+            #bin_index_list.append(bin_indexs)
+            bin_fitness_list = []
+            for bin_index in bin_indexs: # for each bin in this cluster
+                bin_fitness = self.bin_pop[bin_index].fitness
+                bin_fitness_list.append(bin_fitness) #get the fitness
+                cluster_dictionary[bin_index] = bin_fitness
+            # Find the best bin in this cluster
+            max_fitness = max(bin_fitness_list)
+            #max_index = bin_indexs[bin_fitness_list.index(max_fitness)] #index of bin from bin_indexs
+            top_cluster_fitness.append(max_fitness)
+            cluster_dictionary_list.append(dict(sorted(cluster_dictionary.items(),key=lambda item: item[1], reverse=True)))
+        
+        # Calculate number of elites for each cluster
+        fitness_sum = sum(top_cluster_fitness)
+        cluster_elite_counts = []
+        for cluster in range(0,diversity_pressure):
+            cluster_elite_count = int(elite_count * (top_cluster_fitness[cluster] / float(fitness_sum)))
+            if cluster_elite_count < 1: #ensure a minimum of one elite per cluster
+                cluster_elite_count = 1
+            cluster_elite_counts.append(cluster_elite_count)
+
+        # Assign deletion probabilities to all bins
+        delete_indexes = []
+        for cluster in range(0,diversity_pressure):
+            elite_counter = 0
+            for bin_index in cluster_dictionary_list[cluster]: #Already sorted by descending fitness
+                if elite_counter == 0:
+                    top_bin_index = bin_index
+                    self.bin_pop[bin_index].update_deletion_prop(0.0, cluster) #Top bin s have zero chance of deletion
+                    elite_counter += 1
+                elif self.is_over_general(top_bin_index,bin_index):
+                    delete_indexes.append(bin_index)
+                elif elite_counter < cluster_elite_counts[cluster]:
+                    self.bin_pop[bin_index].update_deletion_prop(0.0, cluster) #Top bin s have zero chance of deletion
+                    elite_counter += 1
+                else:
+                    # Get similarity score to top bin in cluster
+                    #similarity = cos_sim[bin_index][top_bin_index] #compare the current bin to the top bin in this cluster
+                    try:
+                        #self.bin_pop[bin_index].update_deletion_prop((1/bin.fitness)*similarity+(1/bin.fitness), cluster) # Assign deletion probability as the inverse of fitness * similarity
+                        self.bin_pop[bin_index].update_deletion_prop((1/float(bin.fitness)), cluster) # Assign deletion probability as the inverse of fitness * similarity
+                    except ZeroDivisionError:
+                        #self.bin_pop[bin_index].update_deletion_prop((1/1e-6)*similarity+(1/1e-6), cluster)
+                        self.bin_pop[bin_index].update_deletion_prop((1/1e-6), cluster)
+                    #print("similarity:"+str(similarity))
+                    #print("1/fitness:"+str(1/bin.fitness))
+                    #print("DP:"+str((1/bin.fitness)*similarity+(1/bin.fitness)))
+
+        # Delete overgenerals (until max pop size reached)
+        delete_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes
+        i = 0
+        while len(self.bin_pop) > pop_size and i < len(delete_indexes):
+            del self.bin_pop[delete_indexes[i]]
+            i += 1
+        # Continue deleting bins until max pop size is reached using roulette wheel selection.
+        # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
+        # Delete remaining bins required (from non-elite set) based on bin selection that is inversely proportional to bin fitness
+        while len(self.bin_pop) > pop_size:
+            #Calculate total fitness across all bins
+            total_fitness = sum(bin.deletion_prop for bin in self.bin_pop)
+            if total_fitness == 0.0:
+                index = random.choices(range(len(self.bin_pop)))[0]
+            else:
+                # Calculate deletion probabilities for each object
+                deletion_probabilities = [bin.deletion_prop / total_fitness for bin in self.bin_pop]
+                index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
+            del self.bin_pop[index]
+
+
+    def is_over_general(self,top_bin_index,bin_index):
+        """ Checks if a given bin is an overly generlized bin compared to the top bin in a given bin cluster. 
+        The bin must have the same threshold, and a subset of the features in the top bin."""
+        if self.bin_pop[top_bin_index].group_threshold != self.bin_pop[bin_index].group_threshold:
+            return False
+        elif set(self.bin_pop[bin_index].feature_list).issubset(set(self.bin_pop[top_bin_index].feature_list)):
+            return True
+        else:
+            return False
+
+    def similarity_bin_deletion(self,pop_size,diversity_pressure,elitism,random):
         # Automatically delete bins with a fitness of 0
         delete_indexes = []
         i = 0
@@ -263,7 +388,7 @@ class BIN_SET:
                     # Get similarity score to top bin in cluster
                     similarity = cos_sim[bin_index][max_index] #compare the current bin to the top bin in this cluster
                     try:
-                        self.bin_pop[bin_index].update_deletion_prop((1/bin.fitness)*similarity+(1/bin.fitness), cluster) # Assign deletion probability as the inverse of fitness * similarity
+                        self.bin_pop[bin_index].update_deletion_prop((1/self.bin_pop[bin_index].fitness)*similarity+(1/self.bin_pop[bin_index].fitness), cluster) # Assign deletion probability as the inverse of fitness * similarity
                     except ZeroDivisionError:
                         self.bin_pop[bin_index].update_deletion_prop((1/1e-6)*similarity+(1/1e-6), cluster)
         # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
@@ -278,7 +403,6 @@ class BIN_SET:
                 deletion_probabilities = [bin.deletion_prop / total_fitness for bin in self.bin_pop]
                 index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
             del self.bin_pop[index]
-
 
     def probabilistic_bin_deletion(self,pop_size,elitism,random):
         # Automatically delete bins with a fitness of 0

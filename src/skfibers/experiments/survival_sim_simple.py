@@ -22,7 +22,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     :param noise_frequency: Value from 0 to 0.5 representing the proportion of class 0/class 1 instance pairs that \
                             have their outcome switched from 0 to 1
     :param class0_time_to_event_range: (mean, sd) time to event as a tuple 
-    :param class1_time_to_event_range: (mean, sd) time to event as a tuple 
+    :param class1_time_to_event_range: (mean, sd) time to event as a tuple  - this mean must be lower than for class 0
     :param censoring_frequency: proportion of instances that are censored (0 = censored, 1 = not censored)
     :param negative_control: boolean flag to randomly shuffle outcome to remove dataset signal.
     :param random_seed:
@@ -165,8 +165,11 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     # Assigning Gaussian according to class
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
     df_1 = df[df['TrueRiskGroup'] == 1].sample(frac=1).reset_index(drop=True)
-    df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=0, a_max=None)
-    df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=None)
+    cutoff = (class0_time_to_event_range[0] + class1_time_to_event_range[0]) / 2.0
+    df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=cutoff+0.001, a_max=None)
+    df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=cutoff)
+    #df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=0, a_max=None)
+    #df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=None)
     df = pd.concat([df_1, df_0])
     df = censor(df, censoring_frequency, random_seed)
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
@@ -243,7 +246,7 @@ def censor(df, censoring_frequency, random_seed=None): # May need simplification
         if random_seed:
             np.random.seed(random_seed + count)
         for index in range(len(df)):
-            prob = df['Duration'].iloc[index] / max_duration
+            prob = 0.5 #df['Duration'].iloc[index] / max_duration
             choice = np.random.choice([0, 1], 1, p=[prob, 1 - prob])
             if censor_count >= inst_to_censor:
                 break
