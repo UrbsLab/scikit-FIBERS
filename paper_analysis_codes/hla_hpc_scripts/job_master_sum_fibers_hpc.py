@@ -107,8 +107,8 @@ def main(argv):
         #Generate Top-bin Custom Heatmap across replicates
         # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
         all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
-        max_bins = 100
-        max_features = 100
+        max_bins = 200
+        max_features = 200
         group_names = []
         legend_group_info = ['Not in Bin']
         colors = [(.95, .95, 1)]
@@ -136,8 +136,8 @@ def main(argv):
     #Generate Top-bin Custom Heatmap across replicates and random seeds
     # COLORS:    very light blue, blue, red, green, purple, pink, orange, yellow, light blue, grey
     all_colors = [(0, 0, 1),(1, 0, 0),(0, 1, 0),(0.5, 0, 1),(1, 0, 1),(1, 0.5, 0),(1, 1, 0),(0, 1, 1),(0.5, 0.5, 0.5)] 
-    max_bins = 100
-    max_features = 100
+    max_bins = 200
+    max_features = 200
     group_names = []
     legend_group_info = ['Not in Bin']
     colors = [(.95, .95, 1)]
@@ -218,7 +218,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,all_bin
             fig_size = (max_features // 2, max_bins // 2)
             # Create a heatmap using Seaborn
             plt.subplots(figsize=fig_size)
-            ax=sns.heatmap(graph_df, xticklabels=False, yticklabels=False, vmax=1, vmin=0,
+            ax=sns.heatmap(graph_df, xticklabels=True, yticklabels=False, vmax=1, vmin=0,
                         square=True, cmap="Blues", cbar_kws={"shrink": .75}, cbar=False)
             ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
@@ -235,7 +235,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,all_bin
             fig_size = (max_features // 2, num_bins // 2)
             # Create a heatmap using Seaborn
             plt.subplots(figsize=fig_size)
-            ax=sns.heatmap(graph_df, xticklabels=False, vmax=1, vmin=0, square=True, cmap="Blues",
+            ax=sns.heatmap(graph_df, xticklabels=True, vmax=1, vmin=0, square=True, cmap="Blues",
                         cbar_kws={"shrink": .75}, cbar=False)
             ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
             ax.set_xticklabels(ax.get_xticklabels(), rotation=90)

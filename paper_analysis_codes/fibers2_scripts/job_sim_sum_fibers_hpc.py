@@ -134,9 +134,9 @@ def main(argv):
         runtime.append(fibers.elapsed_time)
         if str(bin.feature_list).count('T') > 0:
             tc += 1
-        if str(bin.feature_list).count('T') > 0:
+        if str(bin.feature_list).count('GPC') > 0:
             gpc += 1
-        if str(bin.feature_list).count('T') > 0:
+        if str(bin.feature_list).count('RPC') > 0:
             rpc += 1
         bin_size.append(bin.bin_size)
         birth_iteration.append(bin.birth_iteration)

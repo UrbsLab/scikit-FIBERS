@@ -41,6 +41,7 @@ src/Data1.csv
 sampledata.csv
 output/
 src/skfibersv2
+src/skfibers_no_ryan_fixes
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
