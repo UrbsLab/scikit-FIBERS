@@ -382,7 +382,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 else:
                     self.set.probabilistic_bin_deletion(self.pop_size,self.elitism,random)
             else:
-                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,random)
+                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,self.elitism,random)
 
             # Update feature tracking
             self.set.update_feature_tracking(self.feature_names)
