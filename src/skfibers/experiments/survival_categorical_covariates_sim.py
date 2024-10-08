@@ -217,7 +217,10 @@ def survival_data_simulation_categorical_covariates(instances=10000,total_featur
         feature_index += 1 
 
     df_race = pd.get_dummies(race_list, dtype=int)
+    df_race = df_race.drop(columns=['WHITE'])
     df_gender_match = pd.get_dummies(gender_list, dtype=int)
+    df_gender_match = df_gender_match.drop(columns='MDMR')
+    print(df_random)
     # Create a DataFrame to store the data
     df = pd.DataFrame({
         'RPC': RPC_values,
