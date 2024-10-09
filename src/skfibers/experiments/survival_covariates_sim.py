@@ -12,7 +12,7 @@ import numpy as np
 def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=10,feature_frequency_range=(0.1, 0.5),random_seed=None):
 
     #predictive_features = 2
-    patient_censor_prob = 0.1
+    patient_censor_prob = 0.2
     random_features = total_features-predictive_features-1
     administrative_censoring_time = 23
 
