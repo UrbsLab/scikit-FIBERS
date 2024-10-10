@@ -144,16 +144,16 @@ python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared
 
 ## Experiment 10
 cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/fibers2_scripts/
-python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.5 --dp 5 --f log_rank_residuals --t None --cl None --cov Adv
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f log_rank_residuals --t None --cl None --cov Adv
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat --rc LSF --rs 30 --rm 4 --q i2c2_normal
 python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_sim_cov_all_feat
 
 ## Sobhan's Covariate Experiments for Adv Cov Datasets
 cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/fibers2_scripts/
-python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat_logrank --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.5 --dp 5 --f log_rank --t None --cl None --cov Adv
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat_logrank --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f log_rank --t None --cl None --cov Adv
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat_logrank --rc LSF --rs 30 --rm 4 --q i2c2_normal
 python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_sim_cov_all_feat_logrank
-python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.5 --dp 5 --f residuals --t None --cl None --cov Adv
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f residuals --t None --cl None --cov Adv
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/simulation_study_covariates --w /project/kamoun_shared/output_shared/bandheyh/ --o sim_cov_all_feat_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal
 python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/ --o Fibers2.0_sim_cov_all_feat_residuals
 
