@@ -9,7 +9,7 @@ import numpy as np
 #                             class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
 
 
-def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=10,feature_frequency_range=(0.1, 0.5),random_seed=None):
+def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=10,feature_frequency_range=(0.1, 0.4),random_seed=None):
 
     #predictive_features = 2
     patient_censor_prob = 0.2

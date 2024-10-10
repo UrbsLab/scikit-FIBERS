@@ -124,8 +124,8 @@ def main(argv):
             bin_feature_list_copy.remove('RPC')
         except Exception:
             continue
-        num_P.append(str(bin.feature_list).count('P'))
-        num_R.append(str(bin.feature_list).count('R'))
+        num_P.append(str(bin_feature_list_copy).count('P'))
+        num_R.append(str(bin_feature_list_copy).count('R'))
         if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
             ideal += 1
             ideal_iter.append(bin.birth_iteration)
