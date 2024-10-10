@@ -114,6 +114,16 @@ def main(argv):
 
         #Update metric lists
         accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None)
+        bin_feature_list_copy = bin.feature_list.copy()
+        print(bin_feature_list_copy)
+        try:
+            bin_feature_list_copy.remove('GPC')
+        except Exception:
+            continue
+        try:
+            bin_feature_list_copy.remove('RPC')
+        except Exception:
+            continue
         num_P.append(str(bin.feature_list).count('P'))
         num_R.append(str(bin.feature_list).count('R'))
         if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
