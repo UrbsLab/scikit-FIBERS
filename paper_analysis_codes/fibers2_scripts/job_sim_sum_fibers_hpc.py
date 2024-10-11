@@ -116,7 +116,9 @@ def main(argv):
         df.loc[len(df)] = results_list
 
         #Update metric lists
-        accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None)
+        if true_risk_group is not None:
+            accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group))
+        #accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None)
         bin_feature_list_copy = bin.feature_list.copy()
         print(bin_feature_list_copy)
         try:
@@ -127,6 +129,7 @@ def main(argv):
             bin_feature_list_copy.remove('RPC')
         except Exception:
             continue
+        print(bin_feature_list_copy)
         num_P.append(str(bin_feature_list_copy).count('P'))
         num_R.append(str(bin_feature_list_copy).count('R'))
         if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
@@ -193,14 +196,34 @@ def main(argv):
                     "Birth Iteration", "Birth Iteration (SD)"]
     
     df_master = pd.DataFrame(columns=master_columns)
+    print(accuracy)
+    print(all(x is None for x in accuracy))
+    print(num_P)
+    print(num_R)
+    print(ideal)
+    print(ideal_iter)
+    print(threshold)
+    print(log_rank)
+    print(residuals)
+    print(unadj_HR)
+    print(adj_HR)
+    print(group_balance)
+    print(runtime)
+    print(tc)
+    print(gpc)
+    print(rpc)
+    print(bin_size)
+    print(birth_iteration)
+    
     master_results_list = [algorithm,experiment,data_name,
-                        None if all(x is None for x in accuracy) else np.mean(accuracy),
-                        None if all(x is None for x in accuracy) else np.std(accuracy),
+                        None if len(accuracy) == 0 else np.mean(accuracy), None if len(accuracy) == 0 else np.std(accuracy),
+                        #None if all(x is None for x in accuracy) else np.mean(accuracy),
+                        #None if all(x is None for x in accuracy) else np.std(accuracy),
                         np.mean(num_P),np.std(num_P),
                         np.mean(num_R),np.std(num_R), ideal, 
                         np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
                         np.mean(threshold),np.std(threshold), 
-                        None if len(log_rank) == 0 else np.mean(log_rank), None if len(log_rank) == 0 else np.std(log_rank) ,
+                        None if len(log_rank) == 0 else np.mean(log_rank), None if len(log_rank) == 0 else np.std(log_rank),
                         None if len(residuals) == 0 else np.mean(residuals), None if len(residuals) == 0 else np.std(residuals), 
                         None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
                         None if len(adj_HR) == 0 else np.mean(adj_HR), None if len(adj_HR) == 0 else np.std(adj_HR), 
