@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
-from src.skfibers.experiments.survival_covariates_sim import survival_data_simulation_covariates #SOURCE CODE RUN
+from src.skfibers.experiments.SIM3 import survival_data_simulation_categorical_covariates #SOURCE CODE RUN
 #from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
 
 def main(argv):
@@ -14,6 +14,7 @@ def main(argv):
     parser.add_argument('--i', dest='instance', help='number of instances', type=int, default = 10000) #output folder name
     parser.add_argument('--p', dest='pred_feature', help='number of predictive features', type=int, default = 10) #output folder name
     parser.add_argument('--tf', dest='total_feature', help='total number of features', type=int, default=100)
+    parser.add_argument('--t', dest='threshold', help='ground truth threshold of the dataset', type=int, default=0)
     parser.add_argument('--l', dest='exp_name', help='experiment name dataset label', type=str, default='Sim')
 
     options=parser.parse_args(argv[1:])
@@ -24,7 +25,7 @@ def main(argv):
     nc = False
     noise = 0
     total_feature = options.total_feature
-    threshold = 0
+    threshold = options.threshold
     censor = 0
     exp_name = options.exp_name
 
@@ -37,8 +38,9 @@ def main(argv):
     # data = survival_data_simulation(instances=instance, total_features=total_feature, predictive_features=pred_feature, low_risk_proportion=0.5, threshold=threshold, feature_frequency_range=(0.1, 0.4), 
     #         noise_frequency=noise, class0_time_to_event_range=(1.5, 0.2), class1_time_to_event_range=(1, 0.2), censoring_frequency=censor, 
     #         negative_control=nc, random_seed=42)
-    _, data = survival_data_simulation_covariates(instances=instance,total_features=total_feature,
-                                                           predictive_features=pred_feature,feature_frequency_range=(0.1, 0.5),random_seed=None)
+    _, data = survival_data_simulation_categorical_covariates(instances=instance,total_features=total_feature,
+                                                           predictive_features=pred_feature,feature_frequency_range=(0.1, 0.5),random_seed=None, threshold=threshold)
+    # data.drop('OTHER', axis=1, inplace=True)
     data.to_csv(full_data_name_path, index=False)
     print('Dataset Simulation Complete')
 

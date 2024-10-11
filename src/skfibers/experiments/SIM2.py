@@ -9,11 +9,11 @@ import numpy as np
 #                             class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
 
 
-def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=10,feature_frequency_range=(0.1, 0.4),random_seed=None):
+def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=5,feature_frequency_range=(0.1, 0.4),noise_frequency=0.0,censoring_frequency=0.2,negative_control=False,random_seed=None):
 
     #predictive_features = 2
-    patient_censor_prob = 0.2
-    random_features = total_features-predictive_features-1
+    patient_censor_prob = censoring_frequency
+    random_features = total_features-predictive_features-1 #the -1 accounts for the TC1 covariate associated feature
     administrative_censoring_time = 23
 
     # Initialize lists to store data
@@ -145,5 +145,22 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
     })
     data = pd.concat([df_predictive, data, df_random], axis=1)
 
+    #Add Noise by swapping 
+    if noise_frequency > 0:
+        columns_to_shuffle = ['Duration','Censoring']
+
+        # Calculate the number of rows to shuffle
+        num_rows_to_shuffle = int(len(data) * noise_frequency *2) #noise multiplied by 2 so the degree of noise is comparable to SIM1
+
+        # Get random indices for the rows to shuffle
+        shuffle_indices = np.random.choice(df.index, size=num_rows_to_shuffle, replace=False)
+
+        # Shuffle the values within the specified columns for these rows
+        data.loc[shuffle_indices, columns_to_shuffle] = data.loc[shuffle_indices, columns_to_shuffle].sample(frac=1).values
+
+    if negative_control:
+        columns_to_shuffle = ['Duration','Censoring']
+        for col in columns_to_shuffle:
+            data[col] = np.random.permutation(data[col].values)
 
     return df, data

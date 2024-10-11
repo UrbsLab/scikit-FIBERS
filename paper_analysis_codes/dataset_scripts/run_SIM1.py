@@ -11,7 +11,7 @@ class RunFIBERS:
         #self.write_path = '/project/kamoun_shared/ryanurb/'
         self.write_path = '/project/kamoun_shared/output_shared/bandheyh/'
         #self.data_path = '/project/kamoun_shared/ryanurb/data/simple_sim_datasets'
-        self.data_path = '/project/kamoun_shared/data_shared/simulation_study_simple/'
+        self.data_path = '/project/kamoun_shared/data_shared/SIM1/'
         self.run_cluster = 'LSF' #LSF or SLURM
         self.reserved_memory = 4
         self.queue = 'i2c2_normal'
@@ -174,7 +174,7 @@ def submit_slurm_cluster_job(self,instance,pred_feature,nc,noise,total_feature,t
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_simple_sim.py' +' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
+    sh_file.write('srun python job_SIM1.py' +' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -191,7 +191,7 @@ def submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,thr
     sh_file.write('#BSUB -M ' + str(self.reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_simple_sim.py'+' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
+    sh_file.write('python job_SIM1.py'+' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 
