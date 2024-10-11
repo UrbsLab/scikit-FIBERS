@@ -194,8 +194,8 @@ def main(argv):
     
     df_master = pd.DataFrame(columns=master_columns)
     master_results_list = [algorithm,experiment,data_name,
-                        None if all(x is None for x in accuracy) else np.mean(np.array(accuracy, dtype=np.float64)),
-                        None if all(x is None for x in accuracy) else np.std(np.array(accuracy, dtype=np.float64)),
+                        None if all(x is None for x in accuracy) else np.mean(accuracy),
+                        None if all(x is None for x in accuracy) else np.std(accuracy),
                         np.mean(num_P),np.std(num_P),
                         np.mean(num_R),np.std(num_R), ideal, 
                         np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
