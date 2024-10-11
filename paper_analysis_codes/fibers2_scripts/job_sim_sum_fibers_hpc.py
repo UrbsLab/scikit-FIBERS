@@ -194,6 +194,22 @@ def main(argv):
     
     df_master = pd.DataFrame(columns=master_columns)
     master_results_list = [algorithm,experiment,data_name,
+                        None if all(x is None for x in accuracy) else np.nanmean(np.array(accuracy, dtype=np.float64)),
+                        None if all(x is None for x in accuracy) else np.nanstd(np.array(accuracy, dtype=np.float64)),
+                        np.mean(num_P),np.std(num_P),
+                        np.mean(num_R),np.std(num_R), ideal, 
+                        np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
+                        np.mean(threshold),np.std(threshold), 
+                        None if len(log_rank) == 0 else np.mean(log_rank), None if len(log_rank) == 0 else np.std(log_rank) ,
+                        None if len(residuals) == 0 else np.mean(residuals), None if len(residuals) == 0 else np.std(residuals), 
+                        None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
+                        None if len(adj_HR) == 0 else np.mean(adj_HR), None if len(adj_HR) == 0 else np.std(adj_HR), 
+                        np.mean(group_balance),np.std(group_balance),
+                        np.mean(runtime),np.std(runtime), tc, gpc, rpc,
+                        np.mean(bin_size),np.std(bin_size), 
+                        np.mean(birth_iteration),np.std(birth_iteration)]
+    """
+    master_results_list = [algorithm,experiment,data_name,
                         np.nanmean(np.array(accuracy, dtype=np.float64)), np.nanstd(np.array(accuracy, dtype=np.float64)),
                         np.mean(num_P),np.std(num_P),
                         np.mean(num_R),np.std(num_R), ideal, 
@@ -207,7 +223,7 @@ def main(argv):
                         np.mean(runtime),np.std(runtime), tc, gpc, rpc,
                         np.mean(bin_size),np.std(bin_size), 
                         np.mean(birth_iteration),np.std(birth_iteration)]
-    
+    """
     df_master.loc[len(df_master)] = master_results_list
     #Save master results as csv
     df_master.to_csv(target_folder+'/'+'summary'+'/'+data_name+'_master_summary'+'.csv', index=False)
