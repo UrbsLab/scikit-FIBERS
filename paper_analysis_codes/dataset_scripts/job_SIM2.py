@@ -32,8 +32,10 @@ def main(argv):
     total_feature = options.total_feature
     censor = options.censor
     exp_name = options.exp_name
+    threshold = 'NA'
 
-    data_name = exp_name+'_i_'+str(instance)+'_tf_'+str(total_feature)+'_p_'+str(pred_feature)+'_n_'+str(noise)+'_c_'+str(censor)+'_nc_'+str(nc)
+    data_name = exp_name+'_i_'+str(instance)+'_tf_'+str(total_feature)+'_p_'+str(pred_feature)+'_t_'+str(threshold)+'_n_'+str(noise)+'_c_'+str(censor)+'_nc_'+str(nc)
+
 
     #Generate Example Simulated Dataset --------------------------------------------
     full_data_name_path = data_path +'/'+data_name+'.csv'
