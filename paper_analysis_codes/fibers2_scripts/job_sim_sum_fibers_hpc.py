@@ -120,6 +120,7 @@ def main(argv):
             accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group))
         #accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None)
         bin_feature_list_copy = bin.feature_list.copy()
+        print('start')
         print(bin_feature_list_copy)
         try:
             bin_feature_list_copy.remove('GPC')
@@ -129,7 +130,10 @@ def main(argv):
             bin_feature_list_copy.remove('RPC')
         except Exception:
             continue
+        print('two')
         print(bin_feature_list_copy)
+        print('original')
+        print(bin.feature_list)
         num_P.append(str(bin_feature_list_copy).count('P'))
         num_R.append(str(bin_feature_list_copy).count('R'))
         if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
@@ -196,6 +200,7 @@ def main(argv):
                     "Birth Iteration", "Birth Iteration (SD)"]
     
     df_master = pd.DataFrame(columns=master_columns)
+    print('Debug')
     print(accuracy)
     print(all(x is None for x in accuracy))
     print(num_P)
@@ -214,7 +219,7 @@ def main(argv):
     print(rpc)
     print(bin_size)
     print(birth_iteration)
-    
+
     master_results_list = [algorithm,experiment,data_name,
                         None if len(accuracy) == 0 else np.mean(accuracy), None if len(accuracy) == 0 else np.std(accuracy),
                         #None if all(x is None for x in accuracy) else np.mean(accuracy),
