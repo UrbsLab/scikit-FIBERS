@@ -125,11 +125,11 @@ def main(argv):
         try:
             bin_feature_list_copy.remove('GPC')
         except Exception:
-            continue
+            pass #continue
         try:
             bin_feature_list_copy.remove('RPC')
         except Exception:
-            continue
+            pass #continue
         print('two')
         print(bin_feature_list_copy)
         print('original')
