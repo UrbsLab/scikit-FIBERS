@@ -120,8 +120,7 @@ def main(argv):
             accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group))
         #accuracy.append(accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None)
         bin_feature_list_copy = bin.feature_list.copy()
-        print('start')
-        print(bin_feature_list_copy)
+
         try:
             bin_feature_list_copy.remove('GPC')
         except Exception:
@@ -130,10 +129,7 @@ def main(argv):
             bin_feature_list_copy.remove('RPC')
         except Exception:
             pass #continue
-        print('two')
-        print(bin_feature_list_copy)
-        print('original')
-        print(bin.feature_list)
+
         num_P.append(str(bin_feature_list_copy).count('P'))
         num_R.append(str(bin_feature_list_copy).count('R'))
         if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
@@ -200,25 +196,6 @@ def main(argv):
                     "Birth Iteration", "Birth Iteration (SD)"]
     
     df_master = pd.DataFrame(columns=master_columns)
-    print('Debug')
-    print(accuracy)
-    print(all(x is None for x in accuracy))
-    print(num_P)
-    print(num_R)
-    print(ideal)
-    print(ideal_iter)
-    print(threshold)
-    print(log_rank)
-    print(residuals)
-    print(unadj_HR)
-    print(adj_HR)
-    print(group_balance)
-    print(runtime)
-    print(tc)
-    print(gpc)
-    print(rpc)
-    print(bin_size)
-    print(birth_iteration)
 
     master_results_list = [algorithm,experiment,data_name,
                         None if len(accuracy) == 0 else np.mean(accuracy), None if len(accuracy) == 0 else np.std(accuracy),
@@ -298,7 +275,7 @@ def match_prefix(feature, group_names):
 
     return "None"
 
-def plot_bin_population_heatmap(population, feature_names,filtering=None,show=True,save=False,output_folder=None,data_name=None):
+def plot_bin_population_heatmap(population, feature_names,filtering=None,show=False,save=False,output_folder=None,data_name=None):
     """
     :param population: a list where each element is a list of specified features
     :param feature_list: an alphabetically sorted list containing each of the possible feature
@@ -384,7 +361,7 @@ def plot_bin_population_heatmap(population, feature_names,filtering=None,show=Tr
 
     return graph_df
 
-def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,filtering=None,show=True,save=False,output_folder=None,data_name=None):
+def plot_custom_top_bin_population_heatmap(population,feature_names,group_names,legend_group_info,colors,max_bins,max_features,filtering=None,show=False,save=False,output_folder=None,data_name=None):
     """
     :param population: a list where each element is a list of specified features
     :param feature_list: an alphabetically sorted list containing each of the possible feature

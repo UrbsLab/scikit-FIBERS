@@ -27,7 +27,6 @@ def main(argv):
         nc = True
     else:
         nc = False
-    nc = False
     noise = options.noise
     total_feature = options.total_feature
     censor = options.censor
