@@ -34,7 +34,7 @@ class RunFIBERS:
 
         #Baseline Parameters
         self.instance = 10000
-        self.pred_feature = 5
+        self.pred_feature = 6
         self.nc = 'False'
         self.censor = 0.2
         self.noise = 0.0

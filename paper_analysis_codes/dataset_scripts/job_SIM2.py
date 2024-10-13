@@ -12,7 +12,7 @@ def main(argv):
     #Script Parameters
     parser.add_argument('--o', dest='data_path', help='', type=str, default = 'myDataPath') #full path/filename
     parser.add_argument('--i', dest='instance', help='number of instances', type=int, default = 10000) #output folder name
-    parser.add_argument('--p', dest='pred_feature', help='number of predictive features', type=int, default = 5) #output folder name
+    parser.add_argument('--p', dest='pred_feature', help='number of predictive features', type=int, default = 6) #output folder name
     parser.add_argument('--t', dest='threshold', help='ground truth threshold of the dataset', type=int, default=0)
     parser.add_argument('--tf', dest='total_feature', help='total number of features', type=int, default=100)
     parser.add_argument('--l', dest='exp_name', help='experiment name dataset label', type=str, default='Sim')
