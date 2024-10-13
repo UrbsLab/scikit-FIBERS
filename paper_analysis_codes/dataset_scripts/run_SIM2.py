@@ -134,7 +134,7 @@ def submit_slurm_cluster_job(self,instance,pred_feature,nc,noise,total_feature,c
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_SIM2.py' +' --o '+self.data_path +' --i '+str(instance)+' --p '+ str(pred_feature)+'_t_'+str(threshold) +' --nc '+str(nc) +' --n '+str(noise)+ ' --tf '+str(total_feature) + ' --c '+str(censor) + ' --l '+str(exp_name)+ '\n')
+    sh_file.write('srun python job_SIM2.py' +' --o '+self.data_path +' --i '+str(instance)+' --p '+ str(pred_feature)+' --t '+str(threshold) +' --nc '+str(nc) +' --n '+str(noise)+ ' --tf '+str(total_feature) + ' --c '+str(censor) + ' --l '+str(exp_name)+ '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -151,7 +151,7 @@ def submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,cen
     sh_file.write('#BSUB -M ' + str(self.reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_SIM2.py'+' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature)+'_t_'+str(threshold) +' --nc '+str(nc) +' --n '+str(noise)+' --tf '+str(total_feature) + ' --c '+str(censor) +' --l '+str(exp_name)+ '\n')
+    sh_file.write('python job_SIM2.py'+' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature)+' --t '+str(threshold) +' --nc '+str(nc) +' --n '+str(noise)+' --tf '+str(total_feature) + ' --c '+str(censor) +' --l '+str(exp_name)+ '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

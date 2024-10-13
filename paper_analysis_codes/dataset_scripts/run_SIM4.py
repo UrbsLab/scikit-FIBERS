@@ -11,7 +11,7 @@ class RunFIBERS:
         #self.write_path = '/project/kamoun_shared/ryanurb/'
         self.write_path = '/project/kamoun_shared/output_shared/bandheyh/'
         #self.data_path = '/project/kamoun_shared/ryanurb/data/simple_sim_datasets'
-        self.data_path = '/project/kamoun_shared/data_shared/SIM3/'
+        self.data_path = '/project/kamoun_shared/data_shared/SIM4/'
         self.run_cluster = 'LSF' #LSF or SLURM
         self.reserved_memory = 4
         self.queue = 'i2c2_normal'
@@ -100,7 +100,7 @@ class RunFIBERS:
     
 def submit_slurm_cluster_job(self,instance,pred_feature,nc,noise,total_feature,threshold,censor,exp_name): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
     job_ref = str(time.time())
-    job_name = 'FIBERS_data_sim_'+'i_'+str(instance)+'_tf_'+str(total_feature)+'_p_'+str(pred_feature)+'_t_'+str(threshold)+'_n_'+str(noise)+'_c_'+str(censor)+'_nc_'+str(nc)+'_'+job_ref
+    job_name = 'FIBERS_data_SIM4_'+'i_'+str(instance)+'_tf_'+str(total_feature)+'_p_'+str(pred_feature)+'_t_'+str(threshold)+'_n_'+str(noise)+'_c_'+str(censor)+'_nc_'+str(nc)+'_'+job_ref
     job_path = self.scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
@@ -110,14 +110,14 @@ def submit_slurm_cluster_job(self,instance,pred_feature,nc,noise,total_feature,t
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_SIM3.py' +' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
+    sh_file.write('srun python job_SIM4.py' +' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --nc '+str(nc) +' --n '+str(noise) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --c '+str(censor)+' --l '+str(exp_name)+ '\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
 
 def submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,threshold,censor,exp_name): #UPENN - Legacy mode (using shell file) - memory on head node
     job_ref = str(time.time())
-    job_name = 'FIBERS_data_sim_'+'i_'+str(instance)+'_tf_'+str(total_feature)+'_p_'+str(pred_feature)+'_t_'+str(threshold)+'_n_'+str(noise)+'_c_'+str(censor)+'_nc_'+str(nc)+'_'+job_ref
+    job_name = 'FIBERS_data_SIM4_'+'i_'+str(instance)+'_tf_'+str(total_feature)+'_p_'+str(pred_feature)+'_t_'+str(threshold)+'_n_'+str(noise)+'_c_'+str(censor)+'_nc_'+str(nc)+'_'+job_ref
     job_path = self.scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
@@ -127,7 +127,7 @@ def submit_lsf_cluster_job(self,instance,pred_feature,nc,noise,total_feature,thr
     sh_file.write('#BSUB -M ' + str(self.reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + self.logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + self.logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_SIM3.py'+' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --l '+str(exp_name)+ '\n')
+    sh_file.write('python job_SIM4.py'+' --o '+self.data_path+' --i '+str(instance)+' --p '+ str(pred_feature) +' --tf '+str(total_feature)+' --t '+str(threshold)+' --l '+str(exp_name)+ '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 
