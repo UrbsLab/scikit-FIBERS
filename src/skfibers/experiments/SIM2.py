@@ -3,15 +3,19 @@ import math
 import pandas as pd
 import numpy as np
 
+def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=5,low_risk_proportion=0.5,threshold=0,
+                                        feature_frequency_range=(0.1, 0.4),noise_frequency=0.0,censoring_frequency=0.2,
+                                        negative_control=False,random_seed=None):
+    random.seed(random_seed)
 
-#def survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, threshold = 0, 
-#                             feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
-#                             class1_time_to_event_range=(1, 0.2), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
+    lr_count = int(instances*low_risk_proportion)
+    #hr_count = instances - lr_count
 
+    # Identify unique binaries (to first populate predicive instance features)
+    high_binary_list,low_binary_list = generate_binary_numbers(predictive_features, threshold)
+    print("High Risk Unique: "+str(len(high_binary_list)))
+    print("Low Risk Unique: "+str(len(low_binary_list)))
 
-def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=5,feature_frequency_range=(0.1, 0.4),noise_frequency=0.0,censoring_frequency=0.2,negative_control=False,random_seed=None):
-
-    #predictive_features = 2
     patient_censor_prob = censoring_frequency
     random_features = total_features-predictive_features-1 #the -1 accounts for the TC1 covariate associated feature
     administrative_censoring_time = 23
@@ -20,51 +24,51 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
     recipient_factors = []
     donor_factors = []
     pred_values = []
-
-    #P1_values = []
-    #P2_values = []
     TC1_values = []
-    #PC2_values = [] #test
+    risk_values = []
     patient_censoring_times = []
     administrative_censoring_times = []
     graft_failure_times = []
     years_follow_ups = []
     graft_failures = []
 
-    random.seed(random_seed)
-    # Generate data for 10,000 observations
+    # Generate data (low risk instances first then high risk to ensure group balance)
+    lr_instance_counter = 0
+    hr_instance_counter = 0
     for i in range(0, instances):
         #Assign Covariate Values
         recipient_factor = random.gauss(0, 1)
         donor_factor = random.gauss(0, 1)
 
         #Assign feature values
-        feature_list = []
-        for j in range(0,predictive_features):
-            #select feature frequency
-            feature_frequency = random.uniform(feature_frequency_range[0], feature_frequency_range[1])
-            feature_list.append(int(random.random() < feature_frequency))
+        if lr_instance_counter < lr_count: # Generate low risk instance
+            #Select unique low_binary_list examples first
+            if lr_instance_counter < len(low_binary_list):
+                feature_list = low_binary_list[lr_instance_counter]
+            else: #Randomly choose instances from low_binary_list to fill in remaining low risk instances.
+                feature_list = random.choice(low_binary_list)
+            lr_instance_counter += 1
 
-        #P1 = int(random.random() < 0.3)
-        #P2 = int(random.random() < 0.3)
-            
-        #TC1 = int(random.random() > 0.5 + recipient_factor/2 + donor_factor/2)
-        #if random.random() > 0.2:
-        #    TC1 = int(random.random() > recipient_factor/2 + donor_factor/2)
-        #else:
-        #    TC1 = int(random.random() > 0.5)
+        else: #Generate high risk instance
+            #Select unique high_binary_list examples first
+            if hr_instance_counter < len(high_binary_list):
+                feature_list = high_binary_list[hr_instance_counter]
+            else: #Randomly choose instances from low_binary_list to fill in remaining low risk instances.
+                feature_list = random.choice(high_binary_list)
+            hr_instance_counter += 1
+
+        #Convert Binary String into List of 'ints'
+        feature_list = [int(char) for char in feature_list]
+
+        #Determine value for covariate associated Feature
         TC1 = int(random.random() > recipient_factor/2 + donor_factor/2)
-        #feature_frequency = random.uniform(feature_frequency_range[0], feature_frequency_range[1]) #test
-        #PC2 = int(random.random() < feature_frequency) #test
+
+        risk = 0
+        if sum(feature_list) > threshold: #instance belongs to high risk group
+            risk = 1
 
         #Calculate True Graft Failure Time
-        predictive_contribution = 0
-        for each in feature_list:
-            predictive_contribution += 1*each  #0.15
-
-        #rate = math.exp(0.2*recipient_factor - 0.3*donor_factor + 0.15*P1 + 0.15*P2- 1)
-        rate = math.exp(1*recipient_factor + 1*donor_factor + predictive_contribution - 2)
-        #rate = math.exp(1*recipient_factor*PC2 + 1*donor_factor*PC2 + predictive_contribution - 2) #test
+        rate = math.exp(1*recipient_factor + 1*donor_factor + risk - 2)
         graft_failure_time = random.expovariate(rate)
 
         #Determine Patient Cencoring Time
@@ -81,11 +85,8 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
         recipient_factors.append(recipient_factor)
         donor_factors.append(donor_factor)
         pred_values.append(feature_list)
-
-        #P1_values.append(P1)
-        #P2_values.append(P2)
         TC1_values.append(TC1)
-        #PC2_values.append(PC2) #test
+        risk_values.append(risk)
         patient_censoring_times.append(patient_censoring_time)
         administrative_censoring_times.append(administrative_censoring_time)
         graft_failure_times.append(graft_failure_time)
@@ -119,35 +120,30 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
     # Create a DataFrame to store the data
     df = pd.DataFrame({
         'TC_1': TC1_values,
-        #'PC_2': PC2_values, #test
         'C_1': recipient_factors,
         'C_2': donor_factors,
-        #'P_1': P1_values,
-        #'P_2': P2_values,
         'patient_censoring_time': patient_censoring_times,
         'administrative_censoring_time': administrative_censoring_times,
         'graft_failure_time': graft_failure_times,
         'Duration': years_follow_ups,
-        'Censoring': graft_failures
+        'Censoring': graft_failures,
+        'TrueRiskGroup': risk_values
     })
     df = pd.concat([df_predictive, df, df_random], axis=1)
    
-
     data = pd.DataFrame({
         'TC_1': TC1_values,
-        #'PC_2': PC2_values, #test
         'C_1': recipient_factors,
         'C_2': donor_factors,
-        #'P_1': P1_values,
-        #'P_2': P2_values,
         'Duration': years_follow_ups,
-        'Censoring': graft_failures
+        'Censoring': graft_failures,
+        'TrueRiskGroup': risk_values
     })
     data = pd.concat([df_predictive, data, df_random], axis=1)
 
     #Add Noise by swapping 
     if noise_frequency > 0:
-        columns_to_shuffle = ['Duration','Censoring']
+        columns_to_shuffle = ['Duration','Censoring','TrueRiskGroup']
 
         # Calculate the number of rows to shuffle
         num_rows_to_shuffle = int(len(data) * noise_frequency *2) #noise multiplied by 2 so the degree of noise is comparable to SIM1
@@ -159,8 +155,30 @@ def survival_data_simulation_covariates(instances=10000,total_features=100,predi
         data.loc[shuffle_indices, columns_to_shuffle] = data.loc[shuffle_indices, columns_to_shuffle].sample(frac=1).values
 
     if negative_control:
-        columns_to_shuffle = ['Duration','Censoring']
+        columns_to_shuffle = ['Duration','Censoring','TrueRiskGroup']
         for col in columns_to_shuffle:
             data[col] = np.random.permutation(data[col].values)
 
     return df, data
+
+
+def count_ones(binary):
+    return sum(int(bit) for bit in binary)
+
+
+def generate_binary_numbers(predictive_features, threshold):
+    high_binary_list = []
+    low_binary_list = []
+    unique_count = 0
+    for i in range(2 ** predictive_features):
+        unique_count +=1
+        binary = bin(i)[2:]  # Convert the number to binary (remove '0b' prefix)
+        # Ensure the binary number has n digits by padding with zeros if necessary
+        padded_binary = binary.zfill(predictive_features)
+        if count_ones(padded_binary) > threshold:
+            high_binary_list.append(padded_binary)
+        else:
+            low_binary_list.append(padded_binary)
+    print("Unique binary numbers: "+str(unique_count))
+          
+    return high_binary_list,low_binary_list

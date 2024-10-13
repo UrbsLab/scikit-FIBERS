@@ -26,7 +26,8 @@ def calculate_residuals(df,covariates, feature_names, outcome_label,censor_label
     # Fit a Cox proportional hazards model to the DataFrame
     var_list = covariates+[outcome_label,censor_label]
     logging.info("Fitting COX Model")
-    if covariates == ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','OTHER','FDFR','FDMR','MDFR','MDMR']:
+    no_penalizer = True #Hard coded over-ride
+    if covariates == ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','OTHER','FDFR','FDMR','MDFR','MDMR'] and not no_penalizer:
         cph = CoxPHFitter(penalizer=penalizer)
     else:
         cph = CoxPHFitter()

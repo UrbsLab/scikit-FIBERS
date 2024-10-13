@@ -107,7 +107,11 @@ def main(argv):
     #Load/Process Dataset
     data = pd.read_csv(datapath)
 
-    if covariates == None:
+    #if covariates == None:
+    #    true_risk_group = data[['TrueRiskGroup']]
+    #    data = data.drop('TrueRiskGroup', axis=1)
+
+    if covariates_used != 'Adv':
         true_risk_group = data[['TrueRiskGroup']]
         data = data.drop('TrueRiskGroup', axis=1)
 

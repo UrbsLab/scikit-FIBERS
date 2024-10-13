@@ -345,7 +345,8 @@ def plot_adj_HR_metric_product(residuals,bin_pop,show=True,save=False,output_fol
 
 
 def cox_prop_hazard(bin_df, outcome_label, censor_label, penalizer=None): #make bin variable beetween 0 and 1
-    if penalizer is None:
+    no_penalizer = True #Hard coded over-ride
+    if penalizer is None or no_penalizer:
         cph = CoxPHFitter()
     else:
         cph = CoxPHFitter(penalizer=penalizer)
