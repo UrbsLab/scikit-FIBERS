@@ -3,7 +3,12 @@ import math
 import pandas as pd
 import numpy as np
 
-def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=5,low_risk_proportion=0.5,threshold=0,
+""" Survival data simulators (SIM2) is designed to create simulated survival datasets with censoring as well as include two covariate features
+    and a predictive feature (TC1) that is associated with the two covariates.  This is meant to test if FIBERS can detect the simulated
+    predictive features 'P's' but ignore the TC1 feature when utilizing deviance residuals based fitness. We have tested this simulator up to 
+    a ground truth threshold of 5 (which requires a minimum of 6 predictive features in order to simulate correctly). """
+
+def survival_data_simulation_covariates(instances=10000,total_features=100,predictive_features=6,low_risk_proportion=0.5,threshold=0,
                                         feature_frequency_range=(0.1, 0.4),noise_frequency=0.0,censoring_frequency=0.2,
                                         negative_control=False,random_seed=None):
     random.seed(random_seed)

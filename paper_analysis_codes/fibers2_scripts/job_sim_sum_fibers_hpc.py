@@ -23,7 +23,7 @@ def main(argv):
     parser.add_argument('--d', dest='datapath', help='name of data path (REQUIRED)', type=str, default = 'myData') #output folder name
     parser.add_argument('--o', dest='outputpath', help='', type=str, default = 'myOutputPath') #full path/filename
     parser.add_argument('--r', dest='random_seeds', help='random seeds in experiment', type=int, default='None')
-
+    parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=str, default='None')
     #parser.add_argument('--f', dest='figures_only', help='random seeds in experiment', type=str, default='False')
 
     options=parser.parse_args(argv[1:])
@@ -31,6 +31,7 @@ def main(argv):
     datapath = options.datapath
     outputpath = options.outputpath
     random_seeds = options.random_seeds
+    covariates_used = options.covariates_used
 
     #Get algorithm name
     outputfolder  = outputpath.split('/')[-1]
@@ -57,10 +58,8 @@ def main(argv):
     if 'TrueRiskGroup' in data.columns:
         true_risk_group = data[['TrueRiskGroup']]
         data = data.drop('TrueRiskGroup', axis=1)
-        covariates_flag = False
     else:
         true_risk_group = None
-        covariates_flag = True
 
     #Define columns for replicate results summary:
     columns = ["Bin Features", "Threshold", "Fitness", "Pre-Fitness", "Log-Rank Score","Log-Rank p-value",
@@ -161,17 +160,24 @@ def main(argv):
         #Kaplan Meir Plot
         fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
-        #Bin Population Heatmap
-        group_names=["P", "R"]
-        legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
-        colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
-        max_bins = 100
-        max_features = 100
-        covariates = fibers.covariates
-
-        if not covariates_flag:
+        if covariates_used == 'None':
+            #Bin Population Heatmap
+            group_names=["P", "R"]
+            legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
+            colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+            max_bins = 100
+            max_features = 100
             fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
-        
+
+        if covariates_used == 'Simple':
+            #Bin Population Heatmap
+            group_names=["P", "R","TC"]
+            legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin','Covariate Associated Feature'] #2 default colors first followed by additional color descriptions in legend
+            colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1),(1, 0.5, 0)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+            max_bins = 100
+            max_features = 100
+            fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+
         # Feature Importance Estimates
         fibers.get_feature_tracking_plot(max_features=50,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
@@ -233,20 +239,36 @@ def main(argv):
     #Save master results as csv
     df_master.to_csv(target_folder+'/'+'summary'+'/'+data_name+'_master_summary'+'.csv', index=False)
 
-    #Generate Top-bin Custom Heatmap across replicates
-    group_names=["P", "R"]
-    legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
-    colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
-    max_bins = 100
-    max_features = 100
-    filtering = 1
+    if covariates_used == 'None':
+        #Generate Top-bin Custom Heatmap across replicates
+        group_names=["P", "R"]
+        legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
+        colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+        max_bins = 100
+        max_features = 100
+        filtering = 1
 
-    #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
-    population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
-    population = population['feature_list']
+        #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
+        population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
+        population = population['feature_list']
 
-    if not covariates_flag:
         plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
+
+    if covariates_used == 'Simple':
+        #Generate Top-bin Custom Heatmap across replicates
+        group_names=["P", "R","TC"]
+        legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin','Covariate Associated Feature'] #2 default colors first followed by additional color descriptions in legend
+        colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1),(1, 0.5, 0)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+        max_bins = 100
+        max_features = 100
+        filtering = 1
+
+        #Generate Top-bin Custom Heatmap (filtering out zeros) across replicates
+        population = pd.DataFrame([vars(instance) for instance in top_bin_pop])
+        population = population['feature_list']
+
+        plot_custom_top_bin_population_heatmap(population, feature_names, group_names,legend_group_info,colors,max_bins,max_features,filtering=filtering,save=True,show=False,output_folder=target_folder+'/'+'summary',data_name=data_name)
+
 
     #Generate Top-bin Basic Heatmap (filtering out zeros) across replicates
     gdf = plot_bin_population_heatmap(population, feature_names, filtering=filtering, show=False,save=True,output_folder=target_folder+'/'+'summary',data_name=data_name)
