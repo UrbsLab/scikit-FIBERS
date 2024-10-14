@@ -102,19 +102,19 @@ python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared
 
 ## Experiment 10 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 0 + log-rank)
 cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/fibers2_scripts/
-python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f log_rank --t None --cl None --cov Simple
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 0 --f log_rank --t None --cl None --cov Simple
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
 python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o Fibers2.0_sim2_default
 
 ## Experiment 11 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 0 + residuals)
 cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/fibers2_scripts/
-python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f residuals --t None --cl None --cov Simple
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 0 --f residuals --t None --cl None --cov Simple
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
 python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o Fibers2.0_sim2_residuals
 
 ## Experiment 12 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 0 + logrank residuals)
 cd /project/kamoun_shared/code_shared/sim-study-harsh/paper_analysis_codes/fibers2_scripts/
-python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_log_rank_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f log_rank_residuals --t None --cl None --cov Simple
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_log_rank_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 0 --f log_rank_residuals --t None --cl None --cov Simple
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o sim2_log_rank_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
 python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_10_12_24/ --o Fibers2.0_sim2_log_rank_residuals
 

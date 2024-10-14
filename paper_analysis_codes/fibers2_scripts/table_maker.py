@@ -2,7 +2,7 @@ import pandas as pd
 
 # Replace 'your_file.csv' with the path to your CSV file
 directory = 'C:/Users/ryanu/Desktop/FIBERS2.0_SIM2_Analyses/'
-dataname = 'Fibers2.0_sim2_log_rank_residuals_master_summary'
+dataname = 'Fibers2.0_sim2_residuals_master_summary'
 file_path = directory+dataname+'.csv'
 
 # Load the CSV file into a pandas DataFrame
