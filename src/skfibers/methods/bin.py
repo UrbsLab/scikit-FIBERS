@@ -239,8 +239,10 @@ class BIN:
                         if mutate_type == 'S': # Swap
                             self.feature_list.remove(feature)
                             self.feature_list.append(random_feature)
+                            original_feature_list.append(random_feature)
                         elif mutate_type == 'A': # Addition
                             self.feature_list.append(random_feature)
+                            original_feature_list.append(random_feature)
             # Enforce minimum bin size
             while len(self.feature_list) < min_bin_size: 
                 other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
