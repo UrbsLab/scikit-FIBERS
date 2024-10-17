@@ -227,13 +227,14 @@ class BIN:
 
         else: # Addition, Deletion, or Swap 
             mutate_options = ['A','D','S'] #Add, delete, swap
-            for feature in self.feature_list:
+            original_feature_list = copy.deepcopy(self.feature_list)
+            for feature in original_feature_list:
                 if random.random() < mutation_prob:
                     mutate_type = random.choice(mutate_options)
                     if mutate_type == 'D' or len(feature_names) == len(self.feature_list): # Deletion - also if bin (i.e. feature_list) is at the maximum possible size
                         self.feature_list.remove(feature)
                     else:
-                        other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                        other_features = [value for value in feature_names if value not in original_feature_list] #pick a feature not already in the bin
                         random_feature = random.choice(other_features)
                         if mutate_type == 'S': # Swap
                             self.feature_list.remove(feature)
