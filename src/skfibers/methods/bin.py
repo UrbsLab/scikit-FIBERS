@@ -176,16 +176,16 @@ class BIN:
         self.birth_iteration = iteration
 
 
-    def uniform_crossover(self,other_offspring,crossover_prob,threshold_evolving,random):
+    def uniform_crossover(self,other_offspring,threshold_evolving,random):
         # Create list of feature names unique to one list or another
         set1 = set(self.feature_list)
         set2 = set(other_offspring.feature_list)
         unique_to_list1 = set1 - set2
         unique_to_list2 = set2 - set1
         unique_features = list(sorted(unique_to_list1.union(unique_to_list2)))
-
+        swap_probability = 0.5
         for feature in unique_features:
-            if random.random() < crossover_prob:
+            if random.random() < swap_probability:
                 if feature in self.feature_list:
                     self.feature_list.remove(feature)
                     other_offspring.feature_list.append(feature)
@@ -195,7 +195,7 @@ class BIN:
 
         # Apply crossover to thresholding if threshold_evolving
         if threshold_evolving:
-            if random.random() < crossover_prob:
+            if random.random() < swap_probability:
                 temp = self.group_threshold
                 self.group_threshold = other_offspring.group_threshold
                 other_offspring.group_threshold = temp

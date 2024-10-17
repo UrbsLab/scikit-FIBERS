@@ -355,7 +355,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             else:
                 threshold_evolving = False
 
-            #Occelating Mutation Rate
+            #Variable Mutation Rate
             mutation_prob =  (transform_value(iteration-1,cycle_length)*(self.max_mutation_prob-self.min_mutation_prob)/cycle_length)+self.min_mutation_prob
 
             # GENETIC ALGORITHM 

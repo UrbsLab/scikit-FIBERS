@@ -103,8 +103,6 @@ class BIN_SET:
         return [parent_1,parent_2]
 
 
-    
-
     def tournament_selection(self,tSize,random):
         random.shuffle(self.bin_pop)
         new_parent = max(self.bin_pop[:tSize], key=lambda x: x.fitness)
@@ -144,7 +142,8 @@ class BIN_SET:
                 self.offspring_pop.append(offspring_3)
 
         # Crossover
-        offspring_1.uniform_crossover(offspring_2,crossover_prob,threshold_evolving,random)
+        if random.random() < crossover_prob:
+            offspring_1.uniform_crossover(offspring_2,threshold_evolving,random)
 
         # Mutation - check for duplicate rules
         offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
