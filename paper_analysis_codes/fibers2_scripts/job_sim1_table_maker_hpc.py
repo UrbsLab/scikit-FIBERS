@@ -29,7 +29,7 @@ def main(argv):
     experiment_folder_names = [name for name in os.listdir(writepath) if os.path.isdir(os.path.join(writepath, name))]
     print(experiment_folder_names)
     #Get names of all dataset folders (used within each experiment)
-    dataset_folder_names = [name for name in os.listdir(writepath) if os.path.isdir(os.path.join(writepath+experiment_folder_names[0], name))]
+    dataset_folder_names = [name for name in os.listdir(writepath+experiment_folder_names[0]) if os.path.isdir(os.path.join(writepath+experiment_folder_names[0], name))]
     print(dataset_folder_names)
 
     significance_metrics = ['Accuracy','Number of P','Number of R','Ideal Iteration','Log-Rank Score','Unadjusted HR','Group Ratio','Runtime']
@@ -59,19 +59,19 @@ def main(argv):
 
 def format_data(df):
     experiment = []
-    experiment.append(df.iloc[0,'Experiment']+'_'+df.iloc[0,'Dataset'])
-    experiment.append(str(round(df.iloc[0,'Accuracy'],3))+' ('+str(round(df.iloc[0,'Accuracy (SD)'],3))+')') #Accuracy
-    experiment.append(str(round(df.iloc[0,'Number of P'],3))+' ('+str(round(df.iloc[0,'Number of P (SD)'],3))+')') #Num Pred
-    experiment.append(str(round(df.iloc[0,'Number of R'],3))+' ('+str(round(df.iloc[0,'Number of R (SD)'],3))+')') #Num Rand
-    experiment.append("'"+str(df.iloc[0,'Ideal Bin'])+'/30') #Top bin
-    experiment.append(str(round(df.iloc[0,'Iteration of Ideal Bin'],2))+' ('+str(round(df.iloc[0,'Iteration of Ideal Bin (SD)'],2))+')') #Ideal Iter
-    experiment.append("'"+str(df.iloc[0,'Ideal Threshold'])+'/30') #True Thresh
-    experiment.append(str(round(df.iloc[0,'Threshold'],1))+' ('+str(round(df.iloc[0,'Threshold (SD)'],1))+')') #log rank
-    experiment.append(str(round(df.iloc[0,'Log-Rank Score'],1))+' ('+str(round(df.iloc[0,'Log-Rank Score (SD)'],1))+')') #log rank
-    experiment.append(str(round(df.iloc[0,'Residual'],2))+' ('+str(round(df.iloc[0,'Residual (SD)'],2))+')') #residual
-    experiment.append(str(round(df.iloc[0,'Unadjusted HR'],2))+' ('+str(round(df.iloc[0,'Unadjusted HR (SD)'],2))+')') #adj HR
-    experiment.append(str(round(df.iloc[0,'Group Ratio'],2))+' ('+str(round(df.iloc[0,'Group Ratio (SD)'],2))+')') #Group ratio
-    experiment.append(str(round(df.iloc[0,'Runtime'],2))+' ('+str(round(df.iloc[0,'Runtime (SD)'],2))+')') #runtime
+    experiment.append(df.loc[0,'Experiment']+'_'+df.loc[0,'Dataset'])
+    experiment.append(str(round(df.loc[0,'Accuracy'],3))+' ('+str(round(df.loc[0,'Accuracy (SD)'],3))+')') #Accuracy
+    experiment.append(str(round(df.loc[0,'Number of P'],3))+' ('+str(round(df.loc[0,'Number of P (SD)'],3))+')') #Num Pred
+    experiment.append(str(round(df.loc[0,'Number of R'],3))+' ('+str(round(df.loc[0,'Number of R (SD)'],3))+')') #Num Rand
+    experiment.append("'"+str(df.loc[0,'Ideal Bin'])+'/30') #Top bin
+    experiment.append(str(round(df.loc[0,'Iteration of Ideal Bin'],2))+' ('+str(round(df.loc[0,'Iteration of Ideal Bin (SD)'],2))+')') #Ideal Iter
+    experiment.append("'"+str(df.loc[0,'Ideal Threshold'])+'/30') #True Thresh
+    experiment.append(str(round(df.loc[0,'Threshold'],1))+' ('+str(round(df.loc[0,'Threshold (SD)'],1))+')') #log rank
+    experiment.append(str(round(df.loc[0,'Log-Rank Score'],1))+' ('+str(round(df.loc[0,'Log-Rank Score (SD)'],1))+')') #log rank
+    experiment.append(str(round(df.loc[0,'Residual'],2))+' ('+str(round(df.loc[0,'Residual (SD)'],2))+')') #residual
+    experiment.append(str(round(df.loc[0,'Unadjusted HR'],2))+' ('+str(round(df.loc[0,'Unadjusted HR (SD)'],2))+')') #adj HR
+    experiment.append(str(round(df.loc[0,'Group Ratio'],2))+' ('+str(round(df.loc[0,'Group Ratio (SD)'],2))+')') #Group ratio
+    experiment.append(str(round(df.loc[0,'Runtime'],2))+' ('+str(round(df.loc[0,'Runtime (SD)'],2))+')') #runtime
     return experiment
 
 
