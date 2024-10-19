@@ -43,6 +43,8 @@ def main(argv):
                              'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
     baseline = 'Fibers2.0_sim_mutation_rate_0_1'
     var_element_is_experiment = True
+    stat_list_columns = ['Dataset','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
 
     dataframe_stat_list = []
     raw_dataframes = []
@@ -57,7 +59,7 @@ def main(argv):
             summary = writepath+fixed_element+'/'+var+'/summary/'+var+'_summary.csv'
         # Load the stats summary CSV file into a pandas DataFrame
         df_master = pd.read_csv(master_summary)
-        dataframe_stat_list.append(format_data(df_master))
+        dataframe_stat_list.append(format_data(df_master,stat_list_columns))
         dataframe_stat_list.to_csv(outputpath+'/'+str(var)+'MutationRate_Table.csv', index=True)
         print(dataframe_stat_list)
         #Load the 30 random seed data
@@ -94,7 +96,7 @@ def wilcoxon_sig(col1,col2,p_val):
     if p_value <= p_val:
         return True
 
-def format_data(df):
+def format_data(df,stat_list_columns):
     experiment = []
     experiment.append(df.loc[0,'Dataset'])
     experiment.append(str(round(df.loc[0,'Accuracy'],3))+' ('+str(round(df.loc[0,'Accuracy (SD)'],3))+')') #Accuracy
@@ -109,7 +111,9 @@ def format_data(df):
     experiment.append(str(round(df.loc[0,'Unadjusted HR'],2))+' ('+str(round(df.loc[0,'Unadjusted HR (SD)'],2))+')') #adj HR
     experiment.append(str(round(df.loc[0,'Group Ratio'],2))+' ('+str(round(df.loc[0,'Group Ratio (SD)'],2))+')') #Group ratio
     experiment.append(str(round(df.loc[0,'Runtime'],2))+' ('+str(round(df.loc[0,'Runtime (SD)'],2))+')') #runtime
-    return experiment
+
+    new_df = pd.DataFrame(experiment, columns=stat_list_columns)
+    return new_df
 
 
 if __name__=="__main__":
