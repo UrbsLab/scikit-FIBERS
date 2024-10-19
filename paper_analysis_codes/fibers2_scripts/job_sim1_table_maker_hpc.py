@@ -46,7 +46,9 @@ def main(argv):
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns)
 
+def run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns):
     dataframe_stat_list = []
     raw_dataframes = []
     baseline_index = variable_element.index(baseline)
@@ -89,10 +91,9 @@ def main(argv):
 
     # combine experiment results into a single dataframe
     combined_df = pd.concat(dataframe_stat_list, ignore_index=True)
-    combined_df.to_csv(outputpath+'/'+str(table_name)+'_Table.csv', index=False)
-
-    #df = pd.DataFrame(experiment)
-    #df.to_csv(outputpath+'/MutationRate_Table.csv', index=True)
+    #transpose for easy copying
+    combined_df_T = combined_df.T
+    combined_df_T.to_csv(outputpath+'/'+str(table_name)+'_Table.csv', index=False)
 
 def wilcoxon_sig(col1,col2,p_val):
     statistic, p_value = wilcoxon(col1, col2)
