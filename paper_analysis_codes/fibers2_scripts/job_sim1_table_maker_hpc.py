@@ -44,7 +44,7 @@ def main(argv):
                              'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
     baseline = 'Fibers2.0_sim_mutation_rate_0_1'
     var_element_is_experiment = True
-    stat_list_columns = ['Dataset','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
 
     dataframe_stat_list = []
@@ -60,7 +60,7 @@ def main(argv):
             summary = writepath+fixed_element+'/'+var+'/summary/'+var+'_summary.csv'
         # Load the stats summary CSV file into a pandas DataFrame
         df_master = pd.read_csv(master_summary)
-        formated_df = format_data(df_master,stat_list_columns)
+        formated_df = format_data(df_master,stat_list_columns, var, fixed_element)
         dataframe_stat_list.append(formated_df)
         #Load the 30 random seed data
         df_sum = pd.read_csv(summary)
@@ -91,10 +91,6 @@ def main(argv):
     combined_df = pd.concat(dataframe_stat_list, ignore_index=True)
     combined_df.to_csv(outputpath+'/'+str(table_name)+'_Table.csv', index=False)
 
-
-
-
-
     #df = pd.DataFrame(experiment)
     #df.to_csv(outputpath+'/MutationRate_Table.csv', index=True)
 
@@ -104,9 +100,11 @@ def wilcoxon_sig(col1,col2,p_val):
     if p_value <= p_val:
         return True
 
-def format_data(df,stat_list_columns):
+def format_data(df,stat_list_columns, var, fixed_element):
     experiment = []
-    experiment.append(df.loc[0,'Dataset'])
+    #experiment.append(df.loc[0,'Dataset'])
+    experiment.append(var)
+    experiment.append(fixed_element)
     experiment.append(str(round(df.loc[0,'Accuracy'],3))+' ('+str(round(df.loc[0,'Accuracy (SD)'],3))+')') #Accuracy
     experiment.append(str(round(df.loc[0,'Number of P'],3))+' ('+str(round(df.loc[0,'Number of P (SD)'],3))+')') #Num Pred
     experiment.append(str(round(df.loc[0,'Number of R'],3))+' ('+str(round(df.loc[0,'Number of R (SD)'],3))+')') #Num Rand
