@@ -38,6 +38,7 @@ def main(argv):
     count_metrics = ['Ideal Bin','Ideal Threshold']
 
     #Table - FIBERS2 Base - Mutation rate compare
+    table_name = 'MutationRateComparison'
     fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
                              'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
@@ -61,12 +62,10 @@ def main(argv):
         df_master = pd.read_csv(master_summary)
         formated_df = format_data(df_master,stat_list_columns)
         dataframe_stat_list.append(formated_df)
-        formated_df.to_csv(outputpath+'/'+str(var)+'MutationRate_Table.csv', index=True)
-        print(formated_df)
         #Load the 30 random seed data
         df_sum = pd.read_csv(summary)
         raw_dataframes.append(df_sum)
-    """
+
     #now have the basic stats collected for each experiment and dataset
     # Determine statistical significance differences for significance_metrics 
     # add '* next to any non-baseline results where a significant difference observed on contrast with baseline
@@ -81,10 +80,12 @@ def main(argv):
                 is_sig = wilcoxon_sig(base_col,compare_col,p_val)
                 if is_sig: # indicate significance within dataframe stat_list
                     # Find appropriate metric
-    """
+                    dataframe_stat_list[i][metric] = str(dataframe_stat_list[i][metric])+'*'
 
+    # combine experiment results into a single dataframe
+    combined_df = pd.concat(dataframe_stat_list, ignore_index=True)
+    combined_df.to_csv(outputpath+'/'+str(table_name)+'_Table.csv', index=False)
 
-        
 
 
 
@@ -94,6 +95,7 @@ def main(argv):
 
 def wilcoxon_sig(col1,col2,p_val):
     statistic, p_value = wilcoxon(col1, col2)
+    print('Comparison: '+str(statistic)+ ' '+ str(p_value))
     if p_value <= p_val:
         return True
 
