@@ -24,6 +24,7 @@ def main(argv):
     writepath = options.writepath +'output/'
     outputpath = options.outputpath
     random_seeds = options.random_seeds
+    p_val = 0.05
 
     #Get names of all experiment folders
     experiment_folder_names = [name for name in os.listdir(writepath) if os.path.isdir(os.path.join(writepath, name))]
@@ -51,15 +52,15 @@ def main(argv):
     experiment = format_data(df)
 
     df = pd.DataFrame(experiment)
-    T_df = df.T
-    T_df.to_csv(outputpath+'/MutationRate_Table.csv', index=False)
+
+    df.to_csv(outputpath+'/MutationRate_Table.csv', index=False)
 
     significance_metrics = ['Accuracy','Number of P','Number of R','Ideal Iteration','Threshold','Log-Rank Score','Unadjusted HR','Group Ratio','Runtime']
     count_metrics = ['Ideal Bin','Ideal Threshold']
 
 def format_data(df):
     experiment = []
-    experiment.append(df.loc[0,'Experiment']+'_'+df.loc[0,'Dataset'])
+    experiment.append(df.loc[0,'Dataset'])
     experiment.append(str(round(df.loc[0,'Accuracy'],3))+' ('+str(round(df.loc[0,'Accuracy (SD)'],3))+')') #Accuracy
     experiment.append(str(round(df.loc[0,'Number of P'],3))+' ('+str(round(df.loc[0,'Number of P (SD)'],3))+')') #Num Pred
     experiment.append(str(round(df.loc[0,'Number of R'],3))+' ('+str(round(df.loc[0,'Number of R (SD)'],3))+')') #Num Rand
