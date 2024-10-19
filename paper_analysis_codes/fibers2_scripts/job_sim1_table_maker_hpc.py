@@ -8,6 +8,7 @@ import collections
 from sklearn.metrics import accuracy_score
 sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
 from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
+from scipy.stats import wilcoxon
 
 
 def main(argv):
@@ -37,26 +38,61 @@ def main(argv):
     count_metrics = ['Ideal Bin','Ideal Threshold']
 
     #Table - FIBERS2 Base - Mutation rate compare
-    experiment_folder_names = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                               'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    dataset_folder_names = ['BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False']
+    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
+                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
+    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
+    var_element_is_experiment = True
 
-    # Gather baseline stats
-    baseline_experiment = ['Fibers2.0_sim_mutation_rate_0_1']
+    dataframe_stat_list = []
+    raw_dataframes = []
+    baseline_index = variable_element.index(baseline)
 
-    master_summary = writepath+baseline_experiment[0]+'/'+str(dataset_folder_names[0])+'/summary/'+str(dataset_folder_names[0])+'_master_summary.csv'
-    summary = writepath+baseline_experiment[0]+'/'+str(dataset_folder_names[0])+'/summary/'+str(dataset_folder_names[0])+'_summary.csv'
+    for var in variable_element:
+        if var_element_is_experiment:
+            master_summary = writepath+var+'/'+fixed_element+'/summary/'+fixed_element+'_master_summary.csv'
+            summary = writepath+var+'/'+fixed_element+'/summary/'+fixed_element+'_summary.csv'
+        else:
+            master_summary = writepath+fixed_element+'/'+var+'/summary/'+var+'_master_summary.csv'
+            summary = writepath+fixed_element+'/'+var+'/summary/'+var+'_summary.csv'
+        # Load the stats summary CSV file into a pandas DataFrame
+        df_master = pd.read_csv(master_summary)
+        dataframe_stat_list.append(format_data(df_master))
+        df_master.to_csv(outputpath+'/'+str(var)+'MutationRate_Table.csv', index=True)
+        print(df_master)
+        #Load the 30 random seed data
+        df_sum = pd.read_csv(summary)
+        raw_dataframes.append(df_sum)
+    """
+    #now have the basic stats collected for each experiment and dataset
+    # Determine statistical significance differences for significance_metrics 
+    # add '* next to any non-baseline results where a significant difference observed on contrast with baseline
+    for metric in significance_metrics:
+        #Get baseline data for metric
+        base_col = raw_dataframes[baseline_index][metric]
+        for i in range(len(variable_element)):
+            #Get comparison data for metric
+            if i != baseline_index: #don't include baseline data
+                compare_col = raw_dataframes[i][metric]
+                #Apply Wilcoxon Significance comparison
+                is_sig = wilcoxon_sig(base_col,compare_col,p_val)
+                if is_sig: # indicate significance within dataframe stat_list
+                    # Find appropriate metric
+    """
 
-    # Load the CSV file into a pandas DataFrame
-    df = pd.read_csv(master_summary)
-    experiment = format_data(df)
 
-    df = pd.DataFrame(experiment)
+        
 
-    df.to_csv(outputpath+'/MutationRate_Table.csv', index=False)
 
-    significance_metrics = ['Accuracy','Number of P','Number of R','Ideal Iteration','Threshold','Log-Rank Score','Unadjusted HR','Group Ratio','Runtime']
-    count_metrics = ['Ideal Bin','Ideal Threshold']
+
+
+    #df = pd.DataFrame(experiment)
+    #df.to_csv(outputpath+'/MutationRate_Table.csv', index=True)
+
+def wilcoxon_sig(col1,col2,p_val):
+    statistic, p_value = wilcoxon(col1, col2)
+    if p_value <= p_val:
+        return True
 
 def format_data(df):
     experiment = []
