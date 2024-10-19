@@ -43,8 +43,8 @@ def main(argv):
     # Gather baseline stats
     baseline_experiment = ['Fibers2.0_sim_mutation_rate_0_1']
 
-    master_summary = writepath+baseline_experiment+'/'+str(dataset_folder_names[0])+'/summary/'+str(dataset_folder_names[0])+'_master_summary.csv'
-    summary = writepath+baseline_experiment+'/'+str(dataset_folder_names[0])+'/summary/'+str(dataset_folder_names[0])+'_summary.csv'
+    master_summary = writepath+baseline_experiment[0]+'/'+str(dataset_folder_names[0])+'/summary/'+str(dataset_folder_names[0])+'_master_summary.csv'
+    summary = writepath+baseline_experiment[0]+'/'+str(dataset_folder_names[0])+'/summary/'+str(dataset_folder_names[0])+'_summary.csv'
 
     # Load the CSV file into a pandas DataFrame
     df = pd.read_csv(master_summary)
