@@ -1,0 +1,125 @@
+# FIBERS 2.0 Paper (FIBERS Runs) ####################################################################################
+
+# CLUSTER NOTES:
+# module load git
+# git clone --single-branch --branch dev https://github.com/UrbsLab/scikit-FIBERS
+# pip install -r requirements.txt
+
+# Data Simultation Commands
+# cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/dataset_scripts/
+# python run_SIM1.py
+# python run_SIM2.py
+
+## SIM1 Experiments ******************************************************************************
+
+
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+
+## Experiment 1 (Base Fibers 2.0)
+
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_1 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.1 --dp 0 --f log_rank --t 0 --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_1 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_mutation_rate_0_1
+
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_2 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.2 --ma 0.2 --dp 0 --f log_rank --t 0 --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_2 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_mutation_rate_0_2
+
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_3 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.3 --ma 0.3 --dp 0 --f log_rank --t 0 --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_3 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_mutation_rate_0_3
+
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_4 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.4 --ma 0.4 --dp 0 --f log_rank --t 0 --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_4 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_mutation_rate_0_4
+
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.5 --ma 0.5 --dp 0 --f log_rank --t 0 --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_mutation_rate_0_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_mutation_rate_0_5
+
+python run_sim1_table_maker_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o SIM1_Tables
+
+## Experiment 2 (FIBERS 2.0 + AT)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_ma_0_1 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.1 --dp 0 --f log_rank --t None --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_ma_0_1 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_t_0_5_ma_0_1
+
+## Experiment 3 (FIBERS 2.0 + AT + VMR 0.1-0.5)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_omr --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring  --mi 0.1 --ma 0.5 --dp 0 --f log_rank --t None --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_omr --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_t_0_5_omr
+
+## Experiment 3 REDONE (FIBERS 2.0 + AT + VMR 0.1-0.3)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_omr --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring  --mi 0.1 --ma 0.3 --dp 0 --f log_rank --t None --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_omr --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_t_0_5_omr
+
+## Experiment 4 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 1)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_omr_d_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 1 --f log_rank --t None --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_omr_d_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_t_0_5_omr_d_5
+
+## Experiment 4 REDONE (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 3)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_omr_d_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f log_rank --t None --cl None
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5_omr_d_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers2.0_sim_t_0_5_omr_d_5
+
+## Experiment 5 (FIBERS 1.0 Baseline settings)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers1_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mup 0.4
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_default --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o Fibers1.0_sim_default
+
+## Experiment 6 (FIBERS-AT Baseline settings)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibersAT_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mup 0.4 --f log_rank --t None --ms Regular
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM1 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o sim_t_0_5 --rc LSF --rs 30 --rm 4 --q i2c2_normal
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM1/ --o FibersAT_sim_t_0_5
+
+
+## SIM2 Experiments ******************************************************************************
+
+## Experiment 7 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 3 + log-rank)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_default_DP --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f log_rank --t None --cl None --cov Simple
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_default_DP --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o Fibers2.0_sim2_default_DP
+
+## Experiment 8 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 3 + residuals)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_residuals_DP --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f residuals --t None --cl None --cov Simple
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_residuals_DP --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o Fibers2.0_sim2_residuals_DP
+
+## Experiment 9 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 3 + logrank residuals)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_log_rank_residuals_DP --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 3 --f log_rank_residuals --t None --cl None --cov Simple
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_log_rank_residuals_DP --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o Fibers2.0_sim2_log_rank_residuals_DP
+
+## Experiment 10 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 0 + log-rank)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 0 --f log_rank --t None --cl None --cov Simple
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_default --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o Fibers2.0_sim2_default
+
+## Experiment 11 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 0 + residuals)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 0 --f residuals --t None --cl None --cov Simple
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o Fibers2.0_sim2_residuals
+
+## Experiment 12 (FIBERS 2.0 + AT + VMR 0.1-0.3 + DP = 0 + logrank residuals)
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/fibers2_scripts/
+python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_log_rank_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --ol Duration --c Censoring --mi 0.1 --ma 0.3 --dp 0 --f log_rank_residuals --t None --cl None --cov Simple
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_log_rank_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o Fibers2.0_sim2_log_rank_residuals
+
+
+
+## Real World Data Experiments ******************************************************************************
