@@ -59,9 +59,10 @@ def main(argv):
             summary = writepath+fixed_element+'/'+var+'/summary/'+var+'_summary.csv'
         # Load the stats summary CSV file into a pandas DataFrame
         df_master = pd.read_csv(master_summary)
-        dataframe_stat_list.append(format_data(df_master,stat_list_columns))
-        dataframe_stat_list.to_csv(outputpath+'/'+str(var)+'MutationRate_Table.csv', index=True)
-        print(dataframe_stat_list)
+        formated_df = format_data(df_master,stat_list_columns)
+        dataframe_stat_list.append(formated_df)
+        formated_df.to_csv(outputpath+'/'+str(var)+'MutationRate_Table.csv', index=True)
+        print(formated_df)
         #Load the 30 random seed data
         df_sum = pd.read_csv(summary)
         raw_dataframes.append(df_sum)
