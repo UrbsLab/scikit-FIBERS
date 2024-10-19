@@ -112,7 +112,7 @@ def format_data(df,stat_list_columns):
     experiment.append(str(round(df.loc[0,'Group Ratio'],2))+' ('+str(round(df.loc[0,'Group Ratio (SD)'],2))+')') #Group ratio
     experiment.append(str(round(df.loc[0,'Runtime'],2))+' ('+str(round(df.loc[0,'Runtime (SD)'],2))+')') #runtime
 
-    new_df = pd.DataFrame(experiment, columns=stat_list_columns)
+    new_df = pd.DataFrame([experiment], columns=stat_list_columns)
     return new_df
 
 
