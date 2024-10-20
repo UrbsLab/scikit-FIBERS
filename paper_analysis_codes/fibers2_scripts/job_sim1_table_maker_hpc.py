@@ -275,14 +275,16 @@ def run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_n
                     is_sig = wilcoxon_sig(base_col,compare_col,p_val)
                     if is_sig: # indicate significance within dataframe stat_list
                         # Find appropriate metric
-                        dataframe_stat_list[i][metric] = str(dataframe_stat_list[i][metric])+'*'
+                        #cell_value = str(dataframe_stat_list[i][metric])
+                        #dataframe_stat_list[i][metric] = str(dataframe_stat_list[i][metric])+'*'
+                        dataframe_stat_list[i][metric] += '*'
                 except ValueError as e:
                     print(f"Error while performing the wilcoxon test: {e}")
                 except Exception as e:
                     print(f"An unexpected error occurred: {e}")
 
     # combine experiment results into a single dataframe
-    combined_df = pd.concat(dataframe_stat_list, ignore_index=True)
+    combined_df = pd.concat(dataframe_stat_list, ignore_index=False)
     #transpose for easy copying
     combined_df_T = combined_df.T
     combined_df_T.to_csv(outputpath+'/'+str(table_name)+'_Table.csv', index=False)
