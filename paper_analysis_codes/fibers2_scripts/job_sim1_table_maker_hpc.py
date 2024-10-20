@@ -51,7 +51,7 @@ def main(argv):
 
    #Table - FIBERS2 BaseNoise 0.1 - Mutation rate
     table_name = 'FixedMutRate_BaseNoise0.1'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
                              'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
     baseline = 'Fibers2.0_sim_mutation_rate_0_1'
@@ -62,7 +62,7 @@ def main(argv):
 
    #Table - FIBERS2 BaseNoise 0.2 - Mutation rate
     table_name = 'FixedMutRate_BaseNoise0.2'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
                              'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
     baseline = 'Fibers2.0_sim_mutation_rate_0_1'
@@ -73,7 +73,7 @@ def main(argv):
 
    #Table - FIBERS2 BaseNoise 0.3 - Mutation rate
     table_name = 'FixedMutRate_BaseNoise0.3'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
                              'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
     baseline = 'Fibers2.0_sim_mutation_rate_0_1'
@@ -84,7 +84,7 @@ def main(argv):
 
    #Table - FIBERS2 BaseNoise 0.4 - Mutation rate
     table_name = 'FixedMutRate_BaseNoise0.4'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
                              'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
     baseline = 'Fibers2.0_sim_mutation_rate_0_1'
@@ -95,7 +95,7 @@ def main(argv):
 
    #Table - FIBERS2 BaseNoise 0.5 - Mutation rate
     table_name = 'FixedMutRate_BaseNoise0.5'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
                              'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
     baseline = 'Fibers2.0_sim_mutation_rate_0_1'
@@ -196,9 +196,9 @@ def main(argv):
     #Table - FIBERS2 fixedmute0.1 - Censoring rate
     table_name = 'CensoringRate_fixedMut0.1'
     fixed_element = 'Fibers2.0_sim_mutation_rate_0_1'
-    variable_element = ['BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False','BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False',
-                        'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.5_nc_False','BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.8_nc_False']
-    baseline = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False'
+    variable_element = ['Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False','BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False',
+                        'Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.5_nc_False','Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.8_nc_False']
+    baseline = 'Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False'
     var_element_is_experiment = False
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -207,9 +207,9 @@ def main(argv):
     #Table - FIBERS2 BasePC fixedmute0.2 - Censoring rate
     table_name = 'CensoringRate_fixedMut0.2'
     fixed_element = 'Fibers2.0_sim_mutation_rate_0_2'
-    variable_element = ['BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False','BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False',
-                        'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.5_nc_False','BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.8_nc_False']
-    baseline = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False'
+    variable_element = ['Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False','BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False',
+                        'Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.5_nc_False','Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.8_nc_False']
+    baseline = 'Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False'
     var_element_is_experiment = False
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
