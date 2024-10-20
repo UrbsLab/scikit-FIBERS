@@ -449,7 +449,7 @@ def main(argv):
 
     #Table - NC VMR 0.1-0.5
     table_name = 'VMR_0_5_NC'
-    fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
+    fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
@@ -469,7 +469,7 @@ def main(argv):
 
     #Table - NC VMR 0.1-0.3
     table_name = 'VMR_0_3_NC'
-    fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
+    fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
