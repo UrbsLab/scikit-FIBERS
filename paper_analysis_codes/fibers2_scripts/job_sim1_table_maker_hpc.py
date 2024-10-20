@@ -137,61 +137,6 @@ def main(argv):
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - FIBERS2 Threshold 1 - Mutation rate
-    table_name = 'FixedMutRate_Threshold1'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FIBERS2 Threshold 2 - Mutation rate
-    table_name = 'FixedMutRate_Threshold2'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FIBERS2 Threshold 3 - Mutation rate
-    table_name = 'FixedMutRate_Threshold3'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FIBERS2 Threshold 4 - Mutation rate
-    table_name = 'FixedMutRate_Threshold4'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FIBERS2 Threshold 5 - Mutation rate
-    table_name = 'FixedMutRate_Threshold5'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
     # CENSORING RATE EXPERIMENTS ***************************************
     #Table - FIBERS2 fixedmute0.1 - Censoring rate
     table_name = 'CensoringRate_fixedMut0.1'
@@ -216,16 +161,6 @@ def main(argv):
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
     # PC vs NC EXPERIMENTS ***************************************
-    #Table - FIBERS2 fixedmute0.1 - PC v NC
-    table_name = 'PC_NC_fixedMut0.1'
-    fixed_element = 'Fibers2.0_sim_mutation_rate_0_1'
-    variable_element = ['BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False','BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True']
-    baseline = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    var_element_is_experiment = False
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
     #Table - FIBERS2 fixedmute0.2 - PC v NC
     table_name = 'PC_NC_fixedMut0.2'
     fixed_element = 'Fibers2.0_sim_mutation_rate_0_2'
@@ -236,7 +171,7 @@ def main(argv):
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-
+    # PC vs NC EXPERIMENTS ***************************************
 
 
 

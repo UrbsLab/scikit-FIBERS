@@ -15,10 +15,10 @@ sns.set_theme(font="Times New Roman")
 class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, label_name="Class", duration_name="Duration",
                  given_starting_point=False, start_point_feature_list=None, feature_bins_start_point=None,
-                 iterations=1000, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=4,
+                 iterations=100, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=2,
                  informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.4, elitism_parameter=0.8,
-                 mutation_strategy="Regular", random_seed=None, set_threshold=0, evolving_probability=1,
-                 min_threshold=0, max_threshold=3, merge_probability=0.0, adaptable_threshold=False, covariates=None,
+                 mutation_strategy="Regular", random_seed=None, set_threshold=0, evolving_probability=0.5,
+                 min_threshold=0, max_threshold=5, merge_probability=0.1, adaptable_threshold=True, covariates=None,
                  scoring_method="log_rank"):
         """
         A Scikit-Learn compatible framework for the FIBERS Algorithm.

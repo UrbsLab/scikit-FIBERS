@@ -4,7 +4,7 @@ import argparse
 import pickle
 import pandas as pd
 from lifelines import CoxPHFitter
-sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
+sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
 from src_archive.skfibersAT.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
@@ -214,7 +214,7 @@ def main(argv):
                     informative_cutoff=group_strata_min, crossover_probability=crossover_prob, mutation_probability=mutation_prob, elitism_parameter=elitism,
                     mutation_strategy=mutation_strategy, random_seed=random_seed, set_threshold=group_thresh, evolving_probability=thresh_evolve_prob,
                     min_threshold=min_thresh, max_threshold=max_thresh, merge_probability=merge_prob, 
-                    adaptable_threshold=False if thresh_evolve_prob == 0 else True, covariates=covariates,
+                    adaptable_threshold=True, covariates=covariates,
                     scoring_method=fitness_metric)
 
     fibers = fibers.fit(data)

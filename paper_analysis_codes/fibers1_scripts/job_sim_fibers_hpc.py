@@ -4,7 +4,7 @@ import argparse
 import pickle
 import pandas as pd
 from lifelines import CoxPHFitter
-sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
+sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
 from src_archive.skfibersv1.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
@@ -133,8 +133,8 @@ def main(argv):
     parser.add_argument('--ps', dest='pop_size', help='population size', type=int, default=50)
     parser.add_argument('--pi', dest='manual_bin_init', help='directory path to population initialization file', type=str, default = 'None') #full path/filename
     parser.add_argument('--cp', dest='crossover_prob', help='crossover probability', type=float, default=0.5)
-    parser.add_argument('--mup', dest='mutation_prob', help='mutation probability', type=float, default=0.5)
-    parser.add_argument('--e', dest='elitism', help='elite proportion of population protected from deletion', type=float, default=0.1)
+    parser.add_argument('--mup', dest='mutation_prob', help='mutation probability', type=float, default=0.4)
+    parser.add_argument('--e', dest='elitism', help='elite proportion of population protected from deletion', type=float, default=0.8)
     parser.add_argument('--bi', dest='min_features_per_group', help='mininum features in a bin', type=int, default=2)
     parser.add_argument('--ba', dest='max_number_of_groups_with_feature', help='maximum number of bin with said features', type=int, default=2)
     parser.add_argument('--c', dest='censor_label', help='censor column label', type=str, default='Censoring')

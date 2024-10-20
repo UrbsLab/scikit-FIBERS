@@ -13,7 +13,7 @@ sns.set_theme(font="Times New Roman")
 class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, label_name="Class", duration_name="Duration",
                  given_starting_point=False, amino_acid_start_point=None, amino_acid_bins_start_point=None,
-                 iterations=1000, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=4,
+                 iterations=100, set_number_of_bins=50, min_features_per_group=2, max_number_of_groups_with_feature=2,
                  informative_cutoff=0.2, crossover_probability=0.5, mutation_probability=0.4, elitism_parameter=0.8,
                  random_seed=None):
         """
