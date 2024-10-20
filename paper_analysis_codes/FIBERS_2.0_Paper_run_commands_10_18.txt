@@ -120,4 +120,53 @@ python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared
 
 python run_sim2_table_maker_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o SIM2_Tables
 
+
 ## Real World Data Experiments ******************************************************************************
+cd /project/kamoun_shared/code_shared/scikit-FIBERS/paper_analysis_codes/hla_hpc_scripts/
+
+### Experiment 13: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (log rank, DP = 3)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_logrank_DP3 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_logrank_DP3 --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_logrank_DP3 --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+### Experiment 14: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (residuals, DP = 3)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_DP3 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_DP3 --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_residuals_DP3 --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+### Experiment 15: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (product, DP = 3)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_product_DP3 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_DP3 --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_residuals_DP3 --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+
+### Experiment 16: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (log rank, DP = 0)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_logrank_DP0 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.3 --dp 0 --f log_rank --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_logrank_DP0 --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_logrank_DP0 --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+### Experiment 17: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (residuals, DP = 0)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_DP0 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.3 --dp 0 --f residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_DP0 --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_residuals_DP0 --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+### Experiment 18: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (product, DP = 0)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_product_DP3 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --ma 0.3 --dp 0 --f log_rank_residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_DP3 --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_residuals_DP3 --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+
+### Experiment 19: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (BASIC - log rank, MR = 0.2, DP = 0, thresh = 0)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_logrank_Basic --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --mi 0.2 --ma 0.2 --dp 0 --f log_rank --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_logrank_Basic --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_logrank_Basic --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+### Experiment 20: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (BASIC -residuals, MR = 0.2, DP = 0, thresh = 0)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_Basic --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --mi 0.2 --ma 0.2 --dp 0 --f residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_Basic --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_residuals_Basic --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
+
+### Experiment 21: DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (BASIC - product, MR = 0.2, DP = 0, thresh = 0)
+python run_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_product_Basic --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --rs 10 --re 10 --ol graftyrs --c grf_fail --mi 0.2 --ma 0.2 --dp 0 --f log_rank_residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o hla_7locus_residuals_Basic --rc LSF --rm 4 --q i2c2_normal --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh_new_imp --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o Fibers2.0_hla_7locus_residuals_Basic --rs 10 --re 10 --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --rc LSF --rm 16 --q i2c2_normal
