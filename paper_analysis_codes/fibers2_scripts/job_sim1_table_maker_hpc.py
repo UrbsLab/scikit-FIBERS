@@ -215,7 +215,7 @@ def main(argv):
 
     #Table - 100 FeaturesNoise 0.2 - 2 v 1 (0.2 MR below)
     table_name = '2v1_FeaturesNoise0.2_100'
-    fixed_element = 'FeaturesNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
     baseline = 'Fibers2.0_sim_mutation_rate_0_2'
     var_element_is_experiment = True
@@ -378,7 +378,7 @@ def main(argv):
 
     #Table - ThresholdNoise 0 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
     table_name = '2vAT_ThresholdNoise0.2_0'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
     baseline = 'Fibers2.0_sim_mutation_rate_0_2'
     var_element_is_experiment = True
