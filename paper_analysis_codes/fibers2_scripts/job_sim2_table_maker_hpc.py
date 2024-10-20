@@ -826,7 +826,7 @@ def main(argv):
 
    #Table - ThresholdNoise 1 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_ThresholdNoise0.2_1'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_1_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -836,7 +836,7 @@ def main(argv):
 
     #Table - ThresholdNoise 2 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_ThresholdNoise0.2_2'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_2_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -846,7 +846,7 @@ def main(argv):
 
     #Table - ThresholdNoise 3 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_ThresholdNoise0.2_3'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_3_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -856,7 +856,7 @@ def main(argv):
 
     #Table - ThresholdNoise 4 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_ThresholdNoise0.2_4'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_4_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -866,7 +866,7 @@ def main(argv):
 
     #Table - ThresholdNoise 5 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_ThresholdNoise0.2_5'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_5_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -874,7 +874,7 @@ def main(argv):
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    # FIBERS 2 DP EXPERIMENTS ***************************************
+
     #Table - PC DP 
     table_name = 'DP_PC'
     fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
@@ -1068,7 +1068,7 @@ def main(argv):
 
     #Table - ThresholdNoise 1 - DP
     table_name = 'DP_ThresholdNoise0.2_1'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_1_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -1078,7 +1078,7 @@ def main(argv):
 
     #Table - ThresholdNoise 2 - DP
     table_name = 'DP_ThresholdNoise0.2_2'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_2_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -1088,7 +1088,7 @@ def main(argv):
 
     #Table - ThresholdNoise 3 - DP
     table_name = 'DP_ThresholdNoise0.2_3'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_3_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -1098,7 +1098,7 @@ def main(argv):
 
     #Table - ThresholdNoise 4 - DP
     table_name = 'DP_ThresholdNoise0.2_4'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_4_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -1108,7 +1108,7 @@ def main(argv):
 
     #Table - ThresholdNoise 5 - DP
     table_name = 'DP_ThresholdNoise0.2_5'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_5_n_0.2_c_0.2_nc_False'
+    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.2_c_0.2_nc_False'
     variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
@@ -1117,8 +1117,11 @@ def main(argv):
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
 
-
-
+    # FIBERS 2 DP EXPERIMENTS ***************************************
+    #check sim1 tables done (fix as needed)
+    #create sim2 table script
+    #finish sim2 tables
+    #create ASHI talk
 
 def run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val):
     dataframe_stat_list = []
