@@ -318,8 +318,8 @@ def main(argv):
     #Table - Threshold 0 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
     table_name = '2vAT_Threshold_0'
     fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -328,8 +328,8 @@ def main(argv):
     #Table - Threshold 1 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
     table_name = '2vAT_Threshold_1'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -338,8 +338,8 @@ def main(argv):
     #Table - Threshold 2 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
     table_name = '2vAT_Threshold_2'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -348,8 +348,8 @@ def main(argv):
     #Table - Threshold 3 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
     table_name = '2vAT_Threshold_3'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -358,8 +358,8 @@ def main(argv):
     #Table - Threshold 4 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
     table_name = '2vAT_Threshold_4'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -368,8 +368,8 @@ def main(argv):
     #Table - Threshold 5 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
     table_name = '2vAT_Threshold_5'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -379,8 +379,8 @@ def main(argv):
     #Table - ThresholdNoise 0 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
     table_name = '2vAT_ThresholdNoise0.2_0'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -389,8 +389,8 @@ def main(argv):
     #Table - ThresholdNoise 1 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
     table_name = '2vAT_ThresholdNoise0.2_1'
     fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_1_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -399,8 +399,8 @@ def main(argv):
     #Table - ThresholdNoise 2 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
     table_name = '2vAT_ThresholdNoise0.2_2'
     fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_2_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -409,8 +409,8 @@ def main(argv):
     #Table - ThresholdNoise 3 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
     table_name = '2vAT_ThresholdNoise0.2_3'
     fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_3_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -419,8 +419,8 @@ def main(argv):
     #Table - ThresholdNoise 4 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
     table_name = '2vAT_ThresholdNoise0.2_4'
     fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_4_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
@@ -429,8 +429,8 @@ def main(argv):
     #Table - ThresholdNoise 5 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
     table_name = '2vAT_ThresholdNoise0.2_5'
     fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_5_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
+    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
+    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
                          'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
