@@ -440,7 +440,7 @@ def main(argv):
     #Table - PC VMR 0.1-0.5
     table_name = 'VMR_0_5_PC'
     fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -450,7 +450,7 @@ def main(argv):
     #Table - NC VMR 0.1-0.5
     table_name = 'VMR_0_5_NC'
     fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -460,7 +460,7 @@ def main(argv):
     #Table - PC VMR 0.1-0.3
     table_name = 'VMR_0_3_PC'
     fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -470,7 +470,7 @@ def main(argv):
     #Table - NC VMR 0.1-0.3
     table_name = 'VMR_0_3_NC'
     fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -481,7 +481,7 @@ def main(argv):
     #Table - Features 200 VMR 0.1-0.5
     table_name = 'VMR_0_5_Features_200'
     fixed_element = 'Features_i_10000_tf_200_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -491,7 +491,7 @@ def main(argv):
     #Table - Features 500 VMR 0.1-0.5
     table_name = 'VMR_0_5_Features_500'
     fixed_element = 'Features_i_10000_tf_500_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -501,7 +501,7 @@ def main(argv):
     #Table - Features 1000 VMR 0.1-0.5
     table_name = 'VMR_0_5_Features_1000'
     fixed_element = 'Features_i_10000_tf_1000_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -511,7 +511,7 @@ def main(argv):
     #Table - Features 200 VMR 0.1-0.3
     table_name = 'VMR_0_3_Features_200'
     fixed_element = 'Features_i_10000_tf_200_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -521,7 +521,7 @@ def main(argv):
     #Table - Features 500 VMR 0.1-0.3
     table_name = 'VMR_0_3_Features_500'
     fixed_element = 'Features_i_10000_tf_500_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -531,7 +531,7 @@ def main(argv):
     #Table - Features 1000 VMR 0.1-0.3
     table_name = 'VMR_0_3_Features_1000'
     fixed_element = 'Features_i_10000_tf_1000_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -542,7 +542,7 @@ def main(argv):
     #Table - FeaturesNoise0.2 100 VMR 0.1-0.5
     table_name = 'VMR_0_5_FeaturesNoise0.2_100'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -552,7 +552,7 @@ def main(argv):
     #Table - FeaturesNoise0.2 200 VMR 0.1-0.5
     table_name = 'VMR_0_5_FeaturesNoise0.2_200'
     fixed_element = 'FeaturesNoise_i_10000_tf_200_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -562,7 +562,7 @@ def main(argv):
     #Table - FeaturesNoise0.2 500 VMR 0.1-0.5
     table_name = 'VMR_0_5_FeaturesNoise0.2_500'
     fixed_element = 'FeaturesNoise_i_10000_tf_500_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -572,7 +572,7 @@ def main(argv):
     #Table - FeaturesNoise0.2 1000 VMR 0.1-0.5
     table_name = 'VMR_0_5_FeaturesNoise0.2_1000'
     fixed_element = 'FeaturesNoise_i_10000_tf_1000_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -582,7 +582,7 @@ def main(argv):
     #Table - FeaturesNoise0.2 100 VMR 0.1-0.3
     table_name = 'VMR_0_3_FeaturesNoise0.2_100'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -592,7 +592,7 @@ def main(argv):
     #Table - FeaturesNoise0.2 200 VMR 0.1-0.3
     table_name = 'VMR_0_3_FeaturesNoise0.2_200'
     fixed_element = 'FeaturesNoise_i_10000_tf_200_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -602,7 +602,7 @@ def main(argv):
     #Table - FeaturesNoise0.2 500 VMR 0.1-0.3
     table_name = 'VMR_0_3_FeaturesNoise0.2_500'
     fixed_element = 'FeaturesNoise_i_10000_tf_500_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -612,7 +612,7 @@ def main(argv):
     #Table - FeaturesNoise0.2 1000 VMR 0.1-0.3
     table_name = 'VMR_0_3_FeaturesNoise0.2_1000'
     fixed_element = 'FeaturesNoise_i_10000_tf_1000_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -623,7 +623,7 @@ def main(argv):
     #Table - BaseNoise 0.1 VMR 0.1-0.5
     table_name = 'VMR_0_5_BaseNoise_0.1'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -633,7 +633,7 @@ def main(argv):
     #Table - BaseNoise 0.2 VMR 0.1-0.5
     table_name = 'VMR_0_5_BaseNoise_0.2'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -643,7 +643,7 @@ def main(argv):
     #Table - BaseNoise 0.3 VMR 0.1-0.5
     table_name = 'VMR_0_5_BaseNoise_0.3'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -653,7 +653,7 @@ def main(argv):
     #Table - BaseNoise 0.4 VMR 0.1-0.5
     table_name = 'VMR_0_5_BaseNoise_0.4'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -663,7 +663,7 @@ def main(argv):
     #Table - BaseNoise 0.5 VMR 0.1-0.5
     table_name = 'VMR_0_5_BaseNoise_0.5'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -674,7 +674,7 @@ def main(argv):
     #Table - BaseNoise 0.1 VMR 0.1-0.3
     table_name = 'VMR_0_3_BaseNoise_0.1'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -684,7 +684,7 @@ def main(argv):
     #Table - BaseNoise 0.2 VMR 0.1-0.3
     table_name = 'VMR_0_3_BaseNoise_0.2'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -694,7 +694,7 @@ def main(argv):
     #Table - BaseNoise 0.3 VMR 0.1-0.3
     table_name = 'VMR_0_3_BaseNoise_0.3'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -704,7 +704,7 @@ def main(argv):
     #Table - BaseNoise 0.4 VMR 0.1-0.3
     table_name = 'VMR_0_3_BaseNoise_0.4'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -714,7 +714,7 @@ def main(argv):
     #Table - BaseNoise 0.5 VMR 0.1-0.3
     table_name = 'VMR_0_3_BaseNoise_0.5'
     fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -725,7 +725,7 @@ def main(argv):
     #Table - Threshold 1 - VMR 0.1 - 0.5
     table_name = 'VMR_0_5_Threshold_1'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -735,7 +735,7 @@ def main(argv):
     #Table - Threshold 2 - VMR 0.1 - 0.5
     table_name = 'VMR_0_5_Threshold_2'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -745,7 +745,7 @@ def main(argv):
     #Table - Threshold 3 - VMR 0.1 - 0.5
     table_name = 'VMR_0_5_Threshold_3'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -755,7 +755,7 @@ def main(argv):
     #Table - Threshold 4 - VMR 0.1 - 0.5
     table_name = 'VMR_0_5_Threshold_4'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -765,7 +765,7 @@ def main(argv):
     #Table - Threshold 5 - VMR 0.1 - 0.5
     table_name = 'VMR_0_5_Threshold_5'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -776,7 +776,7 @@ def main(argv):
     #Table - Threshold 1 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_Threshold_1'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -786,7 +786,7 @@ def main(argv):
     #Table - Threshold 2 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_Threshold_2'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -796,7 +796,7 @@ def main(argv):
     #Table - Threshold 3 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_Threshold_3'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -806,7 +806,7 @@ def main(argv):
     #Table - Threshold 4 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_Threshold_4'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
@@ -816,7 +816,7 @@ def main(argv):
     #Table - Threshold 5 - VMR 0.1 - 0.3
     table_name = 'VMR_0_3_Threshold_5'
     fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0.1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
+    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
     baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
     var_element_is_experiment = True
     stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
