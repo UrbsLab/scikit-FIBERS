@@ -34,1094 +34,357 @@ def main(argv):
     dataset_folder_names = [name for name in os.listdir(writepath+experiment_folder_names[0]) if os.path.isdir(os.path.join(writepath+experiment_folder_names[0], name))]
     print(dataset_folder_names)
 
-    significance_metrics = ['Accuracy','Number of P','Number of R','Ideal Iteration','Log-Rank Score','Unadjusted HR','Group Ratio','Runtime']
-    count_metrics = ['Ideal Bin','Ideal Threshold']
+    significance_metrics = ['Accuracy','Number of P','Number of R','Ideal Iteration','Log-Rank Score','Adjusted HR','Group Ratio','Runtime']
+    count_metrics = ['Ideal Bin','Ideal Threshold','TC1 Present']
 
-    # FIXED MUTATION RATE EXPERIMENTS ***************************************
-    #Table - FIBERS2 BasePC - Mutation rate
-    table_name = 'FixedMutRate_BasePC'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-   #Table - FIBERS2 BaseNoise 0.1 - Mutation rate
-    table_name = 'FixedMutRate_BaseNoise0.1'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-   #Table - FIBERS2 BaseNoise 0.2 - Mutation rate
-    table_name = 'FixedMutRate_BaseNoise0.2'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-   #Table - FIBERS2 BaseNoise 0.3 - Mutation rate
-    table_name = 'FixedMutRate_BaseNoise0.3'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-   #Table - FIBERS2 BaseNoise 0.4 - Mutation rate
-    table_name = 'FixedMutRate_BaseNoise0.4'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-   #Table - FIBERS2 BaseNoise 0.5 - Mutation rate
-    table_name = 'FixedMutRate_BaseNoise0.5'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FIBERS2 Features 200 - Mutation rate
-    table_name = 'FixedMutRate_Features200'
-    fixed_element = 'Features_i_10000_tf_200_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FIBERS2 Features 500 - Mutation rate
-    table_name = 'FixedMutRate_Features500'
-    fixed_element = 'Features_i_10000_tf_500_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FIBERS2 Features 1000 - Mutation rate
-    table_name = 'FixedMutRate_Features1000'
-    fixed_element = 'Features_i_10000_tf_1000_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_1','Fibers2.0_sim_mutation_rate_0_2','Fibers2.0_sim_mutation_rate_0_3',
-                             'Fibers2.0_sim_mutation_rate_0_4','Fibers2.0_sim_mutation_rate_0_5']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_1'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    # CENSORING RATE EXPERIMENTS ***************************************
-    #Table - FIBERS2 fixedmute0.1 - Censoring rate
-    table_name = 'CensoringRate_fixedMut0.1'
-    fixed_element = 'Fibers2.0_sim_mutation_rate_0_1'
-    variable_element = ['Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False','BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False',
-                        'Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.5_nc_False','Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.8_nc_False']
-    baseline = 'Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False'
-    var_element_is_experiment = False
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FIBERS2 BasePC fixedmute0.2 - Censoring rate
-    table_name = 'CensoringRate_fixedMut0.2'
-    fixed_element = 'Fibers2.0_sim_mutation_rate_0_2'
-    variable_element = ['Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False','BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False',
-                        'Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.5_nc_False','Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.8_nc_False']
-    baseline = 'Censoring_i_10000_tf_100_p_10_t_0_n_0.0_c_0.0_nc_False'
-    var_element_is_experiment = False
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
     # PC vs NC EXPERIMENTS ***************************************
-    #Table - FIBERS2 fixedmute0.2 - PC v NC
-    table_name = 'PC_NC_fixedMut0.2'
-    fixed_element = 'Fibers2.0_sim_mutation_rate_0_2'
-    variable_element = ['BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False','BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True']
-    baseline = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    var_element_is_experiment = False
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    # FIBERS 2 vs 1 EXPERIMENTS ***************************************
-    #Table - 100 Features - 2 v 1 (0.2 MR below)
-    table_name = '2v1_Features_100'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - 200 Features - 2 v 1 (0.2 MR below)
-    table_name = '2v1_Features_200'
-    fixed_element = 'Features_i_10000_tf_200_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - 500 Features - 2 v 1 (0.2 MR below)
-    table_name = '2v1_Features_500'
-    fixed_element = 'Features_i_10000_tf_500_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - 1000 Features - 2 v 1 (0.2 MR below)
-    table_name = '2v1_Features_1000'
-    fixed_element = 'Features_i_10000_tf_1000_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-
-    #Table - 100 FeaturesNoise 0.2 - 2 v 1 (0.2 MR below)
-    table_name = '2v1_FeaturesNoise0.2_100'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - 200 Features - 2 v 1 (0.2 MR below)
-    table_name = '2v1_FeaturesNoise0.2_200'
-    fixed_element = 'FeaturesNoise_i_10000_tf_200_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - 500 Features - 2 v 1 (0.2 MR below)
-    table_name = '2v1_FeaturesNoise0.2_500'
-    fixed_element = 'FeaturesNoise_i_10000_tf_500_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - 1000 Features - 2 v 1 (0.2 MR below)
-    table_name = '2v1_FeaturesNoise0.2_1000'
-    fixed_element = 'FeaturesNoise_i_10000_tf_1000_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-
-    #Table - BaseNoise 0.0 - 2 v 1 (0.2 MR below) 100features
-    table_name = '2v1_BaseNoise_0.0'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.1 - 2 v 1 (0.2 MR below) 100features
-    table_name = '2v1_BaseNoise_0.1'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.2 - 2 v 1 (0.2 MR below) 100features
-    table_name = '2v1_BaseNoise_0.2'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.3 - 2 v 1 (0.2 MR below) 100features
-    table_name = '2v1_BaseNoise_0.3'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.4 - 2 v 1 (0.2 MR below) 100features
-    table_name = '2v1_BaseNoise_0.4'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.5 - 2 v 1 (0.2 MR below) 100features
-    table_name = '2v1_BaseNoise_0.5'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_mutation_rate_0_2','Fibers1.0_sim_default']
-    baseline = 'Fibers2.0_sim_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    # FIBERS 2 vs AT EXPERIMENTS ***************************************
-    #Table - Threshold 0 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
-    table_name = '2vAT_Threshold_0'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 1 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
-    table_name = '2vAT_Threshold_1'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 2 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
-    table_name = '2vAT_Threshold_2'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 3 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
-    table_name = '2vAT_Threshold_3'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 4 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
-    table_name = '2vAT_Threshold_4'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 5 - 2 v 1 (0.2 MR below) 100features, 0.0 Noise
-    table_name = '2vAT_Threshold_5'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-
-    #Table - ThresholdNoise 0 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
-    table_name = '2vAT_ThresholdNoise0.2_0'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - ThresholdNoise 1 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
-    table_name = '2vAT_ThresholdNoise0.2_1'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_1_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - ThresholdNoise 2 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
-    table_name = '2vAT_ThresholdNoise0.2_2'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_2_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - ThresholdNoise 3 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
-    table_name = '2vAT_ThresholdNoise0.2_3'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_3_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - ThresholdNoise 4 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
-    table_name = '2vAT_ThresholdNoise0.2_4'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_4_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - ThresholdNoise 5 - 2 v 1 (0.2 MR below) 100features, 0.2 Noise
-    table_name = '2vAT_ThresholdNoise0.2_5'
-    fixed_element = 'ThresholdNoise_i_10000_tf_100_p_10_t_5_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_mutation_rate_0_2','FibersAT_sim_t_0_5']
-    baseline = 'Fibers2.0_sim_t_0_5_mutation_rate_0_2'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    # FIBERS 2 VMR EXPERIMENTS ***************************************
-    #Table - PC VMR 0.1-0.5
-    table_name = 'VMR_0_5_PC'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - NC VMR 0.1-0.5
-    table_name = 'VMR_0_5_NC'
-    fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - PC VMR 0.1-0.3
-    table_name = 'VMR_0_3_PC'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - NC VMR 0.1-0.3
-    table_name = 'VMR_0_3_NC'
-    fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-
-    #Table - Features 200 VMR 0.1-0.5
-    table_name = 'VMR_0_5_Features_200'
-    fixed_element = 'Features_i_10000_tf_200_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Features 500 VMR 0.1-0.5
-    table_name = 'VMR_0_5_Features_500'
-    fixed_element = 'Features_i_10000_tf_500_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Features 1000 VMR 0.1-0.5
-    table_name = 'VMR_0_5_Features_1000'
-    fixed_element = 'Features_i_10000_tf_1000_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Features 200 VMR 0.1-0.3
-    table_name = 'VMR_0_3_Features_200'
-    fixed_element = 'Features_i_10000_tf_200_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Features 500 VMR 0.1-0.3
-    table_name = 'VMR_0_3_Features_500'
-    fixed_element = 'Features_i_10000_tf_500_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Features 1000 VMR 0.1-0.3
-    table_name = 'VMR_0_3_Features_1000'
-    fixed_element = 'Features_i_10000_tf_1000_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-
-    #Table - FeaturesNoise0.2 100 VMR 0.1-0.5
-    table_name = 'VMR_0_5_FeaturesNoise0.2_100'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FeaturesNoise0.2 200 VMR 0.1-0.5
-    table_name = 'VMR_0_5_FeaturesNoise0.2_200'
-    fixed_element = 'FeaturesNoise_i_10000_tf_200_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FeaturesNoise0.2 500 VMR 0.1-0.5
-    table_name = 'VMR_0_5_FeaturesNoise0.2_500'
-    fixed_element = 'FeaturesNoise_i_10000_tf_500_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FeaturesNoise0.2 1000 VMR 0.1-0.5
-    table_name = 'VMR_0_5_FeaturesNoise0.2_1000'
-    fixed_element = 'FeaturesNoise_i_10000_tf_1000_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FeaturesNoise0.2 100 VMR 0.1-0.3
-    table_name = 'VMR_0_3_FeaturesNoise0.2_100'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FeaturesNoise0.2 200 VMR 0.1-0.3
-    table_name = 'VMR_0_3_FeaturesNoise0.2_200'
-    fixed_element = 'FeaturesNoise_i_10000_tf_200_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FeaturesNoise0.2 500 VMR 0.1-0.3
-    table_name = 'VMR_0_3_FeaturesNoise0.2_500'
-    fixed_element = 'FeaturesNoise_i_10000_tf_500_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - FeaturesNoise0.2 1000 VMR 0.1-0.3
-    table_name = 'VMR_0_3_FeaturesNoise0.2_1000'
-    fixed_element = 'FeaturesNoise_i_10000_tf_1000_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-
-    #Table - BaseNoise 0.1 VMR 0.1-0.5
-    table_name = 'VMR_0_5_BaseNoise_0.1'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.2 VMR 0.1-0.5
-    table_name = 'VMR_0_5_BaseNoise_0.2'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.3 VMR 0.1-0.5
-    table_name = 'VMR_0_5_BaseNoise_0.3'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.4 VMR 0.1-0.5
-    table_name = 'VMR_0_5_BaseNoise_0.4'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.5 VMR 0.1-0.5
-    table_name = 'VMR_0_5_BaseNoise_0.5'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-
-    #Table - BaseNoise 0.1 VMR 0.1-0.3
-    table_name = 'VMR_0_3_BaseNoise_0.1'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.2 VMR 0.1-0.3
-    table_name = 'VMR_0_3_BaseNoise_0.2'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.3 VMR 0.1-0.3
-    table_name = 'VMR_0_3_BaseNoise_0.3'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - BaseNoise 0.4 VMR 0.1-0.3
-    table_name = 'VMR_0_3_BaseNoise_0.4'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - PC DP 0
+    table_name = 'Sim2_PC_DP_0'
+    fixed_element = 'BasePC_i_10000_tf_100_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - BaseNoise 0.5 VMR 0.1-0.3
-    table_name = 'VMR_0_3_BaseNoise_0.5'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - PC DP 3
+    table_name = 'Sim2_PC_DP_3'
+    fixed_element = 'BasePC_i_10000_tf_100_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-  
-    #Table - Threshold 1 - VMR 0.1 - 0.5
-    table_name = 'VMR_0_5_Threshold_1'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
+    #Table - NC DP 0
+    table_name = 'Sim2_NC_DP_0'
+    fixed_element = 'BaseNC_i_10000_tf_100_p_6_t_0_n_0.0_c_0.2_nc_True'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 2 - VMR 0.1 - 0.5
-    table_name = 'VMR_0_5_Threshold_2'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
+    #Table - NC DP 3
+    table_name = 'Sim2_NC_DP_3'
+    fixed_element = 'BaseNC_i_10000_tf_100_p_6_t_0_n_0.0_c_0.2_nc_True'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 3 - VMR 0.1 - 0.5
-    table_name = 'VMR_0_5_Threshold_3'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
+    # FEATURES EXPERIMENTS ***************************************
+    #Table - Features 200 DP 0
+    table_name = 'Sim2_Features_200_DP_0'
+    fixed_element = 'Features_i_10000_tf_200_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 4 - VMR 0.1 - 0.5
-    table_name = 'VMR_0_5_Threshold_4'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
+    #Table - Features 500 DP 0
+    table_name = 'Sim2_Features_500_DP_0'
+    fixed_element = 'Features_i_10000_tf_500_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 5 - VMR 0.1 - 0.5
-    table_name = 'VMR_0_5_Threshold_5'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_5','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_5'
+    #Table - Features 1000 DP 0
+    table_name = 'Sim2_Features_1000_DP_0'
+    fixed_element = 'Features_i_10000_tf_1000_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-
-    #Table - Threshold 1 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_Threshold_1'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 2 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_Threshold_2'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 3 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_Threshold_3'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 4 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_Threshold_4'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-    #Table - Threshold 5 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_Threshold_5'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
-
-   #Table - ThresholdNoise 1 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_ThresholdNoise0.2_1'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Features 200 DP 3
+    table_name = 'Sim2_Features_200_DP_3'
+    fixed_element = 'Features_i_10000_tf_200_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 2 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_ThresholdNoise0.2_2'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Features 500 DP 3
+    table_name = 'Sim2_Features_500_DP_3'
+    fixed_element = 'Features_i_10000_tf_500_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 3 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_ThresholdNoise0.2_3'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Features 1000 DP 3
+    table_name = 'Sim2_Features_1000_DP_3'
+    fixed_element = 'Features_i_10000_tf_1000_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 4 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_ThresholdNoise0.2_4'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    # BASENOISE EXPERIMENTS ***************************************
+    #Table - BaseNoise 0.1 DP 0
+    table_name = 'Sim2_BaseNoise_0.1_DP_0'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.1_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 5 - VMR 0.1 - 0.3
-    table_name = 'VMR_0_3_ThresholdNoise0.2_5'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_mutation_rate_0_1','Fibers2.0_sim_t_0_5_mutation_rate_0_2']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.2 DP 0
+    table_name = 'Sim2_BaseNoise_0.2_DP_0'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.2_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
 
-    #Table - PC DP 
-    table_name = 'DP_PC'
-    fixed_element = 'BasePC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.3 DP 0
+    table_name = 'Sim2_BaseNoise_0.3_DP_0'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.3_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - NC DP 
-    table_name = 'DP_NC'
-    fixed_element = 'BaseNC_i_10000_tf_100_p_10_t_0_n_0.0_c_0.2_nc_True'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.4 DP 0
+    table_name = 'Sim2_BaseNoise_0.4_DP_0'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.4_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-
-    #Table - Features 200 DP 
-    table_name = 'DP_Features_200'
-    fixed_element = 'Features_i_10000_tf_200_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.5 DP 0
+    table_name = 'Sim2_BaseNoise_0.5_DP_0'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.5_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Features 500 DP 
-    table_name = 'DP_Features_500'
-    fixed_element = 'Features_i_10000_tf_500_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Features 1000 DP 
-    table_name = 'DP_Features_1000'
-    fixed_element = 'Features_i_10000_tf_1000_p_10_t_0_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.1 DP 3
+    table_name = 'Sim2_BaseNoise_0.1_DP_3'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.1_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-   #Table - FeaturesNoise0.2 100 DP
-    table_name = 'DP_FeaturesNoise0.2_100'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.2 DP 3
+    table_name = 'Sim2_BaseNoise_0.2_DP_3'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.2_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-   #Table - FeaturesNoise0.2 200 DP
-    table_name = 'DP_FeaturesNoise0.2_200'
-    fixed_element = 'FeaturesNoise_i_10000_tf_200_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.3 DP 3
+    table_name = 'Sim2_BaseNoise_0.3_DP_3'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.3_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-   #Table - FeaturesNoise0.2 500 DP
-    table_name = 'DP_FeaturesNoise0.2_500'
-    fixed_element = 'FeaturesNoise_i_10000_tf_500_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.4 DP 3
+    table_name = 'Sim2_BaseNoise_0.4_DP_3'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.4_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-   #Table - FeaturesNoise0.2 1000 DP
-    table_name = 'DP_FeaturesNoise0.2_1000'
-    fixed_element = 'FeaturesNoise_i_10000_tf_1000_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - BaseNoise 0.5 DP 3
+    table_name = 'Sim2_BaseNoise_0.5_DP_3'
+    fixed_element = 'BaseNoise_i_10000_tf_100_p_6_t_0_n_0.5_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - BaseNoise 0.1 DP
-    table_name = 'DP_BaseNoise_0.1'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.1_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    # INSTANCES EXPERIMENTS ***************************************
+    #Table - Instances 1000 DP 0
+    table_name = 'Sim2_Instances_1000_DP_0'
+    fixed_element = 'Instances_i_1000_tf_100_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - BaseNoise 0.2 DP
-    table_name = 'DP_BaseNoise_0.2'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Instances 500 DP 0
+    table_name = 'Sim2_Instances_500_DP_0'
+    fixed_element = 'Instances_i_500_tf_100_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - BaseNoise 0.3 DP
-    table_name = 'DP_BaseNoise_0.3'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.3_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Instances 1000 DP 3
+    table_name = 'Sim2_Instances_1000_DP_3'
+    fixed_element = 'Instances_i_1000_tf_100_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - BaseNoise 0.4 DP
-    table_name = 'DP_BaseNoise_0.4'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.4_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Instances 500 DP 3
+    table_name = 'Sim2_Instances_500_DP_3'
+    fixed_element = 'Instances_i_500_tf_100_p_6_t_0_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - BaseNoise 0.5 DP
-    table_name = 'DP_BaseNoise_0.5'
-    fixed_element = 'BaseNoise_i_10000_tf_100_p_10_t_0_n_0.5_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    # THRESHOLD EXPERIMENTS ***************************************
+    #Table - Threshold 1 DP 0
+    table_name = 'Sim2_Threshold_1_DP_0'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_1_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 1 - DP
-    table_name = 'DP_Threshold_1'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 2 DP 0
+    table_name = 'Sim2_Threshold_2_DP_0'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_2_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 2 - DP
-    table_name = 'DP_Threshold_2'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 3 DP 0
+    table_name = 'Sim2_Threshold_3_DP_0'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_3_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 3 - DP
-    table_name = 'DP_Threshold_3'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 4 DP 0
+    table_name = 'Sim2_Threshold_4_DP_0'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_4_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 4 - DP
-    table_name = 'DP_Threshold_4'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 5 DP 0
+    table_name = 'Sim2_Threshold_5_DP_0'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_5_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default','Fibers2.0_sim2_residuals','Fibers2.0_sim2_log_rank_residuals']
+    baseline = 'Fibers2.0_sim2_default'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - Threshold 5 - DP
-    table_name = 'DP_Threshold_5'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.0_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
-    var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
-    run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 1 - DP
-    table_name = 'DP_ThresholdNoise0.2_1'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_1_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 1 DP 3
+    table_name = 'Sim2_Threshold_1_DP_3'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_1_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 2 - DP
-    table_name = 'DP_ThresholdNoise0.2_2'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_2_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 2 DP 3
+    table_name = 'Sim2_Threshold_2_DP_3'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_2_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 3 - DP
-    table_name = 'DP_ThresholdNoise0.2_3'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_3_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 3 DP 3
+    table_name = 'Sim2_Threshold_3_DP_3'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_3_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 4 - DP
-    table_name = 'DP_ThresholdNoise0.2_4'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_4_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 4 DP 3
+    table_name = 'Sim2_Threshold_4_DP_3'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_4_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
 
-    #Table - ThresholdNoise 5 - DP
-    table_name = 'DP_ThresholdNoise0.2_5'
-    fixed_element = 'Threshold_i_10000_tf_100_p_10_t_5_n_0.2_c_0.2_nc_False'
-    variable_element = ['Fibers2.0_sim_t_0_5_vmr_0_3','Fibers2.0_sim_t_0_5_vmr_d_1','Fibers2.0_sim_t_0_5_vmr_d_3']
-    baseline = 'Fibers2.0_sim_t_0_5_vmr_0_3'
+    #Table - Threshold 5 DP 3
+    table_name = 'Sim2_Threshold_5_DP_3'
+    fixed_element = 'Threshold_i_10000_tf_100_p_6_t_5_n_0.0_c_0.2_nc_False'
+    variable_element = ['Fibers2.0_sim2_default_DP','Fibers2.0_sim2_residuals_DP','Fibers2.0_sim2_log_rank_residuals_DP']
+    baseline = 'Fibers2.0_sim2_default_DP'
     var_element_is_experiment = True
-    stat_list_columns = ['Variable Element','Fixed Element','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
-                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Unadjusted HR','Group Ratio','Runtime']
+    stat_list_columns = ['Variable Element','Fixed Element','TC1 Present','Accuracy','Number of P','Number of R','Ideal Bin','Iteration of Ideal Bin',
+                         'Ideal Threshold','Threshold','Log-Rank Score','Residual','Adjusted HR','Group Ratio','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val)
-
 
-    # FIBERS 2 DP EXPERIMENTS ***************************************
-    #check sim1 tables done (fix as needed)
-    #create sim2 table script
-    #finish sim2 tables
-    #create ASHI talk
 
 def run_analysis(writepath,outputpath,significance_metrics,count_metrics,table_name,fixed_element,variable_element,baseline,var_element_is_experiment,stat_list_columns,p_val):
     dataframe_stat_list = []
@@ -1183,6 +446,7 @@ def format_data(df,stat_list_columns, var, fixed_element):
     #experiment.append(df.loc[0,'Dataset'])
     experiment.append(var)
     experiment.append(fixed_element)
+    experiment.append("'"+str(df.loc[0,'TC1 Present'])+'/30') #Top bin
     experiment.append(str(round(df.loc[0,'Accuracy'],3))+' ('+str(round(df.loc[0,'Accuracy (SD)'],3))+')') #Accuracy
     experiment.append(str(round(df.loc[0,'Number of P'],3))+' ('+str(round(df.loc[0,'Number of P (SD)'],3))+')') #Num Pred
     experiment.append(str(round(df.loc[0,'Number of R'],3))+' ('+str(round(df.loc[0,'Number of R (SD)'],3))+')') #Num Rand
@@ -1192,7 +456,7 @@ def format_data(df,stat_list_columns, var, fixed_element):
     experiment.append(str(round(df.loc[0,'Threshold'],1))+' ('+str(round(df.loc[0,'Threshold (SD)'],1))+')') #log rank
     experiment.append(str(round(df.loc[0,'Log-Rank Score'],1))+' ('+str(round(df.loc[0,'Log-Rank Score (SD)'],1))+')') #log rank
     experiment.append(str(round(df.loc[0,'Residual'],2))+' ('+str(round(df.loc[0,'Residual (SD)'],2))+')') #residual
-    experiment.append(str(round(df.loc[0,'Unadjusted HR'],2))+' ('+str(round(df.loc[0,'Unadjusted HR (SD)'],2))+')') #adj HR
+    experiment.append(str(round(df.loc[0,'Adjusted HR'],3))+' ('+str(round(df.loc[0,'Adjusted HR (SD)'],3))+')') #adj HR
     experiment.append(str(round(df.loc[0,'Group Ratio'],2))+' ('+str(round(df.loc[0,'Group Ratio (SD)'],2))+')') #Group ratio
     experiment.append(str(round(df.loc[0,'Runtime'],2))+' ('+str(round(df.loc[0,'Runtime (SD)'],2))+')') #runtime
 

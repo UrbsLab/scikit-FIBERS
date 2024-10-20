@@ -118,6 +118,6 @@ python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /pr
 python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/SIM2 --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o sim2_log_rank_residuals --rc LSF --rs 30 --rm 4 --q i2c2_normal --cov Simple
 python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o Fibers2.0_sim2_log_rank_residuals
 
-
+python run_sim2_table_maker_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_paper_SIM2/ --o SIM2_Tables
 
 ## Real World Data Experiments ******************************************************************************
