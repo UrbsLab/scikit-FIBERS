@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score
 from lifelines.statistics import logrank_test
 from lifelines import CoxPHFitter
 from lifelines import KaplanMeierFitter
-sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
+sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
 from src_archive.skfibersv1.fibers import FIBERS #SOURCE CODE RUN
 from src.skfibers.methods.util import plot_feature_tracking
 from src.skfibers.methods.util import plot_kaplan_meir
