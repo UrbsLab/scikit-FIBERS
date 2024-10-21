@@ -182,6 +182,19 @@ def main(argv):
         columns_to_remove = percentages[percentages == 0.0].index.tolist()
         data = data.drop(columns=columns_to_remove)
 
+    #Report filtering
+    count_list = []
+    total_count = 0
+    for locus in loci_list:
+        count = sum(['MM_'+str(locus) in col for col in data.columns])
+        total_count += count
+        count_list.append(str(locus)+":"+str(count))
+
+    with open(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_post_filter_counts.txt', 'w') as file:
+        for item in count_list:
+            file.write(f"{item}\n")
+        file.write('Total:'+str(total_count))
+
     #Job Definition
     fibers = FIBERS(outcome_label=outcome_label, outcome_type=outcome_type, iterations=iterations, pop_size=pop_size, tournament_prop=tournament_prop, 
                     crossover_prob=crossover_prob, min_mutation_prob=min_mutation_prob, max_mutation_prob=max_mutation_prob, merge_prob=merge_prob, 

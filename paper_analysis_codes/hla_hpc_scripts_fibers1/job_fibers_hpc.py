@@ -260,6 +260,19 @@ def main(argv):
         columns_to_remove = percentages[percentages == 0.0].index.tolist()
         data = data.drop(columns=columns_to_remove)
 
+    #Report filtering
+    count_list = []
+    total_count = 0
+    for locus in loci_list:
+        count = sum(['MM_'+str(locus) in col for col in data.columns])
+        total_count += count
+        count_list.append(str(locus)+":"+str(count))
+
+    with open(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_post_filter_counts.txt', 'w') as file:
+        for item in count_list:
+            file.write(f"{item}\n")
+        file.write('Total:'+str(total_count))
+
     fibers = FIBERS(label_name=censor_label, duration_name=outcome_label,
                     given_starting_point=False, amino_acid_start_point=None, amino_acid_bins_start_point=None,
                     iterations=iterations, set_number_of_bins=pop_size, 
