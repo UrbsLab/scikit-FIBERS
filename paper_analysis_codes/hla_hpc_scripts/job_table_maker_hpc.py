@@ -48,7 +48,6 @@ def main(argv):
     #Impuation comparisons
         # Do comparsisons between imputated datasets within the same 
 
-    #
     # EXPERIMENTS ***************************************
     #Table - FIBERS2 Fit compare DP 3
     table_name = 'Real_7Locus_FIBERS2_Fit_DP_3'
@@ -142,7 +141,7 @@ def format_data(df,stat_list_columns, var):
     experiment.append(str(round(df['Count Above Threshold'].mean(),0))+' ('+str(round(df['Count Above Threshold'].std(),0))+')') #Count Above Threshold
     experiment.append(str(round(df['Bin Size'].mean(),1))+' ('+str(round(df['Bin Size'].std(),1))+')') #Bin Size
     experiment.append(str(round(df['Birth Iteration'].mean(),1))+' ('+str(round(df['Birth Iteration'].std(),1))+')') #Birth Iteration
-    experiment.append(str(round(df['Runtime'].mean(),1))+' ('+str(round(df['Runtime'].std(),1))+')') #Runtime
+    experiment.append(str(round(df['Runtime'].mean()/60,1))+' ('+str(round(df['Runtime'].std()/60,1))+')') #Runtime
 
     new_df = pd.DataFrame([experiment], columns=stat_list_columns)
     return new_df
