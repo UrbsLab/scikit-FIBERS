@@ -24,7 +24,7 @@ from src.skfibers.methods.util import plot_custom_bin_population_heatmap
 
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
-"""
+
 covariates = [
               'shared', 'DCD', 'DON_AGE', 'donage_slope_ge18', 'dcadcodanox', 'dcadcodcva', 'dcadcodcnst', 'dcadcodoth', 'don_cmv_negative',
               'don_htn_0c', 'ln_don_wgt_kg_0c', 'ln_don_wgt_kg_0c_s55', 'don_ecd', 'age_ecd', 'yearslice', 'REC_AGE_AT_TX',
@@ -32,7 +32,7 @@ covariates = [
               'can_dgn_htn_ndm', 'can_dgn_pk_ndm', 'can_dgn_gd_ndm', 'rec_prev_ki_tx', 'rec_prev_ki_tx_dm', 'rbmi_0c', 'rbmi_miss',
               'rbmi_gt_20', 'rbmi_DM', 'rbmi_gt_20_DM', 'ln_c_hd_m', 'ln_c_hd_0c', 'ln_c_hd_m_ptx', 'PKPRA_MS', 'PKPRA_1080',
               'PKPRA_GE80', 'hispanic', 'CAN_RACE_BLACK', 'CAN_RACE_asian', 'CAN_RACE_WHITE', 'Agmm0']
-"""
+
 
 def prepare_data(df, duration_name, label_name, covariates):
     # Make list of feature names (i.e. columns that are not outcome, censor, or covariates)
@@ -238,8 +238,8 @@ def main(argv):
         group_strata_prop = min(count_bt/(count_bt+count_at),count_at/(count_bt+count_at))
         bin_birth_iteration = np.nan
         
-        summary, bin_HR, bin_HR_CI, bin_HR_p_value = get_cox_prop_hazard_unadjust(fibers, data, covariates)
-        summary, bin_adj_HR, bin_adj_HR_CI, bin_adj_HR_p_value = get_cox_prop_hazard_adjusted(fibers, data, covariates)
+        summary, bin_HR, bin_HR_CI, bin_HR_p_value = get_cox_prop_hazard_unadjust(fibers, data)
+        summary, bin_adj_HR, bin_adj_HR_CI, bin_adj_HR_p_value = get_cox_prop_hazard_adjusted(fibers, data)
 
         residuals_score = None
 
@@ -393,7 +393,7 @@ def match_prefix(feature, group_names):
 
     return "None"
 
-def get_cox_prop_hazard_unadjust(fibers,x, covariates, y=None, bin_index=0, use_bin_sums=False):
+def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=False):
     if not fibers.hasTrained:
         raise Exception("FIBERS must be fit first")
     
@@ -428,7 +428,7 @@ def get_cox_prop_hazard_unadjust(fibers,x, covariates, y=None, bin_index=0, use_
     df = None
     return summary, HR, HR_CI, HR_p_value
 
-def get_cox_prop_hazard_adjusted(fibers,x, covariates, y=None, bin_index=0, use_bin_sums=False):
+def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=False):
     if not fibers.hasTrained:
         raise Exception("FIBERS must be fit first")
 
