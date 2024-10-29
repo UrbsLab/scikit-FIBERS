@@ -8,6 +8,7 @@ sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
 from src_archive.skfibersv1.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
+"""
 covariates = [
               'shared', 'DCD', 'DON_AGE', 'donage_slope_ge18', 'dcadcodanox', 'dcadcodcva', 'dcadcodcnst', 'dcadcodoth', 'don_cmv_negative',
               'don_htn_0c', 'ln_don_wgt_kg_0c', 'ln_don_wgt_kg_0c_s55', 'don_ecd', 'age_ecd', 'yearslice', 'REC_AGE_AT_TX',
@@ -15,7 +16,7 @@ covariates = [
               'can_dgn_htn_ndm', 'can_dgn_pk_ndm', 'can_dgn_gd_ndm', 'rec_prev_ki_tx', 'rec_prev_ki_tx_dm', 'rbmi_0c', 'rbmi_miss',
               'rbmi_gt_20', 'rbmi_DM', 'rbmi_gt_20_DM', 'ln_c_hd_m', 'ln_c_hd_0c', 'ln_c_hd_m_ptx', 'PKPRA_MS', 'PKPRA_1080',
               'PKPRA_GE80', 'hispanic', 'CAN_RACE_BLACK', 'CAN_RACE_asian', 'CAN_RACE_WHITE', 'Agmm0']
-
+"""
 def save_run_params(fibers, filename):
     with open(filename, 'w') as file:
         file.write(f"outcome_label: {fibers.duration_name}\n")
@@ -55,7 +56,7 @@ def cox_prop_hazard(bin_df, outcome_label, censor_label): #make bin variable bee
     cph.fit(bin_df,outcome_label,event_col=censor_label, show_progress=False)
     return cph.summary
 
-def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=False):
+def get_cox_prop_hazard_unadjust(fibers,x,covariates, y=None, bin_index=0, use_bin_sums=False):
     if not fibers.hasTrained:
         raise Exception("FIBERS must be fit first")
     
@@ -90,7 +91,7 @@ def get_cox_prop_hazard_unadjust(fibers,x, y=None, bin_index=0, use_bin_sums=Fal
     return summary
 
 
-def get_cox_prop_hazard_adjusted(fibers,x, y=None, bin_index=0, use_bin_sums=False):
+def get_cox_prop_hazard_adjusted(fibers,x,covariates, y=None, bin_index=0, use_bin_sums=False):
     if not fibers.hasTrained:
         raise Exception("FIBERS must be fit first")
 
