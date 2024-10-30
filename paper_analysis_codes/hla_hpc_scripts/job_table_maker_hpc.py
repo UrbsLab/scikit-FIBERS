@@ -48,7 +48,7 @@ def main(argv):
     #Impuation comparisons
         # Do comparsisons between imputated datasets within the same 
 
-    # EXPERIMENTS ***************************************
+    # CORE EXPERIMENTS ***************************************
     #Table - FIBERS2 Fit compare DP 3
     table_name = 'Real_7Locus_FIBERS2_Fit_DP_3'
     variable_element = ['Fibers2.0_hla_7locus_logrank_DP3','Fibers2.0_hla_7locus_residuals_DP3','Fibers2.0_hla_7locus_product_DP3']
@@ -76,6 +76,108 @@ def main(argv):
     baseline = 'Fibers1.0_hla_7locus_baseline'
     stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - 7Locus LogRank Compare
+    table_name = 'Real_7Locus_LogRank'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3','Fibers2.0_hla_7locus_logrank_DP0','Fibers2.0_hla_7locus_logrank_Basic','Fibers1.0_hla_7locus_baseline']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - 7Locus Residuals Compare
+    table_name = 'Real_7Locus_Residuals'
+    variable_element = ['Fibers2.0_hla_7locus_residuals_DP3','Fibers2.0_hla_7locus_residuals_DP0','Fibers2.0_hla_7locus_residuals_Basic']
+    baseline = 'Fibers2.0_hla_7locus_residuals_DP3'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - 7Locus Product Compare
+    table_name = 'Real_7Locus_Product'
+    variable_element = ['Fibers2.0_hla_7locus_product_DP3','Fibers2.0_hla_7locus_product_DP0','Fibers2.0_hla_7locus_product_Basic']
+    baseline = 'Fibers2.0_hla_7locus_product_DP3'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    # LOCUS COUNT EXPERIMENTS ***************************************
+    #Table - FIBERS2 4 Locus Fit
+    table_name = 'Real_4Locus_FIBERS2_Fit_DP_3'
+    variable_element = ['Fibers2.0_hla_4locus_logrank_DP3','Fibers2.0_hla_4locus_residuals_DP3','Fibers2.0_hla_4locus_product_DP3']
+    baseline = 'Fibers2.0_hla_4locus_logrank_DP3'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - FIBERS2 2 Locus Fit
+    table_name = 'Real_2Locus_FIBERS2_Fit_DP_3'
+    variable_element = ['Fibers2.0_hla_2locus_logrank_DP3','Fibers2.0_hla_2locus_residuals_DP3','Fibers2.0_hla_2locus_product_DP3']
+    baseline = 'Fibers2.0_hla_2locus_logrank_DP3'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - LocusCount LogRank Compare
+    table_name = 'Real_LogRank_LocusCount'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3','Fibers2.0_hla_4locus_logrank_DP3','Fibers2.0_hla_2locus_logrank_DP3']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - LocusCount Residuals Compare
+    table_name = 'Real_Residuals_LocusCount'
+    variable_element = ['Fibers2.0_hla_7locus_residuals_DP3','Fibers2.0_hla_4locus_residuals_DP3','Fibers2.0_hla_2locus_residuals_DP3']
+    baseline = 'Fibers2.0_hla_7locus_residuals_DP3'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - LocusCount Product Compare
+    table_name = 'Real_Product_LocusCount'
+    variable_element = ['Fibers2.0_hla_7locus_product_DP3','Fibers2.0_hla_4locus_product_DP3','Fibers2.0_hla_2locus_product_DP3']
+    baseline = 'Fibers2.0_hla_7locus_product_DP3'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    # FILTER AND THRESH EXPERIMENTS ***************************************
+    #Table - FIBERS2 7 Locus Fit Unfiltered
+    table_name = 'Real_7Locus_Unfiltered_FIBERS2_Fit_DP_3'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_nofilter','Fibers2.0_hla_7locus_residuals_DP3_nofilter','Fibers2.0_hla_7locus_product_DP3_nofilter']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_nofilter'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - FIBERS2 7 Locus Fit Unfiltered Thresh 0-10
+    table_name = 'Real_7Locus_Unfiltered_FIBERS2_Fit_DP_3_T_10'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_nofilter_T_10','Fibers2.0_hla_7locus_residuals_DP3_nofilter_T_10','Fibers2.0_hla_7locus_product_DP3_nofilter_T_10']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_nofilter_T_10'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - FIBERS2 7 Locus Fit Thresh 0-10
+    table_name = 'Real_7Locus_FIBERS2_Fit_DP_3_T_10'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_T_10','Fibers2.0_hla_7locus_residuals_DP3_T_10','Fibers2.0_hla_7locus_product_DP3_T_10']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_T_10'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+
+    #Table - Filtering and THRESH LogRank Compare
+    table_name = 'Real_LogRank_Other'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_nofilter_T_10','Fibers2.0_hla_7locus_logrank_DP3_T_10','Fibers2.0_hla_7locus_logrank_DP3_nofilter','Fibers2.0_hla_7locus_logrank_DP3']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_nofilter_T_10'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - Filtering and THRESH Residuals Compare
+    table_name = 'Real_Residuals_Other'
+    variable_element = ['Fibers2.0_hla_7locus_residuals_DP3_nofilter_T_10','Fibers2.0_hla_7locus_residuals_DP3_T_10','Fibers2.0_hla_7locus_residuals_DP3_nofilter','Fibers2.0_hla_7locus_residuals_DP3']
+    baseline = 'Fibers2.0_hla_7locus_residuals_DP3_nofilter_T_10'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - Filtering and THRESH Residuals Compare
+    table_name = 'Real_Product_Other'
+    variable_element = ['Fibers2.0_hla_7locus_product_DP3_nofilter_T_10','Fibers2.0_hla_7locus_product_DP3_T_10','Fibers2.0_hla_7locus_product_DP3_nofilter','Fibers2.0_hla_7locus_product_DP3']
+    baseline = 'Fibers2.0_hla_7locus_product_DP3_nofilter_T_10'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
 
 def run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val):
     dataframe_stat_list = []
