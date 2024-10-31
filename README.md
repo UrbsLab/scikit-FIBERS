@@ -1,5 +1,5 @@
 # scikit-FIBERS 2.0
-
+## Introduction
 **FIBERS (Feature Inclusion Bin Evolver for Risk Stratification)** is an evolutionary machine learning algorithm designed for modeling or feature learning in survival analyses. It can be applied to survival datasets (1) with or without right-censoring, and (2) with or without target covariate features that need to be adjusted for. This algorithm is designed for target problems where the 'burden' (i.e. sum) of specific feature values in the dataset may be predictive of a time-to-event outcome (e.g. the burden of certain HLA amino-acid mismatches (between kidney donor and recipient pairs) can be predictive of kidney graft failure time).
 
 FIBERS can be used directly as a **modeling strategy**, by training a bin population and using the predict() function to apply the discovered bin with the highest fitness as a predictive model of risk group assigment. It can also be used as a **feature learning algorithm**, by training a bin population and using the transform() function to convert each discovered bin in the population into corresponding dataset features for additional downstream machine learning modeling. 
@@ -8,7 +8,6 @@ The FIBERS algorithm seeks to automatically identify and optimize a population o
 
 A schematic detailing how the FIBERS algorithm works is given below:
 
-![alttext](https://github.com/UrbsLab/scikit-FIBERS/blob/main/Pictures/FIBERS2.0_paper_vertical_color.png?raw=true)
 ![alttext](https://github.com/UrbsLab/scikit-FIBERS/blob/dev/Pictures/FIBERS2.0_paper_vertical_color.png?raw=true)
 
 FIBERS currently offers three fitness function options: (1) log-rank fitness, for data without covariates, seeks to maximize the separation between high and low-risk survival curves (2) residuals fitness, for data with covariates, seeks to maximize the difference between deviance residuals between high and low-risk instance groups, and (3) product fitness, for data with covariates, calculates both log-rank and residuals metrics and assignes fitness as the product of both scores. 
