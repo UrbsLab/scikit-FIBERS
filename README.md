@@ -42,8 +42,8 @@ scikit-FIBERS can also take in a previously trained or manually generated bin po
 
 ### Demonstration Notebooks
 Two Jupyter Notebooks have been included to demonstrate how scikit-FIBERS (and it's functions) can be applied to data with or without covariates. These demonstrations utilize two survival data simulators that are also included in the scikit-FIBERS repository (i.e. SIM1 and SIM2, for simulating right-censored survival data without or with covariates, respectively). 
-* [Notebook 1 (no covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/dev/FIBERS_Survival_Demo_SIM1.ipynb)
-* [Notebook 2 (with covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/dev/FIBERS_Survival_Demo_SIM2.ipynb)
+* [DEMO Notebook 1 (no covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/dev/FIBERS_Survival_Demo_SIM1.ipynb)
+* [DEMO Notebook 2 (with covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/dev/FIBERS_Survival_Demo_SIM2.ipynb)
 
 These notebooks are currently set up to run by downloading this repository and running the included notebook. 
 
