@@ -92,7 +92,7 @@ In this next example, we transform bins into new features that reprsent the bina
 
 ```
 tdf = fibers.transform(train_data,full_sums=False)
-tdf.to_csv('my_transformed_dataset_full_sums.csv', index=False)
+tdf.to_csv('my_transformed_dataset_strata.csv', index=False)
 ```
 
 ***
