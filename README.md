@@ -17,6 +17,7 @@ FIBERS currently offers three fitness function options: (1) log-rank fitness, fo
 scikit-FIBERS can be installed easily via pip, or by cloning this repository. Either way, make sure that you have also installed all prerequisite packages included in requirements.txt prior to running. 
 
 ### Pip Install
+Note: Not yet updated to the most recent release.
 ```
 pip install scikit-fibers
 ```
