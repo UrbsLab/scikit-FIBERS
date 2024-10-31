@@ -4,13 +4,15 @@
 
 The FIBERS algorithm seeks to automatically identify and optimize a population of 'candidate bins' that maximize time-to-event differences between high and low risk groups. A 'bin' is a subset of features and an associated 'burden threshold' that together define high vs. low risk instance groups, where instances that have a bin sum (of feature values) greater than the threshold are assigend to the high-risk group, and all others to the low-risk group. The fitness (i.e. quality) of bins in the candidate bin population drives evolutionary algorithm learning. 
 
+A schematic detailing how the FIBERS algorithm works is given below:
+
+![alttext](https://github.com/UrbsLab/scikit-FIBERS/blob/main/Pictures/FIBERS2.0_paper_vertical_color.png?raw=true)
+
 FIBERS currently offers three fitness function options: (1) log-rank fitness, for data without covariates, seeks to maximize the separation between high and low-risk survival curves (2) residuals fitness, for data with covariates, seeks to maximize the difference between deviance residuals between high and low-risk instance groups, and (3) product fitness, for data with covariates, calculates both log-rank and residuals metrics and assignes fitness as the product of both scores. 
 
 FIBERS can be used directly as a **modeling strategy**, by training a bin population and using the predict() function to apply the discovered bin with the highest fitness as a predictive model of risk group assigment. It can also be used as a **feature learning algorithm**, by training a bin population and using the transform() function to convert each discovered bin in the population into corresponding dataset features for additional downstream machine learning modeling. 
 
-A schematic detailing how the FIBERS algorithm works is given below:
 
-![alttext](https://github.com/UrbsLab/scikit-FIBERS/blob/main/Pictures/FIBERS2.0_paper_vertical_color.png?raw=true)
 
 The repository contains high-performance-cluster running scripts for different version of FIBERS for the anaysis.
 Specifically this repository compares 3 versions of scikit-FIBERS
