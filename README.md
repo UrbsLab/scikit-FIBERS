@@ -8,8 +8,9 @@
  - [Hyperparameters](#item-five)
  - [Algorithm History](#item-six)
  - [Citing scikit-FIBERS](#item-seven)
- - [Contact](#item-eight)
- - [Acknowledgements](#item-nine)
+ - [Futher Documentation](#item-eight)
+ - [Contact](#item-nine)
+ - [Acknowledgements](#item-ten)
 
 <!-- headings -->
 <a id="item-one"></a>
@@ -200,15 +201,19 @@ BibTeX entry:
 }
 ```
 
-
 ***
 <a id="item-eight"></a>
+## Futher Documentation:
+Further code documentation regarding the scikit-FIBERS API can be found [here](https://urbslab.github.io/scikit-FIBERS/skfibers.html).
+
+***
+<a id="item-nine"></a>
 ## Contact
 Please email Ryan.Urbanowicz@cshs.org or Harsh.Bandhey@cshs.org for any inquiries related to scikit-FIBERS.
 
 
 ***
-<a id="item-nine"></a>
+<a id="item-ten"></a>
 ## Acknowledgements
 The development of FIBERS benefited from feedback across multiple biomedical research collaborators at the University of Pennsylvania, Tulane University, and the Arbor Research Collaborative for Health. 
 
