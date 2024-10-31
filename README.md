@@ -80,16 +80,18 @@ tdf.to_csv('my_transformed_dataset_full_sums.csv', index=False)
 
 ***
 ## Hyperparameters
-While scikit_FIBERS has a number of available hyperparameters only a few are considered to be essential or useful to check or set. Essential hyperparameters are given in the first table. 
+While scikit_FIBERS has a number of available hyperparameters only a few are considered to be essential or useful to check or set. 
+
+* Essential hyperparameters are given in the first table. 
 
 | Hyperparameter | Description | Type/Options | Default Value |
 | -------------- | ----------- | ------------- | ------------- |
 | outcome_label | Data column label for time-to-event (outcome) | str | 'Duration' |
-| censor_label | Data column label for censoring | str |'“'Censoring'”' | 
+| censor_label | Data column label for censoring | str |'Censoring' | 
 | fitness_metric | Pre-fitness metric driving fitness ranking | 'log_rank','residuals','log_rank_residuals' | 'log_rank' |
 | covariates | List of data column labels to be treated as covariates (i.e. not considered for bin inclusion) | list | None |
 
-This second table includes hyperparameters that are not essential but can have a significant impact on algorithm performance. 
+* This second table includes hyperparameters that are not essential but can have a significant impact on algorithm performance. 
 
 | Hyperparameter | Description | Type/Options | Default Value |
 | -------------- | ----------- | ------------- | ------------- |
@@ -99,7 +101,7 @@ This second table includes hyperparameters that are not essential but can have a
 | max_thresh | Maximum group threshold for adaptive thresholding | int | 5 |
 | manual_bin_init | Dataframe of FIBERS-formatted bin population used to initialize the bin population | dataframe | None |
 
-The remaining hyperparameters in the table below can largely be left to their default values by most users. 
+* The remaining hyperparameters in the table below can largely be left to their default values by most users. 
 
 | Hyperparameter | Description | Type/Options | Default Value |
 | -------------- | ----------- | ------------- | ------------- |
