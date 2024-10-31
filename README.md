@@ -89,7 +89,7 @@ tdf = fibers.transform(train_data,full_sums=True)
 tdf.to_csv('my_transformed_dataset_full_sums.csv', index=False)
 ```
 
-In this next example, we transform bins into new features that reprsent the binary risk strata assignment and save this new dataset as a .csv file.
+In this next example, we transform bins into new features that represent the binary risk strata assignment and save this new dataset as a .csv file.
 
 ```
 tdf = fibers.transform(train_data,full_sums=False)
