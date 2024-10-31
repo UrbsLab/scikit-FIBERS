@@ -1,4 +1,18 @@
 # scikit-FIBERS 2.0
+
+** Table of contents:**
+ - [Introduction](#item-one)
+ - [Installation](#item-two)
+ - [Input Data](#item-three)
+ - [Using scikit-FIBERS](#item-four)
+ - [Hyperparameters](#item-five)
+ - [Algorithm History](#item-six)
+ - [Citing scikit-FIBERS](#item-seven)
+ - [Contact](#item-eight)
+ - [Acknowledgements](#item-nine)
+
+<!-- headings -->
+<a id="item-one"></a>
 ## Introduction
 **FIBERS (Feature Inclusion Bin Evolver for Risk Stratification)** is an evolutionary machine learning algorithm designed for modeling or feature learning in survival analyses. It can be applied to survival datasets (1) with or without right-censoring, and (2) with or without target covariate features that need to be adjusted for. This algorithm is designed for target problems where the 'burden' (i.e. sum) of specific feature values in the dataset may be predictive of a time-to-event outcome (e.g. the burden of certain HLA amino-acid mismatches (between kidney donor and recipient pairs) can be predictive of kidney graft failure time).
 
@@ -13,6 +27,7 @@ A schematic detailing how the FIBERS algorithm works is given below:
 FIBERS currently offers three fitness function options: (1) log-rank fitness, for data without covariates, seeks to maximize the separation between high and low-risk survival curves (2) residuals fitness, for data with covariates, seeks to maximize the difference between deviance residuals between high and low-risk instance groups, and (3) product fitness, for data with covariates, calculates both log-rank and residuals metrics and assignes fitness as the product of both scores. 
 
 ***
+<a id="item-two"></a>
 ## Installation
 scikit-FIBERS can be installed easily via pip, or by cloning this repository. Either way, make sure that you have also installed all prerequisite packages included in requirements.txt prior to running. 
 
@@ -30,6 +45,7 @@ pip install -r requirements.txt
 ```
 
 ***
+<a id="item-three"></a>
 ## Input Data
 scikit-FIBERS takes a pandas dataframe of the target dataset as input (including a header). This dataset can include columns for (1) one or more potentially predictive features (2) a time-to-event outcome, (3) a censoring column (optional), where 0 values indicate that the time-to-event is the censoring time, and 1 values indicate that the time-to-event is the actual observed event time, (4) one or more covariate features (optional) that exclude any perfect correlations among them. 
 
@@ -38,6 +54,7 @@ Note that bins sum the feature values of potentially predictive features to dete
 scikit-FIBERS can also take in a previously trained or manually generated bin population to partially or fully initialize the bin population for training. This bin population is passed as a dataframe of a FIBERS-formatted bin population using the 'manual_bin_init' hyperparameter. This allows users to continue evolving a previously trained bin population for futher iterations, or to use domain/expert knowledge to initialize the evolutionary algorithm with candidate bins. 
 
 ***
+<a id="item-four"></a>
 ## Using scikit-FIBERS
 
 ### Demonstration Notebooks
@@ -79,6 +96,7 @@ tdf.to_csv('my_transformed_dataset_full_sums.csv', index=False)
 ```
 
 ***
+<a id="item-five"></a>
 ## Hyperparameters
 While scikit_FIBERS has a number of available hyperparameters only a few are considered to be essential or useful to check or set. 
 
@@ -128,7 +146,8 @@ While scikit_FIBERS has a number of available hyperparameters only a few are con
 | verbose | Boolean flag to run in 'verbose' mode - display run details | Boolean | False |
 
 ***
-## FIBERS Algorithm History
+<a id="item-six"></a>
+## Algorithm History
 FIBERS was originally based on the [RARE](https://github.com/UrbsLab/RARE) algorithm, an evolutionary algorithm for rare variant binning. (Dasariraju, S. and Urbanowicz, R.J., 2021, July. [RARE: evolutionary feature engineering for rare-variant bin discovery.](https://dl.acm.org/doi/abs/10.1145/3449726.3463174?casa_token=0MRY0eLfZW0AAAAA:PD75rM0SB_V37prY2Ey1CPCu5twUrWMoPn5C6tD9sBRuQy5TJ_TeqhzWwmvp41gbrsPtQerZpPI56A) In Proceedings of the Genetic and Evolutionary Computation Conference Companion (pp. 1335-1343).)
 
 The first implementation of FIBERS was developed within it's own [GitHub repository](https://github.com/UrbsLab/FIBERS), and was applied to an investigation of graft failure in kidney transplantation. (Dasariraju, S., Gragert, L., Wager, G.L., McCullough, K., Brown, N.K., Kamoun, M. and Urbanowicz, R.J., 2023. [HLA amino acid Mismatch-Based risk stratification of kidney allograft failure using a novel Machine learning algorithm.](https://www.sciencedirect.com/science/article/pii/S1532046423000953?casa_token=HP4rI5N9iFkAAAAA:-NgwMAlLUWlvLzzBHU9qz08mv-evC19YxIsFH5RTiGpSiXEd-uBuOkfZbuBShTwstT50vDnIsrM) Journal of Biomedical Informatics, 142, p.104374.)
@@ -140,8 +159,7 @@ scikit-FIBERS was extended with a prototype adaptive burden thresholding using '
 
 Most recently scikit-FIBERS 2.0 was released, as a completely redesigned, refactored and expanded implementation. Expansions include (1) a merge operator, (2) variable mutation rate, (3) improved adaptive burden thresholding, (4) a bin diversity pressure deletion mechanism, (5) fitness options based on deviance residuals to estimate covariate adjustments throughout algorithm training, (6) a bin population cleanup option, and (7) a number of other helpful functions to report/save the underlying bin population and generate various visualizations. A publication on scikit-FIBERS 2.0 is in preparation. 
 
-***
-## FIBERS 2.0 Paper Analysis Notes
+### FIBERS 2.0 Paper Analysis Notes
 The repository contains high-performance-cluster running scripts for different version of FIBERS for the anaysis.
 Specifically this repository compares 3 versions of scikit-FIBERS
 1. FIBERS 1.0: https://github.com/UrbsLab/scikit-FIBERS/tree/gecco_dev / https://github.com/UrbsLab/scikit-FIBERS/releases/tag/v1.0-beta
@@ -149,10 +167,48 @@ Specifically this repository compares 3 versions of scikit-FIBERS
 3. FIBERS 2.0: https://github.com/UrbsLab/scikit-FIBERS/tree/dev / https://github.com/UrbsLab/scikit-FIBERS/releases/tag/v2.0.0
 
 ***
+<a id="item-seven"></a>
+## Citing scikit-FIBERS
+The manuscript for scikit-FIBERS 2.0 is currently in preparation.
+
+If you use scikit-FIBERS in a scientific publication, please consider citing one of the following papers:
+
+Harsh Bandhey, Nolan Fogarty, Yi-An Hsieh, Malek Kamoun, Ryan J. Urbanowicz (2023). [Scikit-FIBERS: An 'OR'-Rule Discovery Evolutionary Algorithm for Risk Stratification in Right-Censored Survival Analyses](https://dl.acm.org/doi/abs/10.1145/3583133.3596393).
+
+BibTeX entry:
+```bibtex
+@inproceedings{urbanowicz2023scikit,
+  title={Scikit-FIBERS: An'OR'-Rule Discovery Evolutionary Algorithm for Risk Stratification in Right-Censored Survival Analyses},
+  author={Urbanowicz, Ryan and Bandhey, Harsh and Kamoun, Malek and Fogarty, Nolan and Hsieh, Yi-An},
+  booktitle={Proceedings of the Companion Conference on Genetic and Evolutionary Computation},
+  pages={1846--1854},
+  year={2023}
+}
+```
+
+Harsh Bandhey, Sphia Sadek, Malek Kamoun, Ryan J. Urbanowicz (2024). [Evolutionary Feature-Binning with Adaptive Burden Thresholding for Biomedical Risk Stratification](https://link.springer.com/chapter/10.1007/978-3-031-56855-8_14).
+
+BibTeX entry:
+```bibtex
+@inproceedings{bandhey2024evolutionary,
+  title={Evolutionary Feature-Binning with Adaptive Burden Thresholding for Biomedical Risk Stratification},
+  author={Bandhey, Harsh and Sadek, Sphia and Kamoun, Malek and Urbanowicz, Ryan},
+  booktitle={International Conference on the Applications of Evolutionary Computation (Part of EvoStar)},
+  pages={225--239},
+  year={2024},
+  organization={Springer}
+}
+```
+
+
+***
+<a id="item-eight"></a>
 ## Contact
 Please email Ryan.Urbanowicz@cshs.org or Harsh.Bandhey@cshs.org for any inquiries related to scikit-FIBERS.
 
+
 ***
+<a id="item-nine"></a>
 ## Acknowledgements
 The development of FIBERS benefited from feedback across multiple biomedical research collaborators at the University of Pennsylvania, Tulane University, and the Arbor Research Collaborative for Health. 
 
