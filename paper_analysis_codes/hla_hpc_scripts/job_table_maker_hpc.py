@@ -134,6 +134,7 @@ def main(argv):
     stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
 
+    """
     # FILTER AND THRESH EXPERIMENTS ***************************************
     #Table - FIBERS2 7 Locus Fit Unfiltered
     table_name = 'Real_7Locus_Unfiltered_FIBERS2_Fit_DP_3'
@@ -177,7 +178,7 @@ def main(argv):
     baseline = 'Fibers2.0_hla_7locus_product_DP3_nofilter_T_10'
     stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
-
+    """
 
 def run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val):
     dataframe_stat_list = []
