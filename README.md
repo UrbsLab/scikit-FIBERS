@@ -1,6 +1,6 @@
 # scikit-FIBERS 2.0
 
-** Table of contents:**
+**Table of contents:**
  - [Introduction](#item-one)
  - [Installation](#item-two)
  - [Input Data](#item-three)
