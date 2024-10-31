@@ -8,9 +8,9 @@ from scipy.stats import ranksums
 class BIN:
     def __init__(self):
         self.feature_list = [] # List of feature names (across which instance values are summed)
-        self.group_threshold = None # Threshold after which an instance is place in the 'above threshold' group - determines group strata of instances
-        self.fitness = None # Bin fitness (higher fitness is better) - proportional to parent selection probability, and inversely proportional to deletion probability
-        self.pre_fitness = None
+        self.group_threshold = None # Threshold after which an instance is placed in the 'above threshold' or high-risk group - determines group strata of instances
+        self.fitness = None # Global bin fitness (higher fitness is better) - proportional to parent selection probability, and inversely proportional to deletion probability
+        self.pre_fitness = None # Core fitness metric (either based on log-rank score, residuals score, or the product of both)
         self.log_rank_score = None  # Log-rank Score
         self.log_rank_p_value = None # p-value of log rank test 
         self.bin_size = None # Number of features included in bin
@@ -18,16 +18,16 @@ class BIN:
         self.count_bt = None # Instance count at/below threshold
         self.count_at = None # Instance count above threshold
         self.birth_iteration = None # Iteration where bin was introduced to population
-        self.deletion_prop = None
-        self.cluster = None
-        self.residuals_score = None
-        self.residuals_p_value = None
-        self.HR = None
-        self.HR_CI = None
-        self.HR_p_value = None
-        self.adj_HR = None
-        self.adj_HR_CI = None
-        self.adj_HR_p_value = None
+        self.deletion_prop = None #Last assigned probability of deletion
+        self.cluster = None #Last assigned bin diversity cluster
+        self.residuals_score = None # Wilcoxon Rank Sum Test score comparing deviance residuals of two risk groups
+        self.residuals_p_value = None # P-value for the Wilcoxon Rank Sum Test compraring deviance residuals of two risk groups
+        self.HR = None # The unadjusted hazard ratio of the bin calculated with CoxPHFitter after algorithm training
+        self.HR_CI = None #The associated unadjusted hazard ratio confidence interval calculated with CoxPHFitter after algorithm training
+        self.HR_p_value = None # The associated unadjusted hazard ratio p-value calculated with CoxPHFitter after algorithm training
+        self.adj_HR = None #The adjusted hazard ratio of the bin calculated with CoxPHFitter after algorithm training
+        self.adj_HR_CI = None #The associated adjusted hazard ratio confidence interval calculated with CoxPHFitter after algorithm training
+        self.adj_HR_p_value = None # The associated adjusted hazard ratio p-value calculated with CoxPHFitter after algorithm training
 
 
     def update_deletion_prop(self,deletion_prop, cluster):
@@ -268,11 +268,8 @@ class BIN:
         # Create list of feature names unique to one list or another
         set1 = set(self.feature_list)
         set2 = set(other_parent.feature_list)
-        #unique_to_list1 = set1 - set2
         unique_to_list2 = set2 - set1
-        #unique_features = list(sorted(unique_to_list1.union(unique_to_list2))) 
         self.feature_list = self.feature_list + list(unique_to_list2)   
-        #self.feature_list = unique_features
         #Enforce maximum bin size
         while len(self.feature_list) > max_bin_size: 
             self.feature_list.remove(random.choice(self.feature_list))

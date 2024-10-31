@@ -113,9 +113,7 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             for i in sorted_indexes:
                 if changed_count < change_count:
                     if int(df.iloc[i][predictive_names].sum()) > threshold+1: 
-                        #print(df[feature_name].sum())
                         df.at[i,feature_name] = 0
-                        
                         changed_count += 1
                     else:
                         no_qualify_count+= 1
@@ -137,7 +135,6 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
             new_sum = df[feature_name].sum() 
             if new_sum != predictive_one_counts[index]:
                 print("Warning: Feature "+str(feature_name)+"'only raised to "+str(new_sum)+" one's count.")
-
 
     # Generate Random Feature Values -------------------------------
     feature_index = predictive_features # Should start from random features
@@ -165,9 +162,6 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
     # Assigning Gaussian according to class
     df_0 = df[df['TrueRiskGroup'] == 0].sample(frac=1).reset_index(drop=True)
     df_1 = df[df['TrueRiskGroup'] == 1].sample(frac=1).reset_index(drop=True)
-    #cutoff = (class0_time_to_event_range[0] + class1_time_to_event_range[0]) / 2.0
-    #df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=cutoff+0.001, a_max=None)
-    #df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=cutoff)
     df_0['Duration'] = np.clip(np.random.normal(class0_time_to_event_range[0], class0_time_to_event_range[1], size=len(df_0)), a_min=0, a_max=None)
     df_1['Duration'] = np.clip(np.random.normal(class1_time_to_event_range[0], class1_time_to_event_range[1], size=len(df_1)), a_min=0, a_max=None)
     df = pd.concat([df_1, df_0])
@@ -191,13 +185,10 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
         columns_to_shuffle = ['TrueRiskGroup','Duration','Censoring']
         for col in columns_to_shuffle:
             df[col] = np.random.permutation(df[col].values)
-
     return df
-
 
 def count_ones(binary):
     return sum(int(bit) for bit in binary)
-
 
 def generate_binary_numbers(predictive_features, threshold):
     high_binary_list = []
@@ -213,9 +204,7 @@ def generate_binary_numbers(predictive_features, threshold):
         else:
             low_binary_list.append(padded_binary)
     print("Unique binary numbers: "+str(unique_count))
-          
     return high_binary_list,low_binary_list
-
 
 def check_parameters(predictive_features, threshold, hr_count, lr_count):
     #calculate number of  P binary combos with 1sum > threshold (high risk)
@@ -234,8 +223,7 @@ def check_parameters(predictive_features, threshold, hr_count, lr_count):
 
     return high_binary_list,low_binary_list
 
-
-def censor(df, censoring_frequency, random_seed=None): # May need simplification!!!!!!!!! Ryan - 3/1/24 (random sampling) - also check random feature MAF 
+def censor(df, censoring_frequency, random_seed=None):  
     df['Censoring'] = 1
     inst_to_censor = int(censoring_frequency * len(df))
     max_duration = max(df['Duration'])
@@ -246,7 +234,6 @@ def censor(df, censoring_frequency, random_seed=None): # May need simplification
         if random_seed:
             np.random.seed(random_seed + count)
         for index in range(len(df)):
-            #prob = 0.5 #df['Duration'].iloc[index] / max_duration
             prob = df['Duration'].iloc[index] / max_duration
             choice = np.random.choice([0, 1], 1, p=[prob, 1 - prob])
             if censor_count >= inst_to_censor:
@@ -257,7 +244,6 @@ def censor(df, censoring_frequency, random_seed=None): # May need simplification
             count += 1
     return df
 
-
 def final_check(df,hr_count,predictive_names,threshold,instances):
     #Final Predictive Feature Check
     lowered_check = 0
@@ -266,18 +252,9 @@ def final_check(df,hr_count,predictive_names,threshold,instances):
             lowered_check += 1
     if lowered_check > 0:
         print("Warning: this many rows lowered too much: "+str(lowered_check))
-
     raised_check = 0
     for i in range(hr_count,instances): #low risk group check
         if df.iloc[i][predictive_names].sum() > threshold:
             raised_check +=1
     if raised_check > 0:
         print("Warning: this many rows raised too much: "+str(raised_check))
-
-"""
-data = survival_data_simulation(instances=10000, total_features=50, predictive_features=10, low_risk_proportion=0.5, threshold = 1, feature_frequency_range=(0.1, 0.3), 
-                         noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), class1_time_to_event_range=(1, 0.2), censoring_frequency=0.5, 
-                         random_seed=None)
-
-data.to_csv('C:/Users/ryanu/Desktop/test_sim_data.csv', index=False)
-"""

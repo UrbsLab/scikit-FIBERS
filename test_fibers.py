@@ -9,7 +9,7 @@ print(current_working_directory)
 data = survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, 
                                 threshold = 1, feature_frequency_range=(0.1, 0.4), noise_frequency=0.0, 
                                 class0_time_to_event_range=(1.5, 0.2), class1_time_to_event_range=(1, 0.2), 
-                                censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4), random_seed=42)
+                                censoring_frequency=0.2, negative_control=False, random_seed=42)
 
 data.to_csv('sampledata.csv', index=False)
 true_risk_group = data[['TrueRiskGroup']]
@@ -35,4 +35,3 @@ print(classification_report(predictions, true_risk_group, digits=8))
 
 predictions = fibers.predict(data)
 print(classification_report(predictions, true_risk_group, digits=8))
-

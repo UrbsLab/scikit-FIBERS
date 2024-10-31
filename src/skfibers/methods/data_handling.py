@@ -22,15 +22,11 @@ def prepare_data(df, outcome_label, censor_label, covariates):
     return df, feature_names
 
 
-def calculate_residuals(df,covariates, feature_names, outcome_label,censor_label, penalizer=0.0001): #Ryan - do we need to handle categorical variables like when calculating Cox PH??
+def calculate_residuals(df,covariates, feature_names, outcome_label,censor_label):
     # Fit a Cox proportional hazards model to the DataFrame
     var_list = covariates+[outcome_label,censor_label]
     logging.info("Fitting COX Model")
-    no_penalizer = True #Hard coded over-ride
-    if covariates == ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','OTHER','FDFR','FDMR','MDFR','MDMR'] and not no_penalizer:
-        cph = CoxPHFitter(penalizer=penalizer)
-    else:
-        cph = CoxPHFitter()
+    cph = CoxPHFitter()
     cph.fit(df.loc[:,var_list], duration_col=outcome_label, event_col=censor_label, show_progress=True)
 
     # Calculate the residuals using the Schoenfeld residuals method
