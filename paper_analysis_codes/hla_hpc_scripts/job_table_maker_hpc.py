@@ -210,6 +210,49 @@ def main(argv):
     run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
 
 
+    #Table - Filtering LogRank Compare
+    table_name = 'Real_LogRank_Filtering'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_nofilter','Fibers2.0_hla_7locus_logrank_DP3']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_nofilter'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - Filtering and THRESH Residuals Compare
+    table_name = 'Real_Residuals_Filtering'
+    variable_element = ['Fibers2.0_hla_7locus_residuals_DP3_nofilter','Fibers2.0_hla_7locus_residuals_DP3']
+    baseline = 'Fibers2.0_hla_7locus_residuals_DP3_nofilter'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - Filtering and THRESH Product Compare
+    table_name = 'Real_Product_Filtering'
+    variable_element = ['Fibers2.0_hla_7locus_product_DP3_nofilter','Fibers2.0_hla_7locus_product_DP3']
+    baseline = 'Fibers2.0_hla_7locus_product_DP3_nofilter'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+
+    #Table - THRESH LogRank Compare
+    table_name = 'Real_LogRank_Thresh'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_T_10','Fibers2.0_hla_7locus_logrank_DP3']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_T_10'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - THRESH Residuals Compare
+    table_name = 'Real_Residuals_Thresh'
+    variable_element = ['Fibers2.0_hla_7locus_residuals_DP3_T_10','Fibers2.0_hla_7locus_residuals_DP3']
+    baseline = 'Fibers2.0_hla_7locus_residuals_DP3_T_10'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - THRESH Product Compare
+    table_name = 'Real_Product_Thresh'
+    variable_element = ['Fibers2.0_hla_7locus_product_DP3_T_10','Fibers2.0_hla_7locus_product_DP3']
+    baseline = 'Fibers2.0_hla_7locus_product_DP3_T_10'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
 
 def run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val):
     dataframe_stat_list = []
