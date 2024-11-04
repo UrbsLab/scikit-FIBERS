@@ -180,6 +180,36 @@ def main(argv):
     run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
 
 
+    # No Ag MM experiment ***************************************
+    #Table - FIBERS2 7 Locus Fit No AgMM
+    table_name = 'Real_7Locus_FIBERS2_Fit_DP_3_NoAgMM'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_NoAg','Fibers2.0_hla_7locus_residuals_DP3_NoAg','Fibers2.0_hla_7locus_product_DP3_NoAg']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_NoAg'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - NoAgMM LogRank Compare
+    table_name = 'Real_LogRank_NoAg'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_NoAg','Fibers2.0_hla_7locus_logrank_DP3']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_NoAg'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - NoAgMM Residuals Compare
+    table_name = 'Real_Residuals_NoAg'
+    variable_element = ['Fibers2.0_hla_7locus_residuals_DP3_NoAg','Fibers2.0_hla_7locus_residuals_DP3']
+    baseline = 'Fibers2.0_hla_7locus_residuals_DP3_NoAg'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    #Table - NoAgMM Product Compare
+    table_name = 'Real_Product_NoAg'
+    variable_element = ['Fibers2.0_hla_7locus_product_DP3_NoAg','Fibers2.0_hla_7locus_product_DP3']
+    baseline = 'Fibers2.0_hla_7locus_product_DP3_NoAg'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+
 
 def run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val):
     dataframe_stat_list = []
