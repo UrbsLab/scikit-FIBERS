@@ -253,6 +253,20 @@ def main(argv):
     stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
     run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
 
+    # Reach experiment ***************************************
+    table_name = 'Real_LogRank_Reach'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP5_nofilter_T_20','Fibers2.0_hla_7locus_logrank_DP3_nofilter_T_10','Fibers2.0_hla_7locus_logrank_DP3_nofilter']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP5_nofilter_T_20'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
+    # Followup NoAgMM LogRank Compare
+    table_name = 'Real_LogRank_Unfiltered_NoAg'
+    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_NoAg_nofilter','Fibers2.0_hla_7locus_logrank_DP3_nofilter']
+    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_NoAg_nofilter'
+    stat_list_columns = ['Variable Element','Adjusted HR','Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
+    run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
+
 
 def run_analysis(writepath,outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val):
     dataframe_stat_list = []
