@@ -149,7 +149,7 @@ def main(argv):
     print(covariates) #temporary
 
     # Get Dataset Name
-    data_full_train = datafolder+'train_fold_'+str(cv)+'.csv'
+    data_full_train = datafolder+'/train_fold_'+str(cv)+'.csv'
 
     #Load/Process Dataset
     train_data = pd.read_csv(data_full_train)
@@ -217,7 +217,7 @@ def main(argv):
         pass
 
     # Get Dataset Name
-    data_full_test = datafolder+'test_fold_'+str(cv)+'.csv'
+    data_full_test = datafolder+'/test_fold_'+str(cv)+'.csv'
     #Load/Process Dataset
     original_test_data = pd.read_csv(data_full_test)
     test_data = original_test_data[train_data.columns]
