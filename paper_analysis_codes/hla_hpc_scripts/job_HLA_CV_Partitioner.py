@@ -9,7 +9,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description='')
     #Script Parameters
     parser.add_argument('--d', dest='datafile', help='name of data file (REQUIRED)', type=str, default = 'myData') #output folder name
-    parser.add_argument('--o', dest='outputpath', help='directory path to write output (default=CWD)', type=str, default = 'myOutput') #full path/filename
+    parser.add_argument('--o', dest='outputfolder', help='directory path to write output (default=CWD)', type=str, default = 'myOutput') #full path/filename
     options=parser.parse_args(argv[1:])
 
     datafile= options.datafile
