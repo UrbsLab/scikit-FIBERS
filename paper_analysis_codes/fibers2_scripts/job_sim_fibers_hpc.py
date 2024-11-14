@@ -126,11 +126,12 @@ def main(argv):
 
     fibers = fibers.fit(data)
     bin_index = 0 #top bin
+    y = None
     try:
-        summary = fibers.get_cox_prop_hazard_unadjust(data, bin_index)
+        summary = fibers.get_cox_prop_hazard_unadjust(data, y, bin_index)
         summary.to_csv(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_unadj_bin_'+str(bin_index)+'.csv', index=True)
         if covariates != None:
-            summary = fibers.get_cox_prop_hazard_adjusted(data, bin_index)
+            summary = fibers.get_cox_prop_hazard_adjusted(data, y, bin_index)
             summary.to_csv(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_coxph_adj_bin_'+str(bin_index)+'.csv', index=True)
     except:
         pass
