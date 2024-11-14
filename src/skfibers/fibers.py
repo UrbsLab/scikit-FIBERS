@@ -619,7 +619,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         return low_outcome, high_outcome, low_censor, high_censor
     
 
-    def get_cox_prop_hazard_unadjust(self,x, y=None, bin_index=0, use_bin_sums=False):
+    def get_cox_prop_hazard_unadjust(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
         
@@ -639,7 +639,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         summary = None
 
         try:
-            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label,show_progress)
             self.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
             self.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
             self.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
@@ -652,7 +652,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         return summary
 
 
-    def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False):
+    def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
 
@@ -672,7 +672,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         summary = None
         try:
             bin_df = pd.concat([bin_df,df.loc[:,self.covariates]],axis=1)
-            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label,show_progress)
             self.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
             self.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
             self.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
