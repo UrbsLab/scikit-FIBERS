@@ -207,11 +207,14 @@ def main(argv):
 
     fibers = fibers.fit(train_data)
     bin_index = 0 #top bin
+    y = None
+    use_bin_sums = False
+    show_progress = True
 
-    summary = fibers.get_cox_prop_hazard_unadjust(train_data, bin_index, True)
+    summary = fibers.get_cox_prop_hazard_unadjust(train_data, y, bin_index, use_bin_sums, show_progress)
     summary.to_csv(outputpath+'/'+str(cv)+'_coxph_unadj_bin_train_'+str(bin_index)+'.csv', index=True)
     if covariates != None:
-        summary = fibers.get_cox_prop_hazard_adjusted(train_data, bin_index, True)
+        summary = fibers.get_cox_prop_hazard_adjusted(train_data, y, bin_index, use_bin_sums, show_progress)
         summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_train_'+str(bin_index)+'.csv', index=True)
 
     #Kaplan Meir Plot
@@ -223,10 +226,10 @@ def main(argv):
     original_test_data = pd.read_csv(data_full_test)
     test_data = original_test_data[train_data.columns]
 
-    summary = fibers.get_cox_prop_hazard_unadjust(test_data, bin_index, True)
+    summary = fibers.get_cox_prop_hazard_unadjust(test_data, y, bin_index, use_bin_sums, show_progress)
     summary.to_csv(outputpath+'/'+str(cv)+'_coxph_unadj_bin_test_'+str(bin_index)+'.csv', index=True)
     if covariates != None:
-        summary = fibers.get_cox_prop_hazard_adjusted(test_data, bin_index, True)
+        summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress)
         summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
 
     #Kaplan Meir Plot
