@@ -216,6 +216,10 @@ def main(argv):
     except:
         pass
 
+    #Save bin population as csv
+    pop_df = fibers.get_pop()
+    pop_df.to_csv(outputpath+'/'+str(cv)+'_pop'+'.csv', index=False)
+
     # Get Dataset Name
     data_full_test = datafolder+'/test_fold_'+str(cv)+'.csv'
     #Load/Process Dataset
@@ -230,9 +234,6 @@ def main(argv):
             summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
     except:
         pass
-    #Save bin population as csv
-    pop_df = fibers.get_pop()
-    pop_df.to_csv(outputpath+'/'+str(cv)+'_pop'+'.csv', index=False)
 
     #Kaplan Meir Plot
     fibers.get_kaplan_meir(train_data,bin_index,save=True,show=False, output_folder=outputpath,data_name=str(cv)+'_train')

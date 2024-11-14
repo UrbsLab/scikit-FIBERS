@@ -97,6 +97,7 @@ def plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=True,
         plt.savefig(output_folder+'/'+data_name+'_km.png', bbox_inches="tight")
     if show:
         plt.show()
+    plt.clf()
 
 
 def plot_fitness_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
