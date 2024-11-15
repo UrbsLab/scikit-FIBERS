@@ -310,12 +310,24 @@ python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp
 
 #FULL
 python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_CV --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_logrank_DP3_nofilter --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 6 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_CV --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_logrank_DP3_NoAg_nofilter --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 6 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 
 
 
+### Experiment 43: Filter - DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (product, DP = 3)
 python run_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/harsh_new_imp/NewImp_9.csv --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o /project/kamoun_shared/data_shared/harsh_new_imp_CV_filtered --rc LSF --rm 16 --q i2c2_normal
-
 #FULL
 python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_CV_filtered --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_CV_filtered --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+
+
+### Experiment 44: Filter - DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (residuals, DP = 3)
+python run_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/harsh_new_imp/NewImp_1.csv --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o /project/kamoun_shared/data_shared/harsh_new_imp_1_CV --rc LSF --rm 16 --q i2c2_normal
+#FULL
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_residuals_DP3 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 5 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_residuals_DP3_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 5 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345
+
+
+python run_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/harsh_new_imp/NewImp_7.csv --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o /project/kamoun_shared/data_shared/harsh_new_imp_7_CV --rc LSF --rm 16 --q i2c2_normal
 
 
 
