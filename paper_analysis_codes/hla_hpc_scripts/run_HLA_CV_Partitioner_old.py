@@ -10,7 +10,6 @@ def main(argv):
     parser.add_argument('--d', dest='datafile', help='name of data file (REQUIRED)', type=str, default = 'myData') #output folder name
     parser.add_argument('--w', dest='writepath', help='', type=str, default = 'myWritePath') #full path/filename
     parser.add_argument('--o', dest='outputfolder', help='directory path to write output (default=CWD)', type=str, default = 'myOutput') #full path/filename
-    parser.add_argument('--cv', dest='partitions', help='number of cv partitions', type=int, default= 10)
     parser.add_argument('--rc', dest='run_cluster', help='cluster type', type=str, default='LSF')
     parser.add_argument('--rm', dest='reserved_memory', help='reserved memory for job', type=int, default= 4)
     parser.add_argument('--q', dest='queue', help='cluster queue name', type=str, default= 'i2c2_normal')
@@ -19,12 +18,10 @@ def main(argv):
     datafile= options.datafile
     writepath = options.writepath
     outputfolder = options.outputfolder
-    partitions = options.partitions
     run_cluster = options.run_cluster
     reserved_memory = options.reserved_memory
     queue = options.queue    
 
-    outputfolder = outputfolder+'_'+str(partitions)
     #Main Write Path-----------------
     if not os.path.exists(writepath):
         os.mkdir(writepath)  
@@ -41,15 +38,15 @@ def main(argv):
         os.mkdir(logPath) 
 
     if run_cluster == 'LSF':
-        submit_lsf_cluster_job(datafile,outputfolder,logPath,scratchPath,reserved_memory,queue,partitions)
+        submit_lsf_cluster_job(datafile,outputfolder, logPath,scratchPath,reserved_memory,queue)
     elif run_cluster == 'SLURM':
-        submit_slurm_cluster_job(datafile,outputfolder,logPath,scratchPath,reserved_memory,queue,partitions)
+        submit_slurm_cluster_job(datafile,outputfolder, logPath,scratchPath,reserved_memory,queue)
     else:
         print('ERROR: Cluster type not found')
     print(str(1)+' jobs submitted successfully')
 
 #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
-def submit_slurm_cluster_job(datafile,outputfolder,logPath,scratchPath,reserved_memory,queue,partitions): 
+def submit_slurm_cluster_job(datafile,outputfolder,logPath,scratchPath,reserved_memory,queue): 
     job_ref = str(time.time())
     job_name = 'DataCV_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -67,7 +64,7 @@ def submit_slurm_cluster_job(datafile,outputfolder,logPath,scratchPath,reserved_
 
 
 #UPENN - Legacy mode (using shell file) - memory on head node
-def submit_lsf_cluster_job(datafile,outputfolder,logPath,scratchPath,reserved_memory,queue,partitions): 
+def submit_lsf_cluster_job(datafile,outputfolder,logPath,scratchPath,reserved_memory,queue): 
     job_ref = str(time.time())
     job_name = 'DataCV_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'

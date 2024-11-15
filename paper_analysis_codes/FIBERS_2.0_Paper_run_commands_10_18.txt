@@ -300,10 +300,15 @@ python run_master_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/harsh
 
 python run_table_maker_hpc.py --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --re 10 --o REAL_Tables
 
-# CROSS VALIDATION ANALYSIS
+
+# CROSS VALIDATION ANALYSIS -------------------------------------------------------------------------------------------------
+
+#CREATE CV DATASETS -------------------
+python run_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/harsh_new_imp/NewImp_1.csv --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o /project/kamoun_shared/data_shared/harsh_new_imp_1_CV --rc LSF --rm 16 --q i2c2_normal --cv 10
+
+
 
 python run_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/harsh_new_imp/NewImp_8.csv --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real/ --o /project/kamoun_shared/data_shared/harsh_new_imp_CV --rc LSF --rm 16 --q i2c2_normal
-
 ### Experiment 42: No Filter - DRB1, DQA1, DQB1, DRB345 + A, B, C - Ag Covariates adjusted (log rank, DP = 3)
 #TEST
 python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_CV --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV_Test/ --o hla_7locus_logrank_DP3_nofilter --i 50 --ps 50 --rc LSF --rm 16 --q i2c2_normal --r 6 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
