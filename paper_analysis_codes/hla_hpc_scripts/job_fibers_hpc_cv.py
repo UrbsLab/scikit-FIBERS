@@ -254,10 +254,10 @@ def main(argv):
             summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress)
             summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
         except:
-            test_data = test_data.drop(columns=['PKPRA_MS'])
+            test_data_new = test_data.drop(columns=['PKPRA_MS'])
             temp_covariates = covariates[:]
             temp_covariates.remove('PKPRA_MS')
-            summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress,temp_covariates)
+            summary = fibers.get_cox_prop_hazard_adjusted(test_data_new, y, bin_index, use_bin_sums, show_progress,temp_covariates)
             summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
 
         if final_covariates != covariates:
@@ -266,10 +266,10 @@ def main(argv):
                 summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress, covariates)
                 summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'_NoAg.csv', index=True)
             except:
-                test_data = test_data.drop(columns=['PKPRA_MS'])
+                test_data_new = test_data.drop(columns=['PKPRA_MS'])
                 temp_covariates = covariates[:]
                 temp_covariates.remove('PKPRA_MS')
-                summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress, temp_covariates)
+                summary = fibers.get_cox_prop_hazard_adjusted(test_data_new, y, bin_index, use_bin_sums, show_progress, temp_covariates)
                 summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'_NoAg.csv', index=True)
 
     #Save bin population as csv
