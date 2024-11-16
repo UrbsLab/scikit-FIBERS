@@ -141,12 +141,14 @@ def main(argv):
         'DPB1':  [6,94]}
     
     final_covariates = covariates[:]
+    Ag_covariates = []
     #Create Final Covariate List
     if cov_list != None:
         for covariate in cov_list:
             cov_sub_list = cov_typ_dict[covariate]
             for each in cov_sub_list:
                 final_covariates.append(each) #add selected Ag covariate to primary covariates
+                Ag_covariates.append(each)
     print(final_covariates) #temporary
 
     # Get Dataset Name
@@ -228,8 +230,7 @@ def main(argv):
         summary = fibers.get_cox_prop_hazard_adjusted(train_data, y, bin_index, use_bin_sums, show_progress)
         summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_train_'+str(bin_index)+'.csv', index=True)
         if final_covariates != covariates:
-            features = MM_feature_list + covariates + [outcome_label] + [censor_label]
-            train_data = train_data[features]
+            train_data = train_data.drop(columns=Ag_covariates)
             summary = fibers.get_cox_prop_hazard_adjusted(train_data, y, bin_index, use_bin_sums, show_progress, covariates)
             summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_train_'+str(bin_index)+'_NoAg.csv', index=True)
 
@@ -249,13 +250,27 @@ def main(argv):
     fibers.get_kaplan_meir(test_data,bin_index,save=True,show=False, output_folder=outputpath,data_name=str(cv)+'_test')
 
     if final_covariates != None:
-        summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress)
-        summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
+        try:
+            summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress)
+            summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
+        except:
+            test_data = test_data.drop(columns=['PKPRA_MS'])
+            temp_covariates = covariates[:]
+            temp_covariates.remove('PKPRA_MS')
+            summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress,temp_covariates)
+            summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
+
         if final_covariates != covariates:
-            features = MM_feature_list + covariates + [outcome_label] + [censor_label]
-            test_data = test_data[features]
-            summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress, covariates)
-            summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'_NoAg.csv', index=True)
+            test_data = test_data.drop(columns=Ag_covariates)
+            try:
+                summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress, covariates)
+                summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'_NoAg.csv', index=True)
+            except:
+                test_data = test_data.drop(columns=['PKPRA_MS'])
+                temp_covariates = covariates[:]
+                temp_covariates.remove('PKPRA_MS')
+                summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress, temp_covariates)
+                summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'_NoAg.csv', index=True)
 
     #Save bin population as csv
     pop_df = fibers.get_pop()
