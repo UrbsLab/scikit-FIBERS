@@ -14,7 +14,7 @@ def main(argv):
     parser.add_argument('--rc', dest='run_cluster', help='cluster type', type=str, default='LSF')
     parser.add_argument('--rm', dest='reserved_memory', help='reserved memory for job', type=int, default= 4)
     parser.add_argument('--q', dest='queue', help='cluster queue name', type=str, default= 'i2c2_normal')
-    parser.add_argument('--cv', dest='cv', help='number of cv partitions', type=int, default= 10)
+    parser.add_argument('--cv', dest='cv', help='number of cv partitions', type=int, default= 3)
     parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1')
     parser.add_argument('--cov-list', dest='cov_list', help='loci covariates to include',type=str, default= 'None')
     parser.add_argument('--ra', dest='rare_filter', help='rare frequency used for data cleaning', type=float, default=0)

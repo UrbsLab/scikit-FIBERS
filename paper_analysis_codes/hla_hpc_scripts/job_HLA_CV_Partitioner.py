@@ -26,12 +26,12 @@ def save_fold(train_data, test_data, fold_idx, output_folder,file_name):
     #os.makedirs(output_folder, exist_ok=True)
 
     # Save training data
-    train_file = output_folder+'/'+str(file_name)+'_Train_CV_'+str(fold_idx)+'.csv'
+    train_file = output_folder+'/'+str(file_name)+'_CV_'+str(fold_idx)+'_Train.csv'
     #train_file = os.path.join(output_folder, f'train_fold_{fold_idx}.csv')
     train_data.to_csv(train_file, index=False)
     
     # Save testing data
-    test_file = output_folder+'/'+str(file_name)+'_Test_CV_'+str(fold_idx)+'.csv'
+    test_file = output_folder+'/'+str(file_name)+'_CV_'+str(fold_idx)+'_Test.csv'
     #test_file = os.path.join(output_folder, f'test_fold_{fold_idx}.csv')
     test_data.to_csv(test_file, index=False)
 
@@ -42,7 +42,7 @@ def load_and_split_dataset(csv_file,output_folder,partitions):
     # Load the dataset
     data = pd.read_csv(csv_file)
 
-    # Set up 3-fold cross-validation
+    # Set up cross-validation
     kf = KFold(n_splits=partitions, shuffle=True, random_state=42)
     
     # Loop over the splits

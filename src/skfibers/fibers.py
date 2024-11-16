@@ -652,13 +652,18 @@ class FIBERS(BaseEstimator, TransformerMixin):
         return summary
 
 
-    def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False):
+    def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False, new_covariates=None):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
 
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
-        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+        if new_covariates != None:
+            used_covariates = new_covariates
+        else:
+            used_covariates = self.covariates
+
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,used_covariates)
 
         # Sum instance values across features specified in the bin
         feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
@@ -671,7 +676,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
         summary = None
         try:
-            bin_df = pd.concat([bin_df,df.loc[:,self.covariates]],axis=1)
+            bin_df = pd.concat([bin_df,df.loc[:,used_covariates]],axis=1)
             summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label,show_progress)
             self.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
             self.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])

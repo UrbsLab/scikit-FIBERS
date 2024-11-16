@@ -140,23 +140,16 @@ def main(argv):
         'DPA1':  [6,94],
         'DPB1':  [6,94]}
     
-    final_covariates = covariates[:]
     #Create Final Covariate List
     if cov_list != None:
         for covariate in cov_list:
             cov_sub_list = cov_typ_dict[covariate]
             for each in cov_sub_list:
-                final_covariates.append(each) #add selected Ag covariate to primary covariates
-    print(final_covariates) #temporary
+                covariates.append(each) #add selected Ag covariate to primary covariates
+    print(covariates) #temporary
 
     # Get Dataset Name
-    files = [f for f in os.listdir(datafolder) if os.path.isfile(os.path.join(datafolder, f))]
-    filename = os.path.splitext(files[0])[0]
-    nameparts = filename.split('_')
-    filename = '_'.join(nameparts[:3])
-
-    # Get Dataset Name
-    data_full_train = datafolder+'/'+filename+ '_'+str(cv)+'_Train.csv'
+    data_full_train = datafolder+'/train_fold_'+str(cv)+'.csv'
 
     #Load/Process Dataset
     train_data = pd.read_csv(data_full_train)
@@ -167,7 +160,7 @@ def main(argv):
         for j in range(locus_range_dict[locus][0],locus_range_dict[locus][1]+1):
             MM_feature_list.append('MM_'+str(locus)+'_'+str(j))
 
-    features = MM_feature_list + final_covariates + [outcome_label] + [censor_label]
+    features = MM_feature_list + covariates + [outcome_label] + [censor_label]
     print(features) #temporary
     train_data = train_data[features]
 
@@ -209,7 +202,7 @@ def main(argv):
                     new_gen=new_gen, elitism=elitism, diversity_pressure=diversity_pressure, min_bin_size=min_bin_size, max_bin_size=max_bin_size,
                     max_bin_init_size=max_bin_init_size, fitness_metric=fitness_metric, log_rank_weighting=log_rank_weighting, censor_label=censor_label, 
                     group_strata_min=group_strata_min, penalty=penalty, group_thresh=group_thresh, min_thresh=min_thresh, max_thresh=max_thresh,
-                    int_thresh=True, thresh_evolve_prob=thresh_evolve_prob, manual_bin_init=manual_bin_init, covariates=final_covariates, pop_clean=pop_clean,  
+                    int_thresh=True, thresh_evolve_prob=thresh_evolve_prob, manual_bin_init=manual_bin_init, covariates=covariates, pop_clean=pop_clean,  
                     report=None, random_seed=random_seed, verbose=False)
 
     fibers = fibers.fit(train_data)
@@ -220,42 +213,27 @@ def main(argv):
 
     summary = fibers.get_cox_prop_hazard_unadjust(train_data, y, bin_index, use_bin_sums, show_progress)
     summary.to_csv(outputpath+'/'+str(cv)+'_coxph_unadj_bin_train_'+str(bin_index)+'.csv', index=True)
+    if covariates != None:
+        summary = fibers.get_cox_prop_hazard_adjusted(train_data, y, bin_index, use_bin_sums, show_progress)
+        summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_train_'+str(bin_index)+'.csv', index=True)
 
     #Kaplan Meir Plot
     fibers.get_kaplan_meir(train_data,bin_index,save=True,show=False, output_folder=outputpath,data_name=str(cv)+'_train')
 
-    if final_covariates != None:
-        summary = fibers.get_cox_prop_hazard_adjusted(train_data, y, bin_index, use_bin_sums, show_progress)
-        summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_train_'+str(bin_index)+'.csv', index=True)
-        if final_covariates != covariates:
-            features = MM_feature_list + covariates + [outcome_label] + [censor_label]
-            train_data = train_data[features]
-            summary = fibers.get_cox_prop_hazard_adjusted(train_data, y, bin_index, use_bin_sums, show_progress, covariates)
-            summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_train_'+str(bin_index)+'_NoAg.csv', index=True)
-
-
-
     # Get Dataset Name
-    data_full_test = datafolder+'/'+filename+ '_'+str(cv)+'_Test.csv'
+    data_full_test = datafolder+'/test_fold_'+str(cv)+'.csv'
     #Load/Process Dataset
     original_test_data = pd.read_csv(data_full_test)
-    features = MM_feature_list + final_covariates + [outcome_label] + [censor_label]
-    test_data = original_test_data[features]
+    test_data = original_test_data[train_data.columns]
 
     summary = fibers.get_cox_prop_hazard_unadjust(test_data, y, bin_index, use_bin_sums, show_progress)
     summary.to_csv(outputpath+'/'+str(cv)+'_coxph_unadj_bin_test_'+str(bin_index)+'.csv', index=True)
+    if covariates != None:
+        summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress)
+        summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
 
     #Kaplan Meir Plot
     fibers.get_kaplan_meir(test_data,bin_index,save=True,show=False, output_folder=outputpath,data_name=str(cv)+'_test')
-
-    if final_covariates != None:
-        summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress)
-        summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'.csv', index=True)
-        if final_covariates != covariates:
-            features = MM_feature_list + covariates + [outcome_label] + [censor_label]
-            test_data = test_data[features]
-            summary = fibers.get_cox_prop_hazard_adjusted(test_data, y, bin_index, use_bin_sums, show_progress, covariates)
-            summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'_NoAg.csv', index=True)
 
     #Save bin population as csv
     pop_df = fibers.get_pop()
