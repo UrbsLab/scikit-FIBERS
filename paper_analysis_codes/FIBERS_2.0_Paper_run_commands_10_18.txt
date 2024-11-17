@@ -336,6 +336,47 @@ python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp
 python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3_nofilter_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t None --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 
 
 
+### Experiment 48: 7 loci - Filtered (log rank, DP = 3, Thresh = 0) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_logrank_DP3_T0 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+
+### Experiment 49: 7 loci - Filtered (residuals, DP = 3, Thresh = 0) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_residuals_DP3_T0 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_residuals_DP3_T0_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 
+
+### Experiment 50: 7 loci - Filtered (product, DP = 3, Thresh = 0) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3_T0 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3_T0_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 
+
+
+### Experiment 51: 7 loci - UnFiltered (log rank, DP = 3, Thresh = 0) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_logrank_DP3_T0_nofilter --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+
+### Experiment 52: 7 loci - UnFiltered (residuals, DP = 3, Thresh = 0) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_residuals_DP3_T0_nofilter --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_residuals_DP3_T0_nofilter_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 
+
+### Experiment 53: 7 loci - UnFiltered (product, DP = 3, Thresh = 0) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3_T0_nofilter --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3_T0_nofilter_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.0 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t 0 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 
+
+
+### Experiment 54: 7 loci - Filtered (log rank, DP = 3, Thresh = 0, maxbin= 10) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_logrank_DP3_T0_B10 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank --t 0 --at 5 --ba 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+
+### Experiment 55: 7 loci - Filtered (residuals, DP = 3, Thresh = 0, maxbin= 10) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_residuals_DP3_T0_B10 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t 0 --at 5 --ba 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_residuals_DP3_T0_B10_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f residuals --t 0 --at 5 --ba 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 
+
+### Experiment 56: 7 loci - Filtered (product, DP = 3, Thresh = 0, maxbin= 10) (with and without AgMM covariates)
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3_T0_B10 --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t 0 --at 5 --ba 10 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 --cov-list A,B,C,DRB1,DQA1,DQB1
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --w /project/kamoun_shared/output_shared/FIBERS2_Paper_Real_CV/ --o hla_7locus_product_DP3_T0_B10_NoAg --i 500 --ps 200 --rc LSF --rm 16 --q i2c2_normal --r 0 --ra 0.1 --ol graftyrs --c grf_fail --ma 0.3 --dp 3 --f log_rank_residuals --t 0 --ba 10 --at 5 --cl group_strata --loci-list A,B,C,DRB1,DQA1,DQB1,DRB345 
+
+
+
+
+
+
+
 #CV FIBERS 2.0 RUNS (NoAT and limited bin size?) ----------------------- (using random_seed = 0 for simplicity)
 
 #CV FIBERS 1.0 RUNS ----------------------- (using random_seed = 0 for simplicity)
