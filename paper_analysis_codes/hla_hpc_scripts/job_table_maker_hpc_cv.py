@@ -239,7 +239,7 @@ def main(argv):
 
     #Table - FIBERS2 _product_DP3_T0_nofilter_NoAg
     table_name = 'Real_7Locus_FIBERS2_product_DP3_T0_nofilter_NoAg'
-    variable_element = ['Fibers2.0_hla_7locus_product_DP3_B5_nofilter','Fibers2.0_hla_7locus_product_DP3_T0_nofilter_NoAg']
+    variable_element = ['Fibers2.0_hla_7locus_product_DP3_T0_nofilter','Fibers2.0_hla_7locus_product_DP3_T0_nofilter_NoAg']
     baseline = 'Fibers2.0_hla_7locus_product_DP3_T0_nofilter'
     stat_list_columns = ['Variable Element','Test Adjusted HR','Test NoAg Adjusted HR','Test Unadjusted HR','Train Adjusted HR','Train NoAg Adjusted HR','Train Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
     run_analysis(outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
