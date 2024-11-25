@@ -360,7 +360,7 @@ def main(argv):
 
     #Table - FIBERS2 _product_DP3_T0_NoAg
     table_name = 'Real_7Locus_FIBERS2_product_DP3_T0_NoAg'
-    variable_element = ['Fibers2.0_hla_7locus_product_DP3_B5','Fibers2.0_hla_7locus_product_DP3_T0_NoAg']
+    variable_element = ['Fibers2.0_hla_7locus_product_DP3_T0','Fibers2.0_hla_7locus_product_DP3_T0_NoAg']
     baseline = 'Fibers2.0_hla_7locus_product_DP3_T0'
     stat_list_columns = ['Variable Element','Test Adjusted HR','Test NoAg Adjusted HR','Test Unadjusted HR','Train Adjusted HR','Train NoAg Adjusted HR','Train Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
     run_analysis(outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
@@ -397,12 +397,6 @@ def main(argv):
 
 
     #NoAg FILTERED COMPARE CONFIGS ****************************************
-    #Table - FIBERS2 log-rank compare filtered NoAg
-    table_name = 'Real_7Locus_FIBERS2_logrank_NoAg'
-    variable_element = ['Fibers2.0_hla_7locus_logrank_DP3_NoAg','Fibers2.0_hla_7locus_logrank_DP3_B10_NoAg','Fibers2.0_hla_7locus_logrank_DP3_B5_NoAg','Fibers2.0_hla_7locus_logrank_DP3_T0_NoAg','Fibers2.0_hla_7locus_logrank_DP3_T0_B10_NoAg','Fibers2.0_hla_7locus_logrank_DP3_T0_B5_NoAg']
-    baseline = 'Fibers2.0_hla_7locus_logrank_DP3_NoAg'
-    stat_list_columns = ['Variable Element','Test Adjusted HR','Test NoAg Adjusted HR','Test Unadjusted HR','Train Adjusted HR','Train NoAg Adjusted HR','Train Unadjusted HR','Log-Rank Score','Residuals','Threshold','Group Ratio','Low Risk','High Risk','Bin Size','Birth Iteration','Runtime']
-    run_analysis(outputpath,significance_metrics,table_name,variable_element,baseline,stat_list_columns,p_val)
 
     #Table - FIBERS2 residuals compare filtered NoAg
     table_name = 'Real_7Locus_FIBERS2_residuals_NoAg'
