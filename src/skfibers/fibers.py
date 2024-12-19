@@ -28,8 +28,8 @@ from tqdm import tqdm
 class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=100,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
                  max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=0,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
-                 log_rank_weighting=None, sharing_penalization=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=0,min_thresh=0,max_thresh=5, 
-                 int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,naive_survival_optimization=True, pop_clean=None,report=None,random_seed=None,verbose=False):
+                 log_rank_weighting=None, sharing_penalization=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh_list=[4, 5],min_thresh=0,max_thresh=5, 
+                 int_thresh=True,thresh_evolve_prob=0.5,multi_thresholding = True, manual_bin_init=None,covariates=None,naive_survival_optimization=False, pop_clean=None,report=None,random_seed=None,verbose=False):
 
         """
         A Scikit-Learn compatible implementation of the FIBERS Algorithm.
@@ -157,9 +157,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if penalty < 0 or penalty > 1:
             raise Exception("'penalty' param must be an int or float from 0 - 1")
 
-        if not self.check_is_int(group_thresh) and not self.check_is_float(group_thresh) and group_thresh != None:
+        if group_thresh_list is not None and ((not self.check_is_int(group_thresh_list[0]) and not self.check_is_float(group_thresh_list[0])) or 
+            (not self.check_is_int(group_thresh_list[1]) and not self.check_is_float(group_thresh_list[1]))):
             raise Exception("'group_thresh' param must be a non-negative int or float, or None, for adaptive thresholding")
-        if group_thresh != None and group_thresh < 0: 
+        if group_thresh_list is not None and (group_thresh_list[0] < 0 or group_thresh_list[1] < 0): 
             raise Exception("'group_thresh' param must be a non-negative int or float, or None, for adaptive thresholding")
         
         if not self.check_is_int(min_thresh) and not self.check_is_float(min_thresh) or min_thresh < 0:
@@ -183,6 +184,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not self.check_is_list(covariates) and not covariates == None:
             raise Exception("'covariates' param must be either None or a list of feature names")
+        
+        if not multi_thresholding == True and not multi_thresholding == False and not multi_thresholding == 'True' and not multi_thresholding == 'False':
+            raise Exception("'multi_thresholding' param must be a boolean, i.e. True or False")
 
         if pop_clean!= None and pop_clean !="group_strata":
             raise Exception("'pop_clean' param can only have values of None or 'group_strata'")
@@ -218,10 +222,11 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.censor_label = censor_label
         self.group_strata_min = group_strata_min
         self.penalty = penalty
-        self.group_thresh = group_thresh
+        self.group_thresh_list = group_thresh_list
         self.min_thresh = min_thresh 
         self.max_thresh = max_thresh 
         self.int_thresh = int_thresh
+        self.multi_thresholding = multi_thresholding
         self.thresh_evolve_prob = thresh_evolve_prob
         self.manual_bin_init = manual_bin_init
         self.covariates = covariates
@@ -332,8 +337,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         #Initialize bin population
         threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
         self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
-                           self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
-                           self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
+                           self.min_bin_size,self.max_bin_init_size,self.group_thresh_list,self.min_thresh,self.max_thresh,
+                           self.int_thresh,self.multi_thresholding,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
                            self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates, self.naive_survival_optimization, random)
         #Global fitness update
 
@@ -352,7 +357,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         #EVOLUTIONARY LEARNING ITERATIONS
         for iteration in tqdm(range(1, self.iterations+ 1)):
             # print('Iteration: '+str(iteration))
-            if self.group_thresh == None:
+            if self.group_thresh_list == None:
                 evolve = random.random()
                 if self.thresh_evolve_prob > evolve:
                     threshold_evolving = True
@@ -370,9 +375,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
                 # Generate Offspring - clone, crossover, mutation, evaluation, add to population
                 self.set.generate_offspring(self.crossover_prob,mutation_prob,self.merge_prob,self.iterations,iteration,parent_list,self.feature_names,
-                                            threshold_evolving,self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
+                                            threshold_evolving,self.multi_thresholding,self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
                                             self.df,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
-                                            self.group_thresh,self.group_strata_min,self.penalty,self.residuals,self.covariates, self.naive_survival_optimization, random)
+                                            self.group_thresh_list,self.group_strata_min,self.penalty,self.residuals,self.covariates, self.naive_survival_optimization, random)
             # Add Offspring to Population
             self.set.add_offspring_into_pop(iteration)
             # Apply sharing penalization if not none    
@@ -388,7 +393,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 else:
                     self.set.probabilistic_bin_deletion(self.pop_size,self.elitism,random)
             else:
-                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,random)
+                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,self.elitism,random)
 
             # Update feature tracking
             self.set.update_feature_tracking(self.feature_names)
@@ -511,6 +516,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
             # Count
             bt_vote = [0]*len(temp_df) #votesum stored for each instance
+            mt_vote = [0]*len(temp_df) #votesum stored for each instance
             at_vote = [0]*len(temp_df) #votesum stored for each instance
 
             # Iterate through each row of the DataFrame
@@ -519,8 +525,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 bin_count = 0
                 # Iterate through each value in the row
                 for value in row:
-                    if value <= self.set.bin_pop[bin_count].group_threshold:
+                    if value <= self.set.bin_pop[bin_count].group_threshold_list[0]:
                         bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                    elif value > self.set.bin_pop[bin_count].group_threshold_list[0] and value <= self.set.bin_pop[bin_count].group_threshold_list[1]:
+                        mt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
                     else:
                         at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
                     bin_count += 1
@@ -550,7 +558,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             if self.verbose:
                 print(col_list)
 
-        tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold,top_bin.fitness,top_bin.pre_fitness,top_bin.log_rank_score,top_bin.log_rank_p_value,top_bin.bin_size,
+        tracking_values = [iteration,top_bin.feature_list,top_bin.group_threshold_list,top_bin.fitness,top_bin.pre_fitness,top_bin.log_rank_score,top_bin.log_rank_p_value,top_bin.bin_size,
                         top_bin.group_strata_prop,top_bin.count_bt,top_bin.count_at,top_bin.birth_iteration,top_bin.residuals_score,
                         top_bin.residuals_p_value,self.elapsed_time]
         if self.verbose:
@@ -580,7 +588,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             print("Only one top performing bin found")
 
 
-    def get_bin_groups(self, x, bin_index, y=None):
+    def get_bin_groups(self, x, y=None, bin_index=0):
         """
         Function for FIBERS that returns the variables needed to construct survival curves for the two instance 
         groups defined by a given bin (low_outcome, high_outcome, low_censor, high_censor)
@@ -596,7 +604,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         :param bin_index: population index of the bin to return group information for
 
-        :return: low_outcome, high_outcome, low_censor, and high_censor
+        :return: low_outcome, mid_outcome, high_outcome, low_censor, mid_censor, and high_censor
         """   
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
@@ -613,18 +621,69 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # Create evaluation dataframe including bin sum feature with 
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
 
-        low_df = bin_df[bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold]
-        high_df = bin_df[bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold]
+        num_thresh = len(self.set.bin_pop[bin_index].group_threshold_list)
+        if num_thresh == 2:
+            low_df = bin_df[bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[0]]
+            mid_df = bin_df[(bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[0]) & (bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[1])]
+            high_df = bin_df[bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[1]]
 
-        low_outcome = low_df[self.outcome_label].to_list()
-        high_outcome = high_df[self.outcome_label].to_list()
-        low_censor = low_df[self.censor_label].to_list()
-        high_censor =high_df[self.censor_label].to_list()
+            low_outcome = low_df[self.outcome_label].to_list()
+            mid_outcome = mid_df[self.outcome_label].to_list()
+            high_outcome = high_df[self.outcome_label].to_list()
+            low_censor = low_df[self.censor_label].to_list()
+            mid_censor = mid_df[self.censor_label].to_list()
+            high_censor = high_df[self.censor_label].to_list()
+        else:
+            low_df = bin_df[bin_df['Bin_'+str(bin_index)] <= self.set.bin_pop[bin_index].group_threshold_list[0]]
+            high_df = bin_df[bin_df['Bin_'+str(bin_index)] > self.set.bin_pop[bin_index].group_threshold_list[0]]
+
+            low_outcome = low_df[self.outcome_label].to_list()
+            mid_outcome = None
+            high_outcome = high_df[self.outcome_label].to_list()
+            low_censor = low_df[self.censor_label].to_list()
+            mid_censor = None
+            high_censor =high_df[self.censor_label].to_list()
+
         df = None
-        return low_outcome, high_outcome, low_censor, high_censor
+        
+        return low_outcome, mid_outcome, high_outcome, low_censor, mid_censor, high_censor
     
 
-    def get_cox_prop_hazard(self,x, y=None, bin_index=0, use_bin_sums=False):
+    def get_cox_prop_hazard_unadjust(self,x, y=None, bin_index=0, use_bin_sums=False):
+        if not self.hasTrained:
+            raise Exception("FIBERS must be fit first")
+        
+        # PREPARE DATA ---------------------------------------
+        df = self.check_x_y(x, y)
+        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
+
+        # Sum instance values across features specified in the bin
+        feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
+        bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
+
+        if not use_bin_sums:
+            # Transform bin feature values according to respective bin threshold
+            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(
+            lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[0] else 
+                      (1 if x <= self.set.bin_pop[bin_index].group_threshold_list[1] else 2))
+
+        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        summary = None
+        try:
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            self.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
+            self.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+            self.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
+        except:
+            self.set.bin_pop[bin_index].HR = 0
+            self.set.bin_pop[bin_index].HR_CI = None
+            self.set.bin_pop[bin_index].HR_p_value = None
+
+        df = None
+        return summary
+
+
+    def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
 
@@ -638,12 +697,23 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not use_bin_sums:
             # Transform bin feature values according to respective bin threshold
-            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
+            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(
+            lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[0] else 
+                      (1 if x <= self.set.bin_pop[bin_index].group_threshold_list[1] else 2))
 
-        # Create evaluation dataframe including bin sum feature with any covariates present
-        bin_df = pd.concat([bin_df,df.loc[:,self.covariates],df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
+        summary = None
+        try:
+            bin_df = pd.concat([bin_df,df.loc[:,self.covariates]],axis=1)
+            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
+            self.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
+            self.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
+            self.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
+        except:
+            self.set.bin_pop[bin_index].adj_HR = 0
+            self.set.bin_pop[bin_index].adj_HR_CI = None
+            self.set.bin_pop[bin_index].adj_HR_p_value = None
 
-        summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
         df = None
         return summary
 
@@ -664,7 +734,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
             if not use_bin_sums:
                 # Transform bin feature values according to respective bin threshold
-                bin_df['Bin'] = bin_df['Bin'].apply(lambda x: 0 if x <= bin.group_threshold else 1)
+                bin_df['Bin'] = bin_df['Bin'].apply(
+                lambda x: 0 if x <= bin.group_threshold_list[0] else 
+                          (1 if x <= bin.group_threshold_list[1] else 2))
 
             # Create evaluation dataframe including bin sum feature, outcome, and censoring alone
             bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
@@ -697,7 +769,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def get_bin_report(self, bin_index):
         # Generates a bin summary report as a transposed dataframe
-        return self.set.bin_pop[bin_index].bin_short_report().T
+        return self.set.bin_pop[bin_index].bin_report().T
 
     def get_group_composition(self, data, bin_index, predictive_features, threshold):
         return self.set.bin_pop[bin_index].get_bin_composition(data, self.feature_names, predictive_features, threshold)
@@ -726,6 +798,20 @@ class FIBERS(BaseEstimator, TransformerMixin):
         print(low_outcome, high_outcome, low_censor, high_censor)
         plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=show,save=save,output_folder=output_folder,data_name=data_name)
 
+    def get_multi_kaplan_meir(self,data,bin_index,show=True,save=False,output_folder=None,data_name=None):
+        low_outcome, mid_outcome, high_outcome, low_censor, mid_censor, high_censor = self.get_bin_groups(data, bin_index)
+        plot_kaplan_meir(
+            low_outcome=low_outcome,
+            low_censor=low_censor,
+            mid_outcome=mid_outcome,
+            mid_censor=mid_censor,
+            high_outcome=high_outcome,
+            high_censor=high_censor,
+            show=show,
+            save=save,
+            output_folder=output_folder,
+            data_name=data_name
+        )
 
     def get_fitness_progress_plot(self,show=True,save=False,output_folder=None,data_name=None):
         plot_fitness_progress(self.perform_track_df,show=show,save=save,output_folder=output_folder,data_name=data_name)
