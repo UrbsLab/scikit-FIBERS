@@ -2,9 +2,6 @@
 .idea/
 .DS_Store
 
-# Unfinished Code
-paper_analysis_codes/fibers_scripts/*
-
 # Byte-compiled / optimized / DLL files
 __pycache__
 *.py[cod]
