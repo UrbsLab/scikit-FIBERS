@@ -2,6 +2,9 @@
 .idea/
 .DS_Store
 
+# Unfinished Code
+paper_analysis_codes/fibers_scripts/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__
 *.py[cod]
@@ -39,10 +42,7 @@ target/
 data/
 src/Data1.csv
 sampledata.csv
-src/
 output/
-output_cov/
-output_cov_new/
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
