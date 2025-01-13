@@ -393,8 +393,9 @@ class BIN:
         unique_to_list2 = set2 - set1
         unique_features = list(sorted(unique_to_list1.union(unique_to_list2)))
 
+        swap_probability = 0.5
         for feature in unique_features:
-            if random.random() < crossover_prob:
+            if random.random() < swap_probability:
                 if feature in self.feature_list:
                     self.feature_list.remove(feature)
                     other_offspring.feature_list.append(feature)
@@ -402,14 +403,14 @@ class BIN:
                     other_offspring.feature_list.remove(feature)
                     self.feature_list.append(feature)
 
-        def crossover_threshold(threshold_list1, threshold_list2, crossover_prob, max_thresh, random):
+        def crossover_threshold(threshold_list1, threshold_list2, swap_probability, max_thresh, random):
             set1_th = set(threshold_list1)
             set2_th = set(threshold_list2)
             unique_to_list1_th = set1_th - set2_th
             unique_to_list2_th = set2_th - set1_th
 
             # Crossover unique thresholds based on probability
-            if random.random() < crossover_prob:
+            if random.random() < swap_probability:
                 for th in unique_to_list1_th:
                     if len(threshold_list1) > 1:
                         threshold_list1.remove(th)
@@ -441,9 +442,9 @@ class BIN:
         if threshold_evolving:
             if multi_thresholding:
                 self.group_threshold_list, other_offspring.group_threshold_list = crossover_threshold(
-                    self.group_threshold_list, other_offspring.group_threshold_list, crossover_prob, max_thresh, random)
+                    self.group_threshold_list, other_offspring.group_threshold_list, swap_probability, max_thresh, random)
             else:
-                if random.random() < crossover_prob:
+                if random.random() < swap_probability:
                     temp = self.group_threshold_list[0]
                     self.group_threshold_list[0] = other_offspring.group_threshold_list[0]
                     other_offspring.group_threshold_list[0] = temp
@@ -488,8 +489,10 @@ class BIN:
                         if mutate_type == 'S': # Swap
                             self.feature_list.remove(feature)
                             self.feature_list.append(random_feature)
+                            original_feature_list.append(random_feature)
                         elif mutate_type == 'A': # Addition
                             self.feature_list.append(random_feature)
+                            original_feature_list.append(random_feature)
             # Enforce minimum bin size
             while len(self.feature_list) < min_bin_size:
                 other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin

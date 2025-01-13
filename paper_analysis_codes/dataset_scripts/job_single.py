@@ -1,8 +1,9 @@
 import os
 import sys
 import argparse
+import numpy as np
 sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS-summer/')
-from src.skfibers.experiments.survival_sim_3_groups import survival_data_simulation #SOURCE CODE RUN
+from src.skfibers.experiments.survival_sim_simple import survival_data_simulation #SOURCE CODE RUN
 #from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
 
 def main(argv):
@@ -16,8 +17,7 @@ def main(argv):
     parser.add_argument('--nc', dest='nc', help='whether to make this datasets a negative control', type=str, default = 'False') #full path/filename
     parser.add_argument('--n', dest='noise', help='proportion of noise in the dataset', type=float, default=0.0)
     parser.add_argument('--tf', dest='total_feature', help='total number of features', type=int, default=100)
-    parser.add_argument('--t1', dest='threshold1', help='ground truth threshold of the dataset', type=int, default=0)
-    parser.add_argument('--t2', dest='threshold2', help='ground truth threshold of the dataset', type=int, default=0)
+    parser.add_argument('--t', dest='threshold', help='ground truth threshold of the dataset', type=int, default=0)
     parser.add_argument('--c', dest='censor', help='censoring frequency in dataset', type=float, default=0.2)
     parser.add_argument('--l', dest='exp_name', help='experiment name dataset label', type=str, default='Sim')
 

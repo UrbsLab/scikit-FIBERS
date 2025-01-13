@@ -168,7 +168,8 @@ class BIN_SET:
             # Fitness metric calculation based on bin metric score
             offspring_3.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization) 
         # Crossover
-        offspring_1.uniform_crossover(offspring_2,crossover_prob,threshold_evolving,multi_thresholding,max_thresh,random)
+        if random.random() < crossover_prob:
+            offspring_1.uniform_crossover(offspring_2,crossover_prob,threshold_evolving,multi_thresholding,max_thresh,random)
 
         # Mutation - check for duplicate rules
         offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,multi_thresholding,min_thresh,max_thresh,random)
