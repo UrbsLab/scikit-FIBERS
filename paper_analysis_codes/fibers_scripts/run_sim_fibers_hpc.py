@@ -36,7 +36,8 @@ def main(argv):
     parser.add_argument('--c', dest='censor_label', help='censor column label', type=str, default='Censoring')
     parser.add_argument('--g', dest='group_strata_min', help='group strata minimum', type=float, default=0.2)
     parser.add_argument('--p', dest='penalty', help='group strata min penalty', type=float, default=0.5)
-    parser.add_argument('--t', dest='group_thresh', help='group threshold', type=str, default=0)
+    parser.add_argument('--t1', dest='group_thresh1', help='group 1 threshold', type=str, default=0)
+    parser.add_argument('--t2', dest='group_thresh2', help='group 2 threshold', type=str, default=1)
     parser.add_argument('--it', dest='min_thresh', help='minimum threshold', type=int, default=0)
     parser.add_argument('--at', dest='max_thresh', help='maximum threshold', type=int, default=5)
     #int_thresh
@@ -44,6 +45,7 @@ def main(argv):
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=str, default='None')
     parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=str, default='None')
+    parser.add_argument('--multi', dest='multi_thresholding', help='multi thresholding used', type=int, default=0)
 
     options=parser.parse_args(argv[1:])
 
@@ -75,19 +77,28 @@ def main(argv):
     censor_label = options.censor_label
     group_strata_min = options.group_strata_min
     penalty = options.penalty
-    group_thresh = options.group_thresh
+    group_thresh1 = options.group_thresh1
+    group_thresh2 = options.group_thresh2
     min_thresh = options.min_thresh 
     max_thresh = options.max_thresh 
     #int_thresh = options.int_thresh
     thresh_evolve_prob = options.thresh_evolve_prob
     covariates_used = options.covariates_used
+    if options.multi_thresholding:
+        multi_thresholding = 1
+    else:
+        multi_thresholding = 0
+    
     # if covariates_used:
     #     covariates = []
     # else:
     #     covariates = None #Manually included in script
     pop_clean = options.pop_clean
     #random_seed = options.random_seed
-    algorithm = 'Fibers2.0' #hard coded here
+    if multi_thresholding:
+        algorithm = 'Fibers2.1' #hard coded here
+    else:
+        algorithm = 'Fibers2.0' #hard coded here
 
     #Folder Management------------------------------
     #Main Write Path-----------------
@@ -125,13 +136,15 @@ def main(argv):
                 submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,covariates_used,seed)
+                                       group_strata_min,penalty,group_thresh1,group_thresh2,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,covariates_used,
+                                       multi_thresholding,seed)
                 jobCount +=1
             elif run_cluster == 'SLURM':
                 submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,seed)
+                                       group_strata_min,penalty,group_thresh1,group_thresh2,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,covariates_used,
+                                       multi_thresholding,seed)
                 jobCount +=1
             else:
                 print('ERROR: Cluster type not found')
@@ -141,7 +154,8 @@ def main(argv):
 def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,covariates_used,random_seed): 
+                                       group_strata_min,penalty,group_thresh1,group_thresh2,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,
+                                       covariates_used,multi_thresholding,random_seed): 
     job_ref = str(time.time())
     job_name = 'FIBERS_'+data_name+'_' +str(random_seed)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -158,8 +172,8 @@ def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,m
         +' --i '+str(iterations)+' --ps '+str(pop_size)+' --tp '+str(tournament_prop)+' --cp '+str(crossover_prob)+' --mi '+str(min_mutation_prob)
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
-        +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ ' --cov ' + str(covariates_used) + '--r '+str(random_seed)+'\n')
+        +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t1 '+str(group_thresh1)+' --t2 '+str(group_thresh2)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
+        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ ' --cov ' + str(covariates_used) + ' --multi ' + str(multi_thresholding) + '--r '+str(random_seed)+'\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -167,7 +181,8 @@ def submit_slurm_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,m
 def submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                       group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,covariates_used,random_seed): 
+                                       group_strata_min,penalty,group_thresh1,group_thresh2,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,
+                                       covariates_used,multi_thresholding,random_seed): 
     job_ref = str(time.time())
     job_name = 'FIBERS_'+data_name+'_' +str(random_seed)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -184,8 +199,8 @@ def submit_lsf_cluster_job(scratchPath,logPath,data_name,datapath,outputpath,man
         +' --i '+str(iterations)+' --ps '+str(pop_size)+' --tp '+str(tournament_prop)+' --cp '+str(crossover_prob)+' --mi '+str(min_mutation_prob)
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
-        +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ ' --cov ' + str(covariates_used) +' --r '+str(random_seed)+'\n')
+        +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t1 '+str(group_thresh1)+' --t2 '+str(group_thresh2)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
+        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+ ' --cov ' + str(covariates_used) + ' --multi ' + str(multi_thresholding) + ' --r '+str(random_seed)+'\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

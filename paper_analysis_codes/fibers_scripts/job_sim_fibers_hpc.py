@@ -35,13 +35,15 @@ def main(argv):
     parser.add_argument('--c', dest='censor_label', help='censor column label', type=str, default='Censoring')
     parser.add_argument('--g', dest='group_strata_min', help='group strata minimum', type=float, default=0.2)
     parser.add_argument('--p', dest='penalty', help='group strata min penalty', type=float, default=0.5)
-    parser.add_argument('--t', dest='group_thresh', help='group threshold', type=str, default=0)
+    parser.add_argument('--t1', dest='group_thresh1', help='group 1 threshold', type=str, default=0)
+    parser.add_argument('--t2', dest='group_thresh2', help='group 2 threshold', type=str, default=1)
     parser.add_argument('--it', dest='min_thresh', help='minimum threshold', type=int, default=0)
     parser.add_argument('--at', dest='max_thresh', help='maximum threshold', type=int, default=5)
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=str, default='None')
+    parser.add_argument('--multi', dest='multi_thresholding', help='multi thresholding used', type=int, default=0)
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
 
     options=parser.parse_args(argv[1:])
@@ -79,10 +81,19 @@ def main(argv):
     censor_label = options.censor_label
     group_strata_min = options.group_strata_min
     penalty = options.penalty
-    if options.group_thresh == 'None':
-        group_thresh = None
+    if options.group_thresh1 == 'None' and options.group_thresh1 == 'None':
+        group_thresh1 = None
+        group_thresh2 = None
     else:
-        group_thresh = int(options.group_thresh)
+        group_thresh1 = int(options.group_thresh1)
+        group_thresh2 = int(options.group_thresh2)
+    if options.multi_thresholding:
+        multi_thresholding = True
+        group_thresh_list = [group_thresh1, group_thresh2]
+    else:
+        multi_thresholding = False
+        group_thresh_list = None
+
     min_thresh = options.min_thresh 
     max_thresh = options.max_thresh 
     #int_thresh = options.int_thresh
@@ -91,13 +102,14 @@ def main(argv):
         pop_clean = None
     else:
         pop_clean = str(options.pop_clean)
-    covariates_used = options.covariates_used
-    if covariates_used == 'Adv':
-        covariates = ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','OTHER','FDFR','FDMR','MDFR','MDMR']
-    elif covariates_used == 'Simple':
-        covariates = ['C_1', 'C_2']
-    else:
-        covariates = None
+    # covariates_used = options.covariates_used
+    # if covariates_used == 'Adv':
+    #     covariates = ['AFRICAN-AMERICAN','ASIAN','HISPANIC','WHITE','OTHER','FDFR','FDMR','MDFR','MDMR']
+    # elif covariates_used == 'Simple':
+    #     covariates = ['C_1', 'C_2']
+    # else:
+    #     covariates = None
+    covariates = None
     random_seed = options.random_seed
 
     # Get Dataset Name
@@ -107,21 +119,38 @@ def main(argv):
     #Load/Process Dataset
     data = pd.read_csv(datapath)
 
-    #if covariates == None:
-    #    true_risk_group = data[['TrueRiskGroup']]
-    #    data = data.drop('TrueRiskGroup', axis=1)
+    if covariates == None:
+       true_risk_group = data[['TrueRiskGroup']]
+       data = data.drop('TrueRiskGroup', axis=1)
 
-    if covariates_used != 'Adv':
-        true_risk_group = data[['TrueRiskGroup']]
-        data = data.drop('TrueRiskGroup', axis=1)
+    # if covariates_used != 'Adv':
+    #     true_risk_group = data[['TrueRiskGroup']]
+    #     data = data.drop('TrueRiskGroup', axis=1)
 
     #Job Definition
+    # fibers = FIBERS(outcome_label=outcome_label, outcome_type=outcome_type, iterations=iterations, pop_size=pop_size, tournament_prop=tournament_prop, 
+    #                 crossover_prob=crossover_prob, min_mutation_prob=min_mutation_prob, max_mutation_prob=max_mutation_prob, merge_prob=merge_prob, 
+    #                 new_gen=new_gen, elitism=elitism, diversity_pressure=diversity_pressure, min_bin_size=min_bin_size, max_bin_size=max_bin_size,
+    #                 max_bin_init_size=max_bin_init_size, fitness_metric=fitness_metric, log_rank_weighting=log_rank_weighting, censor_label=censor_label, 
+    #                 group_strata_min=group_strata_min, penalty=penalty, group_thresh=group_thresh, min_thresh=min_thresh, max_thresh=max_thresh,
+    #                 int_thresh=True, thresh_evolve_prob=thresh_evolve_prob, manual_bin_init=manual_bin_init, covariates=covariates, pop_clean=pop_clean,  
+    #                 report=None, random_seed=random_seed, verbose=False)
+    
+    # fibers = FIBERS(outcome_label="Duration", outcome_type="survival", iterations=100, pop_size=50, tournament_prop=0.2, crossover_prob=0.5,
+    #             min_mutation_prob=0.1, max_mutation_prob=0.5, merge_prob=0.1, new_gen=1.0, elitism=0.1, diversity_pressure=0, min_bin_size=1,
+    #             max_bin_size=None, max_bin_init_size=10, fitness_metric="log_rank", log_rank_weighting=None, censor_label="Censoring", group_strata_min=0.2,
+    #             penalty=0.5, group_thresh_list=None, min_thresh=0, max_thresh=5, int_thresh=True, thresh_evolve_prob=0.5, multi_thresholding=False,
+    #             manual_bin_init=None, covariates=None, pop_clean = 'group_strata', report=[0,10,20,30,40,50,60,70,80,90], random_seed=1,verbose=False)
+    # fibers = fibers.fit(data)
+
     fibers = FIBERS(outcome_label=outcome_label, outcome_type=outcome_type, iterations=iterations, pop_size=pop_size, tournament_prop=tournament_prop, 
                     crossover_prob=crossover_prob, min_mutation_prob=min_mutation_prob, max_mutation_prob=max_mutation_prob, merge_prob=merge_prob, 
                     new_gen=new_gen, elitism=elitism, diversity_pressure=diversity_pressure, min_bin_size=min_bin_size, max_bin_size=max_bin_size,
-                    max_bin_init_size=max_bin_init_size, fitness_metric=fitness_metric, log_rank_weighting=log_rank_weighting, censor_label=censor_label, 
-                    group_strata_min=group_strata_min, penalty=penalty, group_thresh=group_thresh, min_thresh=min_thresh, max_thresh=max_thresh,
-                    int_thresh=True, thresh_evolve_prob=thresh_evolve_prob, manual_bin_init=manual_bin_init, covariates=covariates, pop_clean=pop_clean,  
+                    max_bin_init_size=max_bin_init_size, fitness_metric=fitness_metric, log_rank_weighting=log_rank_weighting,
+                    sharing_penalization=None, censor_label=censor_label, group_strata_min=group_strata_min, penalty=penalty, 
+                    group_thresh_list=group_thresh_list, min_thresh=min_thresh, max_thresh=max_thresh, int_thresh=True, thresh_evolve_prob=thresh_evolve_prob, 
+                    multi_thresholding = multi_thresholding, 
+                    manual_bin_init=manual_bin_init, covariates=covariates, pop_clean=pop_clean,  
                     report=None, random_seed=random_seed, verbose=False)
 
     fibers = fibers.fit(data)
@@ -142,7 +171,7 @@ def main(argv):
     with open(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_fibers.pickle', 'wb') as f:
         pickle.dump(fibers, f)
     
-    fibers.save_run_params(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_run_parameters.txt')
+    # fibers.save_run_params(outputpath+'/'+dataset_name+'_'+str(random_seed)+'_run_parameters.txt')
 
 if __name__=="__main__":
     sys.exit(main(sys.argv))

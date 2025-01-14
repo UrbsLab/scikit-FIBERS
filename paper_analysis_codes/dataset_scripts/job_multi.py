@@ -50,7 +50,7 @@ def main(argv):
                                             low_risk_proportion=0.5, med_risk_proportion=0.25, threshold1 = threshold1, threshold2 = threshold2,
                                             feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.1), 
                                             class1_time_to_event_range=(1.25, 0.1), class2_time_to_event_range=(1, 0.1), 
-                                            censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=42)
+                                            censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),negative_control=nc,random_seed=42)
     
     data.to_csv(full_data_name_path, index=False)
     print('Dataset Simulation Complete')
