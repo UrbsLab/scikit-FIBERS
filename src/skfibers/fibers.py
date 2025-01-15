@@ -663,9 +663,16 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not use_bin_sums:
             # Transform bin feature values according to respective bin threshold
-            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(
-            lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[0] else 
-                      (1 if x <= self.set.bin_pop[bin_index].group_threshold_list[1] else 2))
+            if self.multi_thresholding:
+                bin_df['Bin_'+str(bin_index)+'_Med'] = bin_df['Bin_'+str(bin_index)].apply(
+                lambda x: 0 if x > self.set.bin_pop[bin_index].group_threshold_list[0] else 0)
+                
+                bin_df['Bin_'+str(bin_index)+'_High'] = bin_df['Bin_'+str(bin_index)].apply(
+                lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[1] else 1)
+            else:
+                bin_df['Bin_'+str(bin_index)+'_High'] = bin_df['Bin_'+str(bin_index)].apply(
+                lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[0] else 1)
+        bin_df.drop('Bin_'+str(bin_index), axis=1, inplace=True)
 
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
         summary = None
@@ -697,9 +704,16 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not use_bin_sums:
             # Transform bin feature values according to respective bin threshold
-            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(
-            lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[0] else 
-                      (1 if x <= self.set.bin_pop[bin_index].group_threshold_list[1] else 2))
+            if self.multi_thresholding:
+                bin_df['Bin_'+str(bin_index)+'_Med'] = bin_df['Bin_'+str(bin_index)].apply(
+                lambda x: 0 if x > self.set.bin_pop[bin_index].group_threshold_list[0] else 0)
+                
+                bin_df['Bin_'+str(bin_index)+'_High'] = bin_df['Bin_'+str(bin_index)].apply(
+                lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[1] else 1)
+            else:
+                bin_df['Bin_'+str(bin_index)+'_High'] = bin_df['Bin_'+str(bin_index)].apply(
+                lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[0] else 1)
+        bin_df.drop('Bin_'+str(bin_index), axis=1, inplace=True)
 
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
         summary = None
