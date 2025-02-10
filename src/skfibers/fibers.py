@@ -665,7 +665,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             # Transform bin feature values according to respective bin threshold
             if self.multi_thresholding:
                 bin_df['Bin_'+str(bin_index)+'_Med'] = bin_df['Bin_'+str(bin_index)].apply(
-                lambda x: 0 if x > self.set.bin_pop[bin_index].group_threshold_list[0] else 0)
+                lambda x: 1 if x > self.set.bin_pop[bin_index].group_threshold_list[0] else 0)
                 
                 bin_df['Bin_'+str(bin_index)+'_High'] = bin_df['Bin_'+str(bin_index)].apply(
                 lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold_list[1] else 1)
@@ -681,7 +681,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
             self.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
             self.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
             self.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
-        except:
+        except Exception as e:
+            raise e
             self.set.bin_pop[bin_index].HR = 0
             self.set.bin_pop[bin_index].HR_CI = None
             self.set.bin_pop[bin_index].HR_p_value = None

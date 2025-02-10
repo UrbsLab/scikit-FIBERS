@@ -17,6 +17,7 @@ def main(argv):
     parser.add_argument('--rs', dest='random_seeds', help='number of random seeds to run', type=int, default= 30)
     parser.add_argument('--rm', dest='reserved_memory', help='reserved memory for job', type=int, default= 4)
     parser.add_argument('--q', dest='queue', help='cluster queue name', type=str, default= 'i2c2_normal')
+    parser.add_argument('--multi', dest='multi_thresholding', help='multi thresholding used', type=int, default=0)
     parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=str, default='None')
 
     options=parser.parse_args(argv[1:])
@@ -28,6 +29,7 @@ def main(argv):
     random_seeds = options.random_seeds
     reserved_memory = options.reserved_memory
     queue = options.queue
+    multi_thresholding = options.multi_thresholding
     covariates_used = options.covariates_used
     algorithm = 'Fibers2.0' #hard coded here
 
@@ -59,10 +61,10 @@ def main(argv):
         data_name = os.path.splitext(dataname)[0]
 
         if run_cluster == 'LSF':
-            submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,covariates_used)
+            submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,multi_thresholding,covariates_used)
             jobCount +=1
         elif run_cluster == 'SLURM':
-            submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,covariates_used)
+            submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,multi_thresholding,covariates_used)
             jobCount +=1
         else:
             print('ERROR: Cluster type not found')
@@ -70,7 +72,7 @@ def main(argv):
     print(str(jobCount)+' jobs submitted successfully')
 
     
-def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,covariates_used): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
+def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,multi_thresholding,covariates_used): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
     job_ref = str(time.time())
     job_name = 'Sum_FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -82,12 +84,12 @@ def submit_slurm_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,r
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_sim_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) + ' --cov '+ str(covariates_used)+ '\n')
+    sh_file.write('srun python job_sim_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) + ' --cov '+ str(covariates_used)+ ' --multi '+ str(multi_thresholding)+'\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
 
-def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,covariates_used): #UPENN - Legacy mode (using shell file) - memory on head node
+def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,random_seeds,reserved_memory,queue,multi_thresholding,covariates_used): #UPENN - Legacy mode (using shell file) - memory on head node
     job_ref = str(time.time())
     job_name = 'Sum_FIBERS_'+data_name+'_' +'sum'+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -99,7 +101,7 @@ def submit_lsf_cluster_job(scratchPath,logPath,outputpath,data_name,datapath,ran
     sh_file.write('#BSUB -M ' + str(reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_sim_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) + ' --cov '+ str(covariates_used)+ '\n')
+    sh_file.write('python job_sim_sum_fibers_hpc.py'+' --d '+ datapath +' --o '+outputpath +' --r '+ str(random_seeds) + ' --cov '+ str(covariates_used)+ ' --multi '+ str(multi_thresholding)+ '\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

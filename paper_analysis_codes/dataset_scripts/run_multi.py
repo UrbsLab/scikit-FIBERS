@@ -46,8 +46,8 @@ class RunFIBERS:
         #self.pred_features = [10]
         self.noises = [0.1,0.2,0.3,0.4,0.5]
         self.total_features = [200,500,1000]
-        self.threshold1_list = [1,2,3,4,5]
-        self.threshold2_list = [2,3,4,5,6]
+        self.threshold1_list = [1,2,3,1,1]
+        self.threshold2_list = [2,3,4,3,5]
         self.thresholds = list(zip(self.threshold1_list, self.threshold2_list))
 
         jobCount = 0

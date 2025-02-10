@@ -10,11 +10,13 @@ def main(argv):
     #Script Parameters
     parser.add_argument('--w', dest='writepath', help='', type=str, default = 'myWritePath') #full path/filename
     parser.add_argument('--o', dest='outputfolder', help='directory path to write output (default=CWD)', type=str, default = 'myOutput') #full path/filename
+    # parser.add_argument('--multi', dest='multi_thresholding', help='multi thresholding used', type=int, default=0)
 
     options=parser.parse_args(argv[1:])
 
     writepath = options.writepath+'/output'
     outputfolder = options.outputfolder
+    # multi_thresholding = options.multi_thresholding
     targetfolder = writepath +'/'+outputfolder
 
     #open each output subfolder and grab the second row

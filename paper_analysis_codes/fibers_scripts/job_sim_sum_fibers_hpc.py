@@ -24,6 +24,7 @@ def main(argv):
     parser.add_argument('--o', dest='outputpath', help='', type=str, default = 'myOutputPath') #full path/filename
     parser.add_argument('--r', dest='random_seeds', help='random seeds in experiment', type=int, default='None')
     parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=str, default='None')
+    parser.add_argument('--multi', dest='multi_thresholding', help='multi thresholding used', type=int, default=0)
     #parser.add_argument('--f', dest='figures_only', help='random seeds in experiment', type=str, default='False')
 
     options=parser.parse_args(argv[1:])
@@ -32,6 +33,7 @@ def main(argv):
     outputpath = options.outputpath
     random_seeds = options.random_seeds
     covariates_used = options.covariates_used
+    covariates_used = 'None'
 
     #Get algorithm name
     outputfolder  = outputpath.split('/')[-1]
@@ -45,6 +47,10 @@ def main(argv):
     ideal_threshold = data_name.split('_')[8]
     if ideal_threshold != 'NA':
         ideal_threshold = int(ideal_threshold)
+    if options.multi_thresholding:
+        multi_thresholding = True
+    else:
+        multi_thresholding = False
     #ideal_threshold = int(data_name.split('_')[8])
     target_folder = outputpath+'/'+data_name #target output subfolder
 
@@ -186,7 +192,7 @@ def main(argv):
     df.to_csv(target_folder+'/'+'summary'+'/'+data_name+'_summary'+'.csv', index=False)
 
     #Generate experiment summary 'master list'
-    master_columns = ["Algorithm","Experiment", "Dataset", 
+    master_columns = ["MRG","Algorithm","Experiment", "Dataset", 
                     "Accuracy", "Accuracy (SD)", 
                     "Number of P", "Number of P (SD)",
                     "Number of R", "Number of R (SD)", "Ideal Bin", 
@@ -203,7 +209,7 @@ def main(argv):
     
     df_master = pd.DataFrame(columns=master_columns)
 
-    master_results_list = [algorithm,experiment,data_name,
+    master_results_list = [multi_thresholding,algorithm,experiment,data_name,
                         None if len(accuracy) == 0 else np.mean(accuracy), None if len(accuracy) == 0 else np.std(accuracy),
                         #None if all(x is None for x in accuracy) else np.mean(accuracy),
                         #None if all(x is None for x in accuracy) else np.std(accuracy),
