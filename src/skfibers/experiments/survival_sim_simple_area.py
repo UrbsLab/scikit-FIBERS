@@ -7,7 +7,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 def survival_data_area_simulation(instances=10000, total_features=100, predictive_features=10, survivability_features=1,low_risk_proportion=0.5, survivability_proportion=0.1, threshold = 0, survivability_threshold = 0,
                              feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
-                             class1_time_to_event_range=(1, 0.2), survivability_benefit=(0.1, 0.01), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
+                             class1_time_to_event_range=(1, 0.2), survivability_benefit=(0.1, 0.01), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4), negative_control=False, random_seed=None):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
     Note: MAF (minor allele frequency) cutoff refers to the threshold
@@ -29,6 +29,7 @@ def survival_data_area_simulation(instances=10000, total_features=100, predictiv
     :param censoring_frequency: proportion of instances that are censored (0 = censored, 1 = not censored)
     :param covariates_to_sim: number of covariates to simulate - that are each partially correlated with outcome
     :param covariates_signal_range: range of values determining covariate correlation with True Risk Group
+    :param negative_control: boolean flag to randomly shuffle outcome to remove dataset signal.
     :param random_seed:
 
     :return: pandas dataframe of generated data
@@ -287,6 +288,11 @@ def survival_data_area_simulation(instances=10000, total_features=100, predictiv
         #            df_covariate.at[index,covariate] = random.uniform(0, 0.5)
         df = pd.concat([df, df_covariate], axis=1)
         print("Simulated covariates generated and added to dataframe.")
+
+    if negative_control:
+        columns_to_shuffle = ['TrueRiskGroup','Duration','Censoring']
+        for col in columns_to_shuffle:
+            df[col] = np.random.permutation(df[col].values)
 
     return df
 
