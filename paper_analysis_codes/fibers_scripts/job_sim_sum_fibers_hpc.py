@@ -25,6 +25,8 @@ def main(argv):
     parser.add_argument('--r', dest='random_seeds', help='random seeds in experiment', type=int, default='None')
     parser.add_argument('--cov', dest='covariates_used', help='covariates used', type=str, default='None')
     parser.add_argument('--multi', dest='multi_thresholding', help='multi thresholding used', type=int, default=0)
+    parser.add_argument('--pareto', dest='pareto', help='multi thresholding used', type=int, default=0)
+    
     #parser.add_argument('--f', dest='figures_only', help='random seeds in experiment', type=str, default='False')
 
     options=parser.parse_args(argv[1:])
@@ -33,6 +35,7 @@ def main(argv):
     outputpath = options.outputpath
     random_seeds = options.random_seeds
     covariates_used = options.covariates_used
+    pareto = options.pareto
     covariates_used = 'None'
 
     #Get algorithm name
@@ -72,13 +75,14 @@ def main(argv):
                "Bin Size", "Group Ratio", "Count At/Below Threshold", "Count Above Threshold", "Birth Iteration", 
                "Deletion Probability", "Cluster", "Residual", "Residual p-value", "Unadjusted HR", "Unadjusted HR CI",
                "Unadjusted HR p-value", "Adjusted HR", "Adjusted HR CI", "Adjusted HR p-value", "Number of P", 
-               "Number of R", "Ideal Iteration", "Accuracy", "Runtime", "Dataset Filename"]
+               "Number of R", "Number of S", "Ideal Iteration", "Accuracy", "Runtime", "Dataset Filename"]
     df = pd.DataFrame(columns=columns)
 
     #Make intial lists to store metrics across replications
     accuracy = []
     num_P = []
     num_R = []
+    num_S = []
     ideal = 0
     ideal_iter = []
     ideal_thresh = 0
@@ -91,7 +95,7 @@ def main(argv):
     runtime = []
     tc = 0
     gpc = 0
-    rpc = 0 
+    rpc = 0
     bin_size = []
     birth_iteration = []
 
@@ -114,7 +118,7 @@ def main(argv):
                         bin.log_rank_p_value, bin.bin_size, bin.group_strata_prop, bin.count_bt, bin.count_at, 
                         bin.birth_iteration, bin.deletion_prop, bin.cluster, bin.residuals_score, bin.residuals_p_value,
                         bin.HR, bin.HR_CI, bin.HR_p_value, bin.adj_HR, bin.adj_HR_CI, bin.adj_HR_p_value, 
-                        str(bin.feature_list).count('P'), str(bin.feature_list).count('R'), 
+                        str(bin.feature_list).count('P'), str(bin.feature_list).count('R'), str(bin.feature_list).count('S'), 
                         ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration),
                         accuracy_score(fibers.predict(data,bin_number=bin_index),true_risk_group) if true_risk_group is not None else None,
                         fibers.elapsed_time, data_name] 
@@ -137,12 +141,23 @@ def main(argv):
 
         num_P.append(str(bin_feature_list_copy).count('P'))
         num_R.append(str(bin_feature_list_copy).count('R'))
+        num_S.append(str(bin_feature_list_copy).count('S'))
+
         if ideal_iteration(ideal_count, bin.feature_list, bin.birth_iteration) != None:
             ideal += 1
             ideal_iter.append(bin.birth_iteration)
-        if bin.group_threshold == ideal_threshold:
-            ideal_thresh += 1
-        threshold.append(bin.group_threshold)
+        
+        if pareto or multi_thresholding:
+            if bin.group_threshold_list[0] == ideal_threshold:
+                ideal_thresh += 1
+            if multi_thresholding:
+                threshold.append(bin.group_threshold_list[0])
+            else:
+                threshold.append(bin.group_threshold_list[0])
+        else:
+            if bin.group_threshold == ideal_threshold:
+                ideal_thresh += 1
+            threshold.append(bin.group_threshold)
         if bin.log_rank_score != None:
             log_rank.append(bin.log_rank_score)
         if bin.residuals_score != None:
@@ -166,6 +181,12 @@ def main(argv):
         #Kaplan Meir Plot
         fibers.get_kaplan_meir(data,bin_index,save=True,show=False, output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
+        if pareto:
+            try:
+                fibers.get_pareto_plot(save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
+            except Exception as e:
+                print(e)
+
         if covariates_used == 'None':
             #Bin Population Heatmap
             group_names=["P", "R"]
@@ -173,6 +194,12 @@ def main(argv):
             colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
             max_bins = 100
             max_features = 100
+            if pareto:
+                group_names=["P", "R", "S"]
+                legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin', 'Survivablity Features'] 
+                #2 default colors first followed by additional color descriptions in legend
+                colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1),(1, 0.5, 0)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+
             fibers.get_custom_bin_population_heatmap_plot(group_names,legend_group_info,colors,max_bins,max_features,save=True,show=False,output_folder=target_folder,data_name=data_name+'_'+str(random_seed))
 
         if covariates_used == 'Simple':
@@ -195,7 +222,7 @@ def main(argv):
     master_columns = ["MRG","Algorithm","Experiment", "Dataset", 
                     "Accuracy", "Accuracy (SD)", 
                     "Number of P", "Number of P (SD)",
-                    "Number of R", "Number of R (SD)", "Ideal Bin", 
+                    "Number of R", "Number of R (SD)", "Number of S", "Number of S (SD)", "Ideal Bin", 
                     "Iteration of Ideal Bin", "Iteration of Ideal Bin (SD)", "Ideal Threshold", 
                     "Threshold", "Threshold (SD)",
                     "Log-Rank Score", "Log-Rank Score (SD)", 
@@ -208,15 +235,17 @@ def main(argv):
                     "Birth Iteration", "Birth Iteration (SD)"]
     
     df_master = pd.DataFrame(columns=master_columns)
+    
+    print(threshold)
 
     master_results_list = [multi_thresholding,algorithm,experiment,data_name,
                         None if len(accuracy) == 0 else np.mean(accuracy), None if len(accuracy) == 0 else np.std(accuracy),
                         #None if all(x is None for x in accuracy) else np.mean(accuracy),
                         #None if all(x is None for x in accuracy) else np.std(accuracy),
                         np.mean(num_P),np.std(num_P),
-                        np.mean(num_R),np.std(num_R), ideal, 
+                        np.mean(num_R),np.std(num_R), np.mean(num_S),np.std(num_S), ideal, 
                         np.mean(ideal_iter),np.std(ideal_iter), ideal_thresh,
-                        np.mean(threshold),np.std(threshold), 
+                        None if threshold == None else np.mean(threshold), None if threshold == None else np.std(threshold), 
                         None if len(log_rank) == 0 else np.mean(log_rank), None if len(log_rank) == 0 else np.std(log_rank),
                         None if len(residuals) == 0 else np.mean(residuals), None if len(residuals) == 0 else np.std(residuals), 
                         None if len(unadj_HR) == 0 else np.mean(unadj_HR), None if len(unadj_HR) == 0 else np.std(unadj_HR),
@@ -250,6 +279,12 @@ def main(argv):
         group_names=["P", "R"]
         legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin'] #2 default colors first followed by additional color descriptions in legend
         colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+        if pareto:
+            group_names=["P", "R", "S"]
+            legend_group_info = ['Not in Bin','Predictive Feature in Bin','Non-Predictive Feature in Bin', 'Survivablity Features'] 
+            #2 default colors first followed by additional color descriptions in legend
+            colors = [(.95, .95, 1),(0, 0, 1),(0.1, 0.1, 0.1),(1, 0.5, 0)] #very light blue, blue, ---Alternatively red (1, 0, 0)  orange (1, 0.5, 0)
+
         max_bins = 100
         max_features = 100
         filtering = 1

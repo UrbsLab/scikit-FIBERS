@@ -809,8 +809,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
 
     def get_kaplan_meir(self,data,bin_index,show=True,save=False,output_folder=None,data_name=None):
-        low_outcome, high_outcome, low_censor, high_censor = self.get_bin_groups(data, bin_index)
-        print(low_outcome, high_outcome, low_censor, high_censor)
+        low_outcome, _, high_outcome, low_censor, _, high_censor = self.get_bin_groups(data, bin_index)
         plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=show,save=save,output_folder=output_folder,data_name=data_name)
 
     def get_multi_kaplan_meir(self,data,bin_index,show=True,save=False,output_folder=None,data_name=None):
@@ -865,8 +864,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def get_bin_population_heatmap_plot(self,show=True,save=False,output_folder=None,data_name=None):
         plot_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, show=show,save=save,output_folder=output_folder,data_name=data_name)
 
-    def get_custom_bin_population_heatmap_plot(self,group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
-        plot_custom_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
+    def get_custom_bin_population_heatmap_plot(self,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+        plot_custom_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, group_names,legend_group_info,colors,max_bins,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
     
     def get_zoomed_fitness_pareto_plot(self, output_folder, data_name, show=True,save=False):
         resolution = 500

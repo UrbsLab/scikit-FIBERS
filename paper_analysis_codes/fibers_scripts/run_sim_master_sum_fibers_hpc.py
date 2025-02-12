@@ -27,15 +27,28 @@ def main(argv):
             master_files.append(subfolder+'/summary/'+folder+'_master_summary.csv')
 
     #Read the header from the first CSV file
-    header = pd.read_csv(master_files[0], nrows=0).columns.tolist()
+    print(master_files)
+    def read_header(i=0):
+        try:
+            return pd.read_csv(master_files[i], nrows=0).columns.tolist()
+        except Exception as e:
+            print(e)
+            print(master_files[i])
+            return read_header(i+1)
+
+    header = read_header()
 
     # Create an empty DataFrame to store the combined data
     combined_data = pd.DataFrame(columns=header)
 
     # Iterate over each CSV file (excluding the first one) and add its first row to the combined DataFrame
     for master_file in master_files:
-        data = pd.read_csv(master_file, nrows=1, header=0, names=header)
-        combined_data = pd.concat([combined_data, data], ignore_index=True)
+        try:
+            data = pd.read_csv(master_file, nrows=1, header=0, names=header)
+            combined_data = pd.concat([combined_data, data], ignore_index=True)
+        except Exception as e:
+            print(e)
+            print(master_file)
 
     # Save the combined data to a new CSV file
     combined_data.to_csv(targetfolder+'/'+outputfolder+'_master_summary.csv', index=False)

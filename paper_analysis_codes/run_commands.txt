@@ -26,3 +26,13 @@ python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/FIBERS-summe
 python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/FIBERS-summer/pareto --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o sim_pareto --rc LSF --rs 10 --rm 4 --q i2c2_normal --ol Duration --c Censoring --i 50 --multi 0 --f pareto
 python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/FIBERS-summer/pareto --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o sim_logrank --rc LSF --rs 10 --rm 4 --q i2c2_normal --ol Duration --c Censoring --i 50 --multi 0 --f log_rank
 python run_sim_fibers_hpc.py --d /project/kamoun_shared/data_shared/FIBERS-summer/pareto --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o sim_pareto --rc LSF --rs 10 --rm 4 --q i2c2_normal --ol Duration --c Censoring --i 50 --multi 0 --f pareto
+
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/FIBERS-summer/pareto --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o sim_logrank --rc LSF --rs 10 --rm 4 --q i2c2_normal --multi 0 --pareto 1
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/FIBERS-summer/pareto --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o sim_pareto --rc LSF --rs 10 --rm 4 --q i2c2_normal --multi 0 --pareto 1
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/FIBERS-summer/pareto --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o sim_logrank --rc LSF --rs 10 --rm 4 --q i2c2_normal --multi 0 --pareto 1
+python run_sim_sum_fibers_hpc.py --d /project/kamoun_shared/data_shared/FIBERS-summer/pareto --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o sim_pareto --rc LSF --rs 10 --rm 4 --q i2c2_normal --multi 0 --pareto 1
+
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o Fibers2.0_sim_logrank
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o Fibers2.0_sim_pareto
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o Fibers2.0_sim_logrank
+python run_sim_master_sum_fibers_hpc.py --w /project/kamoun_shared/output_shared/bandheyh/FIBERS-summer/pareto/ --o Fibers2.0_sim_pareto
