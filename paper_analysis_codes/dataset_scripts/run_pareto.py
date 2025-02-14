@@ -49,6 +49,9 @@ class RunFIBERS:
         self.noises = [0.1,0.2,0.3,0.4,0.5]
         self.total_features = [200,500,1000]
         self.thresholds = [1,2,3,4,5]
+        self.survivability_features = [1,2,3,4,5]
+        self.survivability_benefits = [0.1,0.2,0.3,0.4,0.5]
+
 
         jobCount = 0
 
@@ -126,45 +129,69 @@ class RunFIBERS:
             else:
                 print('ERROR: Cluster type not found')
 
-        # Noisy Total Features Assessment
-        exp_name = "FeaturesNoise"
-        noise = 0.2
-        for total_feature in self.total_features:
+                # Basic Total Features Assessment (no noise)
+        exp_name = "SurvFeatures"
+        for survivability_feature in self.survivability_features:
             if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,total_feature,self.threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
                 jobCount +=1
             elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,total_feature,self.threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
                 jobCount +=1
             else:
                 print('ERROR: Cluster type not found')
 
-        # Basic Thresholds Assessment
-        exp_name = "Threshold"
-        for threshold in self.thresholds:
+        exp_name = "SurvFeatures"
+        for survivability_benefit in self.survivability_benefits:
             if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,self.survivability_feature,self.survivability_threshold,survivability_benefit,self.survivability_benefit[1],exp_name)
                 jobCount +=1
             elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,self.threshold,self.censor,self.survivability_feature,self.survivability_threshold,survivability_benefit,self.survivability_benefit[1],exp_name)
                 jobCount +=1
             else:
                 print('ERROR: Cluster type not found')
 
-        # Noisy Thresholds Assessment
-        exp_name = "ThresholdNoise"
-        noise = 0.2
-        for threshold in self.thresholds:
-            if self.run_cluster == 'LSF':
-                submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
-                jobCount +=1
-            elif self.run_cluster == 'SLURM':
-                submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
-                jobCount +=1
-            else:
-                print('ERROR: Cluster type not found')
 
-        print(str(jobCount)+' jobs submitted successfully')
+        # # Noisy Total Features Assessment
+        # exp_name = "FeaturesNoise"
+        # noise = 0.2
+        # for total_feature in self.total_features:
+        #     if self.run_cluster == 'LSF':
+        #         submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,total_feature,self.threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+        #         jobCount +=1
+        #     elif self.run_cluster == 'SLURM':
+        #         submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,total_feature,self.threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+        #         jobCount +=1
+        #     else:
+        #         print('ERROR: Cluster type not found')
+
+        # # Basic Thresholds Assessment
+        # exp_name = "Threshold"
+        # for threshold in self.thresholds:
+        #     if self.run_cluster == 'LSF':
+        #         submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+        #         jobCount +=1
+        #     elif self.run_cluster == 'SLURM':
+        #         submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,self.noise,self.total_feature,threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+        #         jobCount +=1
+        #     else:
+        #         print('ERROR: Cluster type not found')
+
+        # # Noisy Thresholds Assessment
+        # exp_name = "ThresholdNoise"
+        # noise = 0.2
+        # for threshold in self.thresholds:
+        #     if self.run_cluster == 'LSF':
+        #         submit_lsf_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+        #         jobCount +=1
+        #     elif self.run_cluster == 'SLURM':
+        #         submit_slurm_cluster_job(self,self.instance,self.pred_feature,self.nc,noise,self.total_feature,threshold,self.censor,self.survivability_feature,self.survivability_threshold,self.survivability_benefit[0],self.survivability_benefit[1],exp_name)
+        #         jobCount +=1
+        #     else:
+        #         print('ERROR: Cluster type not found')
+
+        # print(str(jobCount)+' jobs submitted successfully')
 
     
 def submit_slurm_cluster_job(self,instance,pred_feature,nc,noise,total_feature,threshold,censor,sf,st,sbm,sbs,exp_name): #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
