@@ -7,7 +7,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 def survival_data_area_simulation(instances=10000, total_features=100, predictive_features=10, survivability_features=1,low_risk_proportion=0.5, survivability_proportion=0.1, threshold = 0, survivability_threshold = 0,
                              feature_frequency_range=(0.1, 0.5), noise_frequency=0.0, class0_time_to_event_range=(1.5, 0.2), 
-                             class1_time_to_event_range=(1, 0.2), survivability_benefit=(0.1, 0.01), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
+                             class1_time_to_event_range=(1, 0.2), survivability_benefit=(0.15, 0.01), censoring_frequency=0.2, covariates_to_sim=0, covariates_signal_range=(0.2,0.4),random_seed=None):
     """
     Defining a function to create an artificial dataset with parameters, there will be one ideal/strong bin
     Note: MAF (minor allele frequency) cutoff refers to the threshold

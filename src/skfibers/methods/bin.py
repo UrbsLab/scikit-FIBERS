@@ -13,6 +13,7 @@ import sys                         # testing purposes
 class BIN:
     def __init__(self, pareto):
         self.feature_list = [] # List of feature names (across which instance values are summed)
+        self.original_feature_list = []
         self.group_threshold = None # Threshold after which an instance is place in the 'above threshold' group - determines group strata of instances
         self.group_threshold_list = []
         self.fitness = None # Bin fitness (higher fitness is better) - proportional to parent selection probability, and inversely proportional to deletion probability
@@ -477,7 +478,7 @@ class BIN:
         else: # Addition, Deletion, or Swap
             mutate_options = ['A','D','S'] #Add, delete, swap
             original_feature_list = copy.deepcopy(self.feature_list)
-            for feature in self.original_feature_list:
+            for feature in original_feature_list:
                 if random.random() < mutation_prob:
                     mutate_type = random.choice(mutate_options)
                     if mutate_type == 'D' or len(feature_names) == len(self.feature_list): # Deletion - also if bin (i.e. feature_list) is at the maximum possible size
