@@ -476,7 +476,7 @@ class BIN:
                 self.feature_list.append(random.choice(other_features))
 
         else: # Addition, Deletion, or Swap
-            mutate_options = ['A','D','S'] #Add, delete, swap
+            mutate_options = ['A','D','S'] #Add, delete, and swap
             original_feature_list = copy.deepcopy(self.feature_list)
             for feature in original_feature_list:
                 if random.random() < mutation_prob:
