@@ -91,6 +91,8 @@ class BIN_SET:
         index = -1
 
         for bin in self.bin_pop:
+            bin.fitness = bin.pre_fitness
+            """
             if bin.pre_fitness == 0:
                 bin.fitness = 0
                 index += 1 
@@ -101,7 +103,7 @@ class BIN_SET:
                 bin.fitness = np.exp(-index / (len(self.bin_pop)*decay)) 
 
             previous_objective_list = [bin.pre_fitness, bin.log_rank_score, bin.low_risk_area, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
-
+            """
 
     def select_parent_pair(self,tournament_prop,random):
         #Tournament Selection
@@ -245,9 +247,12 @@ class BIN_SET:
         return False
         
 
-    def similarity_bin_deletion(self,pop_size,diversity_pressure,elitism,random): #new version
+    def similarity_bin_deletion(self,pop_size,diversity_pressure,elitism,random, fitness_metric): #new version
         # Elitism Preparation
         elite_count = int(pop_size*(elitism))
+        if fitness_metric == 'pareto':
+            if (elite_count < len(self.pareto.bin_front)):
+                elite_count = len(self.pareto.bin_front)
         # Ensure that each similarity cluster will protect at least the top fitness bin
         if diversity_pressure > elite_count:
             elite_count = diversity_pressure
@@ -261,6 +266,10 @@ class BIN_SET:
             i += 1
         delete_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes
         for index in delete_indexes:
+            #print("deleting similarity!")
+            if (self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area) in self.pareto.bin_front:
+                #print("deleting point front")
+                self.pareto.delete_from_front(self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area)
             del self.bin_pop[index]
 
         #Prepare for deletion
@@ -342,7 +351,10 @@ class BIN_SET:
         # Delete overgenerals (until max pop size reached)
         delete_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes
         i = 0
-        while len(self.bin_pop) > pop_size and i < len(delete_indexes):
+        while len(self.bin_pop) > pop_size and i < len(delete_indexes):      
+            if fitness_metric == 'pareto': 
+                if (self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area) in self.pareto.bin_front:
+                    self.pareto.delete_from_front(self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area)
             del self.bin_pop[delete_indexes[i]]
             i += 1
         # Continue deleting bins until max pop size is reached using roulette wheel selection.
@@ -357,6 +369,9 @@ class BIN_SET:
                 # Calculate deletion probabilities for each object
                 deletion_probabilities = [bin.deletion_prop / total_fitness for bin in self.bin_pop]
                 index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
+            if fitness_metric == 'pareto':
+                if (self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area) in self.pareto.bin_front:
+                    self.pareto.delete_from_front(self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area)
             del self.bin_pop[index]
 
 
@@ -438,6 +453,9 @@ class BIN_SET:
 
     def similarity_bin_deletion_fixed(self,pop_size,diversity_pressure,elitism,random): #fixed original version
         # Automatically delete bins with a fitness of 0
+        elite_count = int(pop_size*(elitism))
+        if (elite_count < len(self.pareto.bin_front)):
+            elite_count = len(self.pareto.bin_front)
         delete_indexes = []
         i = 0
         for bin in self.bin_pop:
@@ -502,7 +520,7 @@ class BIN_SET:
                 index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
             del self.bin_pop[index]
 
-    def probabilistic_bin_deletion(self,pop_size,elitism,random):
+    def probabilistic_bin_deletion(self,pop_size,elitism,random, fitness_metric):
         # Automatically delete bins with a fitness of 0
         delete_indexes = []
         i = 0
@@ -512,16 +530,19 @@ class BIN_SET:
             i += 1
         delete_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes
         for index in delete_indexes:
+            if fitness_metric == 'pareto':
+                if (self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area) in self.pareto.bin_front:
+                    self.pareto.delete_from_front(self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area)
             del self.bin_pop[index]
-
         # Preseve any proportion of elite bins specified
         x = 0
         while self.bin_pop[x].fitness == 1:
             x+=1 #gets the bin index where fitness begins to drop
         elite_count = int(pop_size*(elitism))
-        if (elite_count < len(self.pareto.bin_front)):
-            elite_count = len(self.pareto.bin_front)
-        if elite_count < x+1: #
+        if fitness_metric == 'pareto':
+            if (elite_count < len(self.pareto.bin_front)):
+                elite_count = len(self.pareto.bin_front)
+        elif elite_count < x+1: #
             elite_count = x #count is -1 for indexing below
 
         elite_bins = self.bin_pop[:elite_count]
@@ -532,7 +553,14 @@ class BIN_SET:
 
         # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
         # Delete remaining bins required (from non-elite set) based on bin selection that is inversely proportional to bin fitness
+        #
+        # "current pop size:", pop_size)
+        #print("elitism percent ", elitism)
         while len(remaining_bins)+len(elite_bins) > pop_size:
+            #print("prob deletion 2")
+            #print("total now: ", len(remaining_bins) + len(elite_bins))
+            #print("total elite: ", len(elite_bins))
+            #print("elite count: ", elite_count)
             #Calculate total fitness across all bins
             total_fitness = sum(1/bin.fitness for bin in remaining_bins)
             # Calculate deletion probabilities for each object
@@ -541,13 +569,19 @@ class BIN_SET:
             for bin in remaining_bins:
                 bin.update_deletion_prop(deletion_probabilities[remaining_index],None)
                 remaining_index += 1
-            index = random.choices(range(len(remaining_bins)), weights=deletion_probabilities)[0]
-            del remaining_bins[index]
+            sample = random.choices(range(len(remaining_bins)), weights=deletion_probabilities)
+            if sample and len(sample) > 0:
+                index = sample[0]
+                if fitness_metric == 'pareto':
+                    if (remaining_bins[index].log_rank_score, remaining_bins[index].low_risk_area) in self.pareto.bin_front:
+                        self.pareto.delete_from_front(remaining_bins[index].log_rank_score, remaining_bins[index].low_risk_area)
+                del remaining_bins[index]
 
         self.bin_pop = elite_bins + remaining_bins
+        bin_front_set = {(round(b[0], 6), round(b[1], 6)) for b in self.pareto.bin_front}
 
 
-    def deterministic_bin_deletion(self,pop_size):
+    def deterministic_bin_deletion(self,pop_size, fitness_metric):
         # Automatically delete bins with a fitness of 0
         delete_indexes = []
         i = 0
@@ -557,9 +591,15 @@ class BIN_SET:
             i += 1
         delete_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes
         for index in delete_indexes:
+            if fitness_metric == 'pareto':
+                if (self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area) in self.pareto.bin_front:
+                    self.pareto.delete_from_front(self.bin_pop[index].log_rank_score, self.bin_pop[index].low_risk_area)
             del self.bin_pop[index]
         # Delete remaining lowest fitness bins until pop_size reached
         while len(self.bin_pop) > pop_size:
+            if fitness_metric == 'pareto':
+                if (self.bin_pop[-1].log_rank_score, self.bin_pop[-1].low_risk_area) in self.pareto.bin_front:
+                    self.pareto.delete_from_front(self.bin_pop[-1].log_rank_score, self.bin_pop[-1].low_risk_area)
             del self.bin_pop[-1]
 
 
@@ -610,6 +650,27 @@ class BIN_SET:
             top_bin_list.append(self.bin_pop[bin_index])
             bin_index += 1
         return top_bin_list
+
+    def get_closest_utopian(self):
+        # Get the utopian point from the Pareto front
+        utopian = self.pareto.get_closest_utopian()
+        
+        # Round the utopian point to the nearest 10th
+        rounded_utopian = (round(utopian[0], round(utopian[1])))
+        
+        # Initialize variables to track the closest bin
+        closest_index = -1
+        
+        # Loop through the bin population to find the bin that matches the rounded utopian point
+        for index, bin in enumerate(self.bin_pop):
+            
+            # Check if the rounded bin point matches the rounded utopian point
+            if round(bin.log_rank_score, 1) == round(utopian[0]) and round(bin.low_risk_area, 1) == round(utopian[1]):
+                closest_index = index
+                break  # Exit the loop once the closest bin is found
+        
+        # Return the utopian point and the index of the closest bin
+        return [utopian[0], utopian[1], closest_index]
     
     def pop_clean_group_thresh(self,group_strata_min):
         temp_pop = []
@@ -617,15 +678,15 @@ class BIN_SET:
             if bin.group_strata_prop >= group_strata_min:
                 temp_pop.append(bin)
             else:
-                if bin in self.pareto.bin_front:
+                #pareto_bin = (np.around(bin.log_rank_score, self.pareto.round_num), np.around(bin.low_risk_area, self.pareto.round_num))
+                pareto_bin = (bin.log_rank_score, bin.low_risk_area)
+                if pareto_bin in self.pareto.bin_front:
                     self.pareto.delete_from_front(bin.log_rank_score, bin.low_risk_area)
         self.bin_pop = temp_pop
 
     def get_pareto_front(self):
-        pareto_front = []
-        for bin in self.bin_pop:
-            if (bin.log_rank_score, bin.low_risk_area) in self.pareto.bin_front:
-                pareto_front.append(bin)
+        bin_front_set = {(round(b[0], 6), round(b[1], 6)) for b in self.pareto.bin_front}
+        pareto_front = [bin for bin in self.bin_pop if (round(bin.log_rank_score, 6), round(bin.low_risk_area, 6)) in bin_front_set]
         return pareto_front
 
     def get_min_area(self):
