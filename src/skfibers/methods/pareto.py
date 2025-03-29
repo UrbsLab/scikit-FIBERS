@@ -14,14 +14,11 @@ class PARETO:
         self.max_score = None
         self.max_area = None
         self.front_diagonal_lengths = [] # length of the diagonal lines from the orgin to each point on the pareto front (used to calculate rule fitness)
-        self.round_num = 5
 
     def update_front(self,candidate_metric_1,candidate_metric_2,objectives):
         """  Handles process of checking and updating the rule pareto front. Only set up for two objectives. """
         original_front = copy.deepcopy(self.bin_front)
-        
-        #candidate_bin = (np.around(candidate_metric_1, self.round_num),np.around(candidate_metric_2, self.round_num))
-        candidate_bin = (candidate_metric_1, candidate_metric_2)
+        candidate_bin = (candidate_metric_1,candidate_metric_2)
         if not candidate_bin in self.bin_front: # Check that candidate rule objectives are not equal to any existing objective pairs on the front
             non_dominated_bins = []
             candidate_dominated = False
@@ -53,13 +50,9 @@ class PARETO:
             return True
       
     def delete_from_front(self, candidate_metric_1, candidate_metric_2):
-        #bin = (np.around(candidate_metric_1, self.round_num),np.around(candidate_metric_2, self.round_num))
         bin = (candidate_metric_1, candidate_metric_2)
         bin_scaled = (candidate_metric_1/self.max_score, candidate_metric_2/self.max_area)
-        if bin in self.bin_front:
-            self.bin_front.remove(bin)
-        else:
-            return
+        self.bin_front.remove(bin)
         self.bin_front_scaled.remove(bin_scaled)
 
         # update max score and area in case a max bin was deleted
@@ -88,8 +81,6 @@ class PARETO:
 
     def get_pareto_fitness(self,log_rank_score,low_risk_area, landscape):
         """ Calculate rule fitness releative to the rule pareto front. Only set up for two objectives. """
-        self.max_score = max(self.bin_front, key=lambda x: x[0])[0]
-        self.max_area = max(self.bin_front, key=lambda x: x[1])[1]
         scaled_area = low_risk_area / self.max_area
         scaled_score = log_rank_score / self.max_score
         # First handle simple special cases
@@ -98,7 +89,7 @@ class PARETO:
         if landscape: # Handles special cases when calculating fitness landscape for visualization
             if scaled_score > 1.0 or scaled_area > 1.0:
                 return 1.0
-            if self.point_beyond_front(log_rank_score, low_risk_area):
+            if self.point_beyond_front(scaled_score, scaled_area):
                 return 1.0 
         if log_rank_score == 0.0 and low_risk_area == 0.0:
             return 0.0
@@ -111,10 +102,10 @@ class PARETO:
         #elif rule_coverage == self.metric_limits[1]: #rule has the maximum value of one objective
         #    return 1.0
         else:
-            bin_objectives = (log_rank_score, low_risk_area)
+            bin_objectives = (scaled_score, scaled_area)
             # Find the closest distance between the bin and the pareto front
             temp_front = [(0.0, self.max_area)] #max area boundary
-            for front_point in self.bin_front:
+            for front_point in self.bin_front_scaled:
                 temp_front.append(front_point)
             temp_front.append([self.max_score, 0.0]) #max area boundary
             min_distance = float('inf')
@@ -160,17 +151,17 @@ class PARETO:
             slope = (point2[0] - point1[0]) / (point2[1] - point1[1])
         return slope
     
-    def point_beyond_front(self,score,area):
+    def point_beyond_front(self,scaled_score,scaled_area):
         """ Used for creating pareto front landscape visualization background fitness landscape. """
         # Define line segment from the origin (0,0) to the rule's objective (x,x)
         bin_start = (0,0)
-        bin_end = (score, area)
+        bin_end = (scaled_score, scaled_area)
         # Identify segments making up front to check
         intersects = False
         i = 0
         while not intersects and i < len(self.bin_front) - 1:
-            segment_start = self.bin_front[i]
-            segment_end = self.bin_front[i + 1]
+            segment_start = self.bin_front_scaled[i]
+            segment_end = self.bin_front_scaled[i + 1]
             intersects = self.do_intersect(bin_start,bin_end,segment_start,segment_end)
             if intersects:
                 return True
@@ -339,116 +330,6 @@ class PARETO:
         plt.subplots_adjust(right=0.75)
         if save:
             plt.savefig(output_path+'/'+data_name+'_pareto_fitness_landscape.png', bbox_inches="tight")
-        if show:
-            plt.show()
-    
-    def get_closest_utopian(self):
-        if not self.bin_front:
-            return None
-
-        utopian_point = (1, 1)
-        areas = np.array([bin[0] for bin in self.bin_front])
-        logranks = np.array([bin[1] for bin in self.bin_front])
-
-        mean_area, std_area = np.mean(areas), np.std(areas)
-        mean_logrank, std_logrank = np.mean(logranks), np.std(logranks)
-
-        std_areas = (areas - mean_area) / std_area if std_area > 0 else areas
-        std_logranks = (logranks - mean_logrank) / std_logrank if std_logrank > 0 else logranks
-
-        standardized_bins = list(zip(std_areas, std_logranks))
-        
-        closest_utopian = None
-        min_dist = float('inf')
-        for bin, std_bin in zip(self.bin_front, standardized_bins):
-            dist = self.euclidean_distance(std_bin, utopian_point)
-            if dist < min_dist:
-                min_dist = dist
-                closest_utopian = bin
-
-        return closest_utopian
-        
-    def plot_zoomed_pareto_landscape_with_utopian(self, resolution, min_area, bin_pop, show, save, output_path, data_name):
-        # Generate fitness landscape ******************************
-        self.max_area = max(self.bin_front, key=lambda x: x[1])[1]
-        x = np.linspace(0.995 * min_area, 1.005 * self.max_area, resolution)  # area
-        y = np.linspace(0, 1.025 * self.max_score, resolution)  # log rank
-        Z = [[None for _ in range(resolution)] for _ in range(resolution)]
-        for i in range(len(x)):
-            for j in range(len(y)):
-                Z[j][i] = self.get_pareto_fitness(y[j], x[i], True)  # log rank, area (rows, columns)
-
-        # Prepare to plot rule front *****************************
-        metric_1_front_list = [None] * len(self.bin_front_scaled)
-        metric_2_front_list = [None] * len(self.bin_front_scaled)
-        i = 0
-        for bin in self.bin_front:
-            metric_1_front_list[i] = bin[0]
-            metric_2_front_list[i] = bin[1]
-            i += 1
-
-        # Get the closest utopian point on the Pareto front
-        closest_utopian = self.get_closest_utopian()
-        if closest_utopian:
-            closest_utopian_index = self.bin_front.index(closest_utopian)
-        else:
-            closest_utopian_index = None
-        
-        # Plot Setup *********************************************
-        plt.figure(figsize=(10, 6))  # (10, 8))
-        im = plt.imshow(Z, extent=[0.995 * min_area, 1.005 * self.max_area, 0, 1.025 * self.max_score], interpolation='nearest', origin='lower', cmap='magma', aspect='auto')  # cmap='viridis' 'magma', alpha=0.6
-        # Add colorbar for the gradient
-        cbar = plt.colorbar(im)
-        cbar.set_label('Fitness Value')
-        # Plot rule front ***************************************
-        plt.plot(np.array(metric_2_front_list), np.array(metric_1_front_list), 'o-', ms=10, lw=2, color='black', label='Pareto Front')
-
-        metric_1_front_list.append(self.max_score)
-        metric_2_front_list.append(self.max_area)
-        # Plot Utopian Point ************************************
-        plt.plot(metric_2_front_list[-1], metric_1_front_list[-1], 'o', ms=12, lw=2, color='red', label='Closest Utopian Point')
-        metric_1_front_list.pop()
-        metric_2_front_list.pop()
-
-        # Highlight the closest utopian point on the Pareto front
-        if closest_utopian_index is not None:
-            plt.plot(metric_2_front_list[closest_utopian_index], metric_1_front_list[closest_utopian_index], 'o', ms=12, lw=2, color='green', label='Closest Utopian Point')
-
-        # Plot pareto front boundaries to plot edge
-        plt.plot([metric_2_front_list[-1], 0], [metric_1_front_list[-1], metric_1_front_list[-1]], '--', lw=1, color='black')  # Accuracy line
-        plt.plot([metric_2_front_list[0], metric_2_front_list[0]], [metric_1_front_list[0], 0], '--', lw=1, color='black')  # Accuracy line
-
-        # Add labels and title
-        plt.xlabel('Low Risk Area', fontsize=14)
-        plt.ylabel('Log Rank Score', fontsize=14)
-        # Set the axis limits between 0 and 1
-        plt.xlim(0.995 * min_area, 1.005 * self.max_area)
-        plt.ylim(0, 1.025 * self.max_score)
-        custom_xticks = np.around(np.linspace(0.995 * min_area, 1.005 * self.max_area, 10), 3)
-        custom_xlabels = np.around(np.linspace(0.995 * min_area, 1.005 * self.max_area, 10), 3)
-        plt.xticks(custom_xticks, custom_xlabels)
-
-        custom_yticks = np.around(np.linspace(0, 1.025 * self.max_score, 10), 1)
-        custom_ylabels = np.around(np.linspace(0, 1.025 * self.max_score, 10), 1)
-        plt.yticks(custom_yticks, custom_ylabels)
-
-        # Prepare to plot rule population ***********************
-        master_metric_1_list = []
-        master_metric_2_list = []
-        for i in range(len(bin_pop)):
-            bin = bin_pop[i]
-            master_metric_1_list.append(bin.log_rank_score)
-            master_metric_2_list.append(bin.low_risk_area)
-
-        plt.plot(np.array(master_metric_2_list), np.array(master_metric_1_list), 'o', ms=3, lw=1, color='grey', label='Rule Population')
-
-        # Add legend
-        plt.legend(loc='upper left', bbox_to_anchor=(1.25, 1), fontsize='small')
-        plt.subplots_adjust(right=0.75)
-
-        # Save or show the plot
-        if save:
-            plt.savefig(output_path + '/' + data_name + '_pareto_fitness_landscape_with_utopian.png', bbox_inches="tight")
         if show:
             plt.show()
 

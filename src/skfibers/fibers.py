@@ -387,16 +387,13 @@ class FIBERS(BaseEstimator, TransformerMixin):
             self.set.global_fitness_update(self.penalty) #Exerimental
 
             #Bin Deletion
-            
-            
             if self.diversity_pressure == 0:
                 if iteration == self.iterations: #Last iteration
-                    self.set.deterministic_bin_deletion(self.pop_size, fitness_metric=self.fitness_metric)
+                    self.set.deterministic_bin_deletion(self.pop_size)
                 else:
-                    self.set.probabilistic_bin_deletion(self.pop_size,self.elitism,random, fitness_metric=self.fitness_metric)
+                    self.set.probabilistic_bin_deletion(self.pop_size,self.elitism,random)
             else:
-                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,self.elitism,random,fitness_metric=self.fitness_metric)
-                
+                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,self.elitism,random)
 
             # Update feature tracking
             self.set.update_feature_tracking(self.feature_names)
@@ -864,10 +861,6 @@ class FIBERS(BaseEstimator, TransformerMixin):
         resolution = 500
         self.set.pareto.plot_pareto_landscape(resolution, self.set.get_min_area(), self.set.bin_pop,show=True,save=True,output_path=output_folder,data_name=data_name)
 
-    def get_zoomed_utopian_fitness_pareto_plot(self, output_folder, data_name, show=True,save=False):
-        resolution = 500
-        self.set.pareto.plot_zoomed_pareto_landscape_with_utopian(resolution, self.set.get_min_area(), self.set.bin_pop, show=True, save=True, output_path=output_folder, data_name=data_name)
-
     def get_top_log_rank_score(self):
         return self.set.bin_pop[0].log_rank_score
     
@@ -882,7 +875,6 @@ class FIBERS(BaseEstimator, TransformerMixin):
         report_df = pd.DataFrame(columns=['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Log-Rank Score:', 'Low Risk Area:','Bin Size:', 'Group Ratio:', 
                     'Count At/Below Threshold:', 'Count Above Threshold:'])
         front = self.set.get_pareto_front()
-        print(len(front))
         i = 0
         for bin in front:
             report_df.loc[i] = [bin.feature_list, bin.group_threshold, bin.fitness, bin.pre_fitness, bin.log_rank_score, bin.low_risk_area,
@@ -1104,6 +1096,3 @@ class FIBERS(BaseEstimator, TransformerMixin):
         plt.yticks([]) #remove y ticks and labels
         ax.tick_params(axis='x',length=0) #remove x ticks but keep tick labels
         plt.show()
-
-    def get_closest_utopian_point(self):
-        return self.set.get_closest_utopian()
