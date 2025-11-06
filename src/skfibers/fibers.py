@@ -28,7 +28,7 @@ from tqdm import tqdm
 class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=100,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
                  max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=0,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
-                 log_rank_weighting=None, sharing_penalization=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh_list=[4, 5],min_thresh=0,max_thresh=5, 
+                 log_rank_weighting=None, sharing_penalization=None,censor_label="Censoring",group_strata_min=0.4,penalty=0.5,group_thresh_list=[4, 5],min_thresh=0,max_thresh=5, 
                  int_thresh=True,thresh_evolve_prob=0.5,multi_thresholding = True, manual_bin_init=None,covariates=None,naive_survival_optimization=False, pop_clean=None,report=None,random_seed=None,verbose=False):
 
         """
@@ -335,7 +335,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         # print("Beginning FIBERS Fit:")
         #Initialize bin population
-        threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization 
+        threshold_evolving = False #Adaptive thresholding - evolving thresholds is off by default for bin initialization
         self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh_list,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.multi_thresholding,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
@@ -404,7 +404,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             # DEBUGGING FUNCTION - view the population at specified iterations during training
             if self.report != None and iteration in self.report and iteration != 0:
                 print("ITERATION: "+str(iteration))
-                self.set.report_pop()    
+                self.set.report_pop()
 
         #Optional bin population cleaning phase
         if self.pop_clean == 'group_strata':
@@ -552,7 +552,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         #self.set.bin_pop = sorted(self.set.bin_pop, key=lambda x: x.fitness,reverse=True)
         top_bin = self.set.bin_pop[0]
         if initialize:
-            col_list = ['Iteration','Top Bin', 'Threshold', 'Fitness', 'Pre-Fitness', 'Log-Rank Score', 'Log-Rank p-value', 'Bin Size', 'Group Ratio', 'Count At/Below Threshold', 
+            col_list = ['Iteration','Top Bin', 'Threshold(s)', 'Fitness', 'Pre-Fitness', 'Log-Rank Score', 'Log-Rank p-value', 'Bin Size', 'Group Ratio', 'Count At/Below Threshold', 
                         'Count Below Threshold','Birth Iteration','Residuals Score','Residuals p-value','Elapsed Time']
             self.perform_track_df = pd.DataFrame(columns=col_list)
             if self.verbose:
@@ -810,7 +810,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def get_kaplan_meir(self,data,bin_index,show=True,save=False,output_folder=None,data_name=None):
         low_outcome, _, high_outcome, low_censor, _, high_censor = self.get_bin_groups(data, bin_index)
-        plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=show,save=save,output_folder=output_folder,data_name=data_name)
+        plot_kaplan_meir(low_outcome,low_censor,None,None,high_outcome, high_censor,show=show,save=save,output_folder=output_folder,data_name=data_name)
 
     def get_multi_kaplan_meir(self,data,bin_index,show=True,save=False,output_folder=None,data_name=None):
         low_outcome, mid_outcome, high_outcome, low_censor, mid_censor, high_censor = self.get_bin_groups(data, bin_index)

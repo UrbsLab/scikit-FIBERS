@@ -26,13 +26,15 @@ class BIN_SET:
                 feature_text = row[0]
                 feature_list = eval(feature_text)
                 loaded_bin = [item.strip("[]'") for item in feature_list]
-                loaded_thresh = row[1]
+                loaded_thresh_list = row[1]
+                if not isinstance(loaded_thresh_list, list):
+                    loaded_thresh_list = [loaded_thresh_list]
                 birth_iteration = row[10]
                 new_bin = BIN(self.pareto)
-                new_bin.initialize_manual(feature_names,loaded_bin,loaded_thresh,group_thresh_list,min_thresh,max_thresh,birth_iteration)
+                new_bin.initialize_manual(feature_names,loaded_bin,loaded_thresh_list,group_thresh_list,min_thresh,max_thresh,birth_iteration)
                 # Bin metric score evaluation
                 new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh_list,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates], naive_survival_optimization)
+                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh_list,threshold_evolving,multi_thresholding,iterations,iteration,residuals,df.loc[:,covariates], naive_survival_optimization)
                 #Add new bin to population
                 self.bin_pop.append(new_bin)
                 if fitness_metric == 'pareto':
@@ -98,7 +100,7 @@ class BIN_SET:
                 objective_list = [bin.pre_fitness, bin.log_rank_score, bin.low_risk_area, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
                 if objective_list != previous_objective_list: 
                     index += 1 #Only advance bin ranking if next bin is different across at least one objective
-                bin.fitness = np.exp(-index / (len(self.bin_pop)*decay)) 
+                bin.fitness = np.exp(-index / (len(self.bin_pop)*decay))
 
             previous_objective_list = [bin.pre_fitness, bin.log_rank_score, bin.low_risk_area, bin.group_threshold, bin.bin_size, bin.group_strata_prop]
 
@@ -595,11 +597,20 @@ class BIN_SET:
 
     def report_pop(self):
         self.sort_feature_lists()
-        pd.set_option('display.max_colwidth', None) # prevent truncation of dataframe
-        pd.set_option('display.max_rows', None)
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', None)
+        # pd.set_option('display.max_colwidth', None)
+        # pd.set_option('display.max_rows', None)
+        # pd.set_option('display.max_columns', None)
+        # pd.set_option('display.width', None)
         pop_df = pd.DataFrame([vars(instance) for instance in self.bin_pop])
+        
+        # Setting column order
+        desired_cols = ['feature_list', 'group_threshold_list']
+        remaining_cols = [col for col in pop_df.columns if col not in desired_cols]
+        desired_cols.extend(remaining_cols)
+        final_cols = [col for col in desired_cols if col in pop_df.columns]
+        
+        pop_df = pop_df[final_cols]
+        
         print(pop_df)
 
 
@@ -615,7 +626,8 @@ class BIN_SET:
     def pop_clean_group_thresh(self,group_strata_min):
         temp_pop = []
         for bin in self.bin_pop:
-            if bin.group_strata_prop >= group_strata_min:
+            num_curves = len(bin.group_threshold_list) + 1
+            if bin.group_strata_prop >= group_strata_min / num_curves:
                 temp_pop.append(bin)
             else:
                 if bin in self.pareto.bin_front:

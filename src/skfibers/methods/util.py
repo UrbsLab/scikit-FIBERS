@@ -9,6 +9,8 @@ import seaborn as sns
 import matplotlib.patches as mpatches
 import collections
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.patches import Patch
+from .bin import BIN
 
 
 def transform_value(n,cycle_length):
@@ -18,59 +20,74 @@ def transform_value(n,cycle_length):
     return remainder
 
 
-def plot_pareto(bin_pop,show=True,save=False,output_folder=None,data_name=None):
-    # Initialize lists to store Pareto-optimal solutions
+def plot_pareto(bin_pop, show=True, save=False, output_folder=None, data_name=None):
+
     pareto_pre_fitness = []
     pareto_bin_size = []
     group_strata_prop = []
     group_threshold = []
+    shapes = []
+    sizes = []
 
     for bin in bin_pop:
         pareto_pre_fitness.append(bin.pre_fitness)
         pareto_bin_size.append(bin.bin_size)
         group_strata_prop.append(bin.group_strata_prop)
-        group_threshold.append(bin.group_threshold)
-    group_threshold = [(x+1)*5 for x in group_threshold]
-    pareto_df = pd.DataFrame({'Pre-Fitness': pareto_pre_fitness, 'Bin Size': pareto_bin_size})
 
-    mask = paretoset(pareto_df,sense=["max","min"])
+        if len(bin.group_threshold_list) == 1:  
+            avg_threshold = bin.group_threshold_list[0]
+            shapes.append('o')  
+        else:  
+            avg_threshold = sum(bin.group_threshold_list) / len(bin.group_threshold_list)
+            shapes.append('s')  
+
+        sizes.append((avg_threshold + 1) * 5)  
+        group_threshold.append(avg_threshold)
+
+    pareto_df = pd.DataFrame({
+        'Pre-Fitness': pareto_pre_fitness,
+        'Bin Size': pareto_bin_size,
+        'Shape': shapes,
+        'Size': sizes,
+        'Group Strata Prop': group_strata_prop
+    })
+
+    mask = paretoset(pareto_df[['Pre-Fitness', 'Bin Size']], sense=["max", "min"])
     paretoset_fibers = pareto_df[mask]
 
-    plt.figure(figsize=(5, 5))
-    plt.scatter(pareto_df["Pre-Fitness"], pareto_df["Bin Size"], zorder=10, label="All Bins", alpha=0.8,c=group_strata_prop, cmap='viridis', s=group_threshold)
-    plt.legend()
+    plt.figure(figsize=(6, 6))
+
+    for shape in pareto_df['Shape'].unique():
+        df_shape = pareto_df[pareto_df['Shape'] == shape]
+        plt.scatter(df_shape['Pre-Fitness'], df_shape['Bin Size'], label=f'All Bins ({shape})', 
+                    alpha=0.8, c=df_shape['Group Strata Prop'], cmap='viridis', 
+                    s=df_shape['Size'], marker=shape)
+
+    for shape in paretoset_fibers['Shape'].unique():
+        df_shape = paretoset_fibers[paretoset_fibers['Shape'] == shape]
+        plt.scatter(df_shape['Pre-Fitness'], df_shape['Bin Size'], label=f'Non-Dominated ({shape})',
+                    s=df_shape['Size'], marker=shape, edgecolor='orange', linewidth=1.5, facecolor='none')
+
     plt.xlabel("Pre-Fitness")
     plt.ylabel("Bin Size")
-    plt.colorbar(label='Group Strata Prop.')  # Add colorbar to show the intensity scale
-    plt.scatter(
-        paretoset_fibers["Pre-Fitness"],
-        paretoset_fibers["Bin Size"],
-        zorder=5,
-        c='orange',
-        label="Non-Dominated",
-        s=150,
-        alpha=1,
-    )
+    plt.colorbar(label='Group Strata Prop.')
     plt.grid(True, alpha=0.5, ls="--", zorder=0)
     plt.tight_layout()
+
     if save:
-        plt.savefig(output_folder+'/'+data_name+'_pop_pareto.png', bbox_inches="tight")
+        plt.savefig(output_folder + '/' + data_name + '_pop_pareto.png', bbox_inches="tight")
     if show:
         plt.show()
 
-
 def plot_feature_tracking(feature_names,feature_tracking,max_features=40,show=True,save=False,output_folder=None,data_name=None): 
-    # Sort the names and scores based on scores
+
     sorted_pairs = sorted(zip(feature_tracking, feature_names), reverse=True)
 
-    # Filter the top scoring features for visualization
     if max_features < len(feature_names):
         sorted_pairs = sorted_pairs[:max_features]
 
-    # Unzip the top features
     top_scores, top_names = zip(*sorted_pairs)
 
-    # Create a bar plot
     plt.figure(figsize=(16, 7))
     plt.bar(top_names, top_scores, color='skyblue')
     plt.xlabel('Feature')
@@ -82,23 +99,37 @@ def plot_feature_tracking(feature_names,feature_tracking,max_features=40,show=Tr
         plt.show()
 
 
-def plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=True,save=False,output_folder=None,data_name=None):
+def plot_kaplan_meir(low_outcome,low_censor,mid_outcome, mid_censor,high_outcome, high_censor,show=True,save=False,output_folder=None,data_name=None):
     kmf1 = KaplanMeierFitter()
 
-    # fit the model for 1st cohort
-    kmf1.fit(low_outcome, low_censor, label='At/Below Bin Threshold')
-    a1 = kmf1.plot_survival_function()
-    a1.set_ylabel('Survival Probability')
+    if mid_outcome is not None: # bin has 3 groups
+        # fit the model for 1st cohort
+        kmf1.fit(low_outcome, low_censor, label='At/Below Bin Low Threshold')
+        a1 = kmf1.plot_survival_function()
 
-    # fit the model for 2nd cohort
-    kmf1.fit(high_outcome, high_censor, label='Above Bin Threshold')
-    kmf1.plot_survival_function(ax=a1)
+        # fit the model for 2nd cohort
+        kmf1.fit(mid_outcome, mid_censor, label = 'Between Bin Thresholds')
+        kmf1.plot_survival_function()
+
+        # fit the model for 3rd cohort
+        kmf1.fit(high_outcome, high_censor, label='Above Bin High Threshold')
+        kmf1.plot_survival_function(ax=a1)
+    else: # bin has 2 groups
+        # fit the model for 1st cohort
+        kmf1.fit(low_outcome, low_censor, label='At/Below Bin Threshold')
+        a1 = kmf1.plot_survival_function()
+
+        # fit the model for 2nd cohort
+        kmf1.fit(high_outcome, high_censor, label='Above Bin Threshold')
+        kmf1.plot_survival_function(ax=a1)
+    
+    a1.set_ylabel('Survival Probability')
     a1.set_xlabel('Time After Event')
+
     if save:
         plt.savefig(output_folder+'/'+data_name+'_km.png', bbox_inches="tight")
     if show:
         plt.show()
-    plt.clf()
 
 
 def plot_fitness_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
@@ -123,28 +154,95 @@ def plot_fitness_progress(perform_track_df,show=True,save=False,output_folder=No
     if show:
         plt.show()
 
-
-def plot_threshold_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
+def plot_threshold_progress(perform_track_df, show=True, save=False, output_folder=None, data_name=None):
+    """
+    Plot the thresholds progress over time, handling both single and multiple thresholds.
+    When threshold values are None, they are replaced with -1 to ensure they appear on the graph.
+    """
     # Extract columns for plotting
-    time = perform_track_df['Iteration']
-    df = perform_track_df[['Threshold']]
+    time = perform_track_df['Iteration'].tolist()
+    thresholds = perform_track_df['Threshold(s)']
+    
 
-    # Plot the data
-    plt.figure(figsize=(5, 3))
-    colors = ['blue']  # Manually set colors
-    for i, column in enumerate(df.columns):
-        plt.plot(time, df[column], label=column, color=colors[i])
-
-    # Add labels and title
-    plt.xlabel('Iteration')
-    plt.ylabel('Threshold (Top Bin)')
-
-    # Show the plot
-    plt.grid(True)
-    if save:
-        plt.savefig(output_folder+'/'+data_name+'_threshold_track.png', bbox_inches="tight")
+    df_l = []
+    df_h = []
+    
+    # use -1 to indicate no threshold
+    for th in thresholds:
+        if th is None or (isinstance(th, list) and len(th) == 0):
+            df_l.append(-1)
+            df_h.append(-1)
+            continue
+            
+        if isinstance(th, list):
+            if len(th) > 0:
+                df_l.append(th[0] if th[0] is not None else -1)
+                if len(th) > 1:
+                    df_h.append(th[1] if th[1] is not None else -1)
+                else:
+                    df_h.append(-1)
+            else:
+                df_l.append(-1)
+                df_h.append(-1)
+        else:
+            df_l.append(th if th is not None else -1)
+            df_h.append(-1)
+    
+    plt.figure(figsize=(10, 6))
+    
+    plt.plot(time, df_l, label='Lower Threshold', color='blue', linewidth=2, marker='o', markersize=4)
+    
+    # Plot higher threshold where it's not -1 (single threshold indicators)
+    valid_h_indices = [i for i, h in enumerate(df_h) if h != -1]
+    if valid_h_indices:
+        valid_time = [time[i] for i in valid_h_indices]
+        valid_h = [df_h[i] for i in valid_h_indices]
+        plt.plot(valid_time, valid_h, label='Upper Threshold', color='red', linewidth=2, marker='o', markersize=4)
+    
+    # Shade regions for periods with just one threshold
+    single_threshold_periods = []
+    start_idx = None
+    
+    for i in range(len(df_h)):
+        if df_h[i] == -1:
+            if start_idx is None:
+                start_idx = i
+        elif start_idx is not None:
+            single_threshold_periods.append((time[start_idx], time[i-1]))
+            start_idx = None
+    
+    # Add the last period if it ends with a single threshold
+    if start_idx is not None and len(time) > 0:
+        single_threshold_periods.append((time[start_idx], time[len(time)-1]))
+    
+    # Shade single threshold periods
+    for start, end in single_threshold_periods:
+        plt.axvspan(start, end, alpha=0.2, color='darkgray')
+    
+    plt.xlabel('Iteration', fontsize=12)
+    plt.ylabel('Threshold Values', fontsize=12)
+    plt.title('Threshold Progress Over Time', fontsize=14)
+    
+    legend_elements = [
+        plt.Line2D([0], [0], color='blue', marker='o', markersize=4, linewidth=2, label='Lower Threshold'),
+        plt.Line2D([0], [0], color='red', marker='o', markersize=4, linewidth=2, label='Upper Threshold'),
+        Patch(facecolor='darkgray', alpha=0.2, label='Single Threshold Period')
+    ]
+    plt.legend(handles=legend_elements, loc='best')
+    
+    plt.grid(True, linestyle='--', alpha=0.7)
+    
+    plt.ylim(bottom=-1.5)
+    
+    plt.tight_layout()
+    
+    if save and output_folder and data_name:
+        plt.savefig(f"{output_folder}/{data_name}_threshold_track.png", bbox_inches="tight", dpi=300)
+    
     if show:
         plt.show()
+    else:
+        plt.close()
 
 def plot_perform_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
     # Extract columns for plotting
@@ -168,30 +266,76 @@ def plot_perform_progress(perform_track_df,show=True,save=False,output_folder=No
     if show:
         plt.show()
 
-
-def plot_misc_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
+def plot_misc_progress(perform_track_df, show=True, save=False, output_folder=None, data_name=None):
     # Extract columns for plotting
     time = perform_track_df['Iteration']
-    df = perform_track_df[['Birth Iteration','Bin Size','Group Ratio']]
-    df = (df - df.min()) / (df.max() - df.min())
-    # Plot the data
-    plt.figure(figsize=(5, 3))
-    colors = ['red', 'blue', 'green']   # Manually set colors
+    
+    df = perform_track_df[['Birth Iteration', 'Bin Size', 'Group Ratio']]
+    
+    df_normalized = (df - df.min()) / (df.max() - df.min())
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    
+    colors = {
+        'Birth Iteration': 'darkred',
+        'Bin Size': 'navy',
+        'Group Ratio': 'forestgreen'
+    }
+    
+    # Plot 1: Normalized values for comparison (all three metrics)
+    for column in df_normalized.columns:
+        ax1.plot(time, df_normalized[column], label=column, color=colors[column], 
+                linewidth=2, marker='.', markersize=3)
+    
+    ax1.set_ylabel('Normalized Values (0-1)', fontsize=10)
+    ax1.set_title('Normalized Metrics Comparison', fontsize=12)
+    ax1.grid(True, linestyle='--', alpha=0.7)
+    ax1.legend(loc='best')
+    
+    # Plot 2: Original values
+    axes = [ax2, ax2.twinx(), ax2.twinx()]
+    
+    if len(df.columns) > 2:
+        axes[2].spines['right'].set_position(('outward', 60))
+    
     for i, column in enumerate(df.columns):
-        plt.plot(time, df[column], label=column, color=colors[i])
-
-    # Add labels and title
-    plt.xlabel('Iteration')
-    plt.ylabel('Normalized Values (0-1) ')
-    plt.legend()  # Show legend
-
-    # Show the plot
-    plt.grid(True)
-    if save:
-        plt.savefig(output_folder+'/'+data_name+'_misc_track.png', bbox_inches="tight")
+        line = axes[i].plot(time, df[column], label=column, color=colors[column], 
+                           linewidth=2, marker='.', markersize=3)
+        axes[i].set_ylabel(column, color=colors[column], fontsize=10)
+        axes[i].tick_params(axis='y', colors=colors[column])
+    
+    ax2.set_xlabel('Iteration', fontsize=10)
+    ax2.set_title('Actual Metric Values', fontsize=12)
+    ax2.grid(True, linestyle='--', alpha=0.7)
+    
+    lines = []
+    labels = []
+    for ax, column in zip(axes, df.columns):
+        line, = ax.get_lines()
+        lines.append(line)
+        labels.append(column)
+    
+    ax2.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3)
+    
+    descriptions = {
+        'Birth Iteration': 'The iteration when the top bin was created',
+        'Bin Size': 'Number of features in the top bin',
+        'Group Ratio': 'Proportion of instances in the smaller group'
+    }
+    
+    fig.text(0.1, 0.01, '\n'.join([f"{k}: {v}" for k, v in descriptions.items()]), 
+             fontsize=9, ha='left', va='bottom')
+    
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.15)
+    
+    if save and output_folder and data_name:
+        plt.savefig(f"{output_folder}/{data_name}_misc_track.png", bbox_inches="tight", dpi=300)
+    
     if show:
         plt.show()
-
+    else:
+        plt.close()
 
 def plot_residuals_histogram(residuals,show=True,save=False,output_folder=None,data_name=None):
     if isinstance(residuals, pd.DataFrame):
@@ -612,3 +756,389 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
         plt.savefig(output_folder+'/'+data_name+'_custom_pop_heatmap.png', bbox_inches="tight")
     if show:
         plt.show()
+
+def plot_optimal_bins_km_curves(data, fibers, save_path=None):
+    """
+    Create and display Kaplan-Meier curves for both optimal bins
+    """
+    # Create optimal bins
+    optimal_bin_3group = BIN(fibers.set.pareto)
+    optimal_bin_3group.feature_list = ["P_" + str(i+1) for i in range(10)]
+    optimal_bin_3group.group_threshold_list = [1, 3]
+    optimal_bin_3group.birth_iteration = 0
+    optimal_bin_3group.bin_size = 10
+    
+    optimal_bin_2group = BIN(fibers.set.pareto)
+    optimal_bin_2group.feature_list = ["P_" + str(i+1) for i in range(10)]
+    optimal_bin_2group.group_threshold_list = [4]
+    optimal_bin_2group.birth_iteration = 0
+    optimal_bin_2group.bin_size = 10
+    
+    # Evaluate both bins
+    for bin_obj, thresh_list, name in [(optimal_bin_3group, [1, 3], "3-group"), 
+                                       (optimal_bin_2group, [4], "2-group")]:
+        bin_obj.evaluate_fixed_bin(data.loc[:,fibers.feature_names], data.loc[:,fibers.outcome_label], data.loc[:,fibers.censor_label], 
+                                   fibers.outcome_type, fibers.fitness_metric, fibers.log_rank_weighting, fibers.outcome_label, 
+                                   fibers.censor_label, fibers.min_thresh, fibers.max_thresh, fibers.int_thresh, fibers.group_thresh_list, 
+                                   False, fibers.multi_thresholding, fibers.iterations, 0, fibers.residuals, 
+                                   data.loc[:, fibers.covariates if fibers.covariates else []], fibers.naive_survival_optimization, thresh_list)
+        
+        bin_obj.calculate_pre_fitness(fibers.group_strata_min,fibers.penalty,fibers.fitness_metric,fibers.feature_names,fibers.naive_survival_optimization)
+        
+        print(f"\n{name} bin evaluation:")
+        print(f"  Thresholds: {bin_obj.group_threshold_list}")
+        print(f"  Log-rank score: {bin_obj.log_rank_score:.2f}")
+        print(f"  Group counts: {bin_obj.count_bt}, {getattr(bin_obj, 'count_mt', 0)}, {bin_obj.count_at}")
+        print(f"  Group proportions: {bin_obj.group_prop_list}")
+        if hasattr(bin_obj, 'pairwise_scores') and bin_obj.pairwise_scores:
+            print(f"  Pairwise scores: {bin_obj.pairwise_scores}")
+    
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    
+    # Plot 3-group bin
+    plot_bin_km_curve(data, optimal_bin_3group, fibers, axes[0], "3-Group Bin (Thresholds: 1, 3)")
+    
+    # Plot 2-group bin  
+    plot_bin_km_curve(data, optimal_bin_2group, fibers, axes[1], "2-Group Bin (Threshold: 4)")
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"\nPlot saved to: {save_path}")
+    
+    plt.show()
+    
+    print_comparison_summary(optimal_bin_3group, optimal_bin_2group)
+    
+    return optimal_bin_3group, optimal_bin_2group
+
+def plot_bin_km_curve(data, bin_obj, fibers, ax, title):
+    """
+    Plot Kaplan-Meier curve for a single bin
+    """
+    feature_sums = data[bin_obj.feature_list].sum(axis=1)
+    
+    if len(bin_obj.group_threshold_list) == 2:
+        # 3-group bin
+        low_thresh, high_thresh = bin_obj.group_threshold_list
+        
+        low_mask = feature_sums <= low_thresh
+        mid_mask = (feature_sums > low_thresh) & (feature_sums <= high_thresh)
+        high_mask = feature_sums > high_thresh
+        
+        groups = [
+            (low_mask, f'Low Risk (≤{low_thresh})', 'blue'),
+            (mid_mask, f'Medium Risk ({low_thresh+1}-{high_thresh})', 'orange'),
+            (high_mask, f'High Risk (>{high_thresh})', 'red')
+        ]
+    else:
+        # 2-group bin
+        thresh = bin_obj.group_threshold_list[0]
+        
+        low_mask = feature_sums <= thresh
+        high_mask = feature_sums > thresh
+        
+        groups = [
+            (low_mask, f'Low Risk (≤{thresh})', 'blue'),
+            (high_mask, f'High Risk (>{thresh})', 'red')
+        ]
+    
+    # Plot survival curves
+    kmf = KaplanMeierFitter()
+    
+    for mask, label, color in groups:
+        if mask.sum() > 0:
+            durations = data.loc[mask, fibers.outcome_label]
+            events = data.loc[mask, fibers.censor_label]
+            
+            kmf.fit(durations, events, label=label)
+            kmf.plot_survival_function(ax=ax, color=color, linewidth=2.5)
+    
+    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.set_xlabel('Time After Event', fontsize=12)
+    ax.set_ylabel('Survival Probability', fontsize=12)
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=10)
+    
+    y_pos = 0.15
+    for mask, label, color in groups:
+        count = mask.sum()
+        ax.text(0.02, y_pos, f'{label}: n={count}', 
+                transform=ax.transAxes, fontsize=10, 
+                bbox=dict(boxstyle="round,pad=0.3", facecolor=color, alpha=0.3))
+        y_pos -= 0.05
+
+def print_comparison_summary(bin_3group, bin_2group):
+    """
+    Print comparison between the two bins
+    """
+    print("Comparison Summary:")
+    
+    print(f"\n3-Group Bin Performance:")
+    print(f"  Features: All 10 predictive features (P_1 to P_10)")
+    print(f"  Thresholds: {bin_3group.group_threshold_list}")
+    print(f"  Log-rank score: {bin_3group.log_rank_score:.2f}")
+    print(f"  Group sizes: {bin_3group.count_bt} / {getattr(bin_3group, 'count_mt', 0)} / {bin_3group.count_at}")
+    print(f"  Group proportions: {[f'{p:.3f}' for p in bin_3group.group_prop_list]}")
+    if hasattr(bin_3group, 'pairwise_scores') and bin_3group.pairwise_scores:
+        print(f"  Pairwise scores: {[f'{s:.1f}' for s in bin_3group.pairwise_scores]}")
+        avg_pairwise = sum(bin_3group.pairwise_scores) / len(bin_3group.pairwise_scores)
+        print(f"  Average pairwise: {avg_pairwise:.2f}")
+    
+    print(f"\n2-Group Bin Performance:")
+    print(f"  Features: All 10 predictive features (P_1 to P_10)")
+    print(f"  Threshold: {bin_2group.group_threshold_list}")
+    print(f"  Log-rank score: {bin_2group.log_rank_score:.2f}")
+    print(f"  Group sizes: {bin_2group.count_bt} / {bin_2group.count_at}")
+    print(f"  Group proportions: {[f'{p:.3f}' for p in bin_2group.group_prop_list if p > 0]}")
+
+def run_km_comparison(data, fibers, output_folder, data_name):
+    """
+    Main function to run the comparison
+    """
+    save_path = f"{output_folder}/{data_name}_optimal_bins_km_comparison.png"
+    
+    bin_3group, bin_2group = plot_optimal_bins_km_curves(data, fibers, save_path)
+    
+    return bin_3group, bin_2group
+
+def find_optimal_bins_in_population(fibers):
+    """
+    Check if the optimal bins still exist in the population
+    """
+    optimal_features = set([f"P_{i+1}" for i in range(10)])
+    
+    found_bins = []
+    
+    for i, bin_obj in enumerate(fibers.set.bin_pop):
+        bin_features = set(bin_obj.feature_list)
+        
+        # Check if this bin has all predictive features
+        if optimal_features.issubset(bin_features):
+            extra_features = bin_features - optimal_features
+            found_bins.append({
+                'index': i,
+                'thresholds': bin_obj.group_threshold_list,
+                'log_rank': bin_obj.log_rank_score,
+                'fitness': bin_obj.fitness,
+                'extra_features': list(extra_features),
+                'bin_size': bin_obj.bin_size
+            })
+    
+    return found_bins
+
+def extend_curve_to_zero(times, probs, max_time):
+    """
+    Extend survival curve to maintain 0 probability until max_time
+    """
+    # Find where curve reaches 0 or very close to 0
+    zero_threshold = 1e-10
+    zero_indices = np.where(probs <= zero_threshold)[0]
+    
+    if len(zero_indices) > 0:
+        # Curve reaches zero
+        first_zero_idx = zero_indices[0]
+        zero_time = times[first_zero_idx]
+        
+        # If curve reaches zero before max_time, extend with zeroes
+        if zero_time < max_time:
+            extended_times = np.concatenate([
+                times[:first_zero_idx + 1],
+                np.array([max_time])
+            ])
+            extended_probs = np.concatenate([
+                probs[:first_zero_idx + 1],
+                np.array([0.0])
+            ])
+        else:
+            # Curve doesn't reach zero before max_time
+            extended_times = times
+            extended_probs = probs
+    else:
+        # Curve never reaches zero, extend to max_time with last probability
+        if times[-1] < max_time:
+            extended_times = np.concatenate([times, np.array([max_time])])
+            extended_probs = np.concatenate([probs, np.array([probs[-1]])])
+        else:
+            extended_times = times
+            extended_probs = probs
+    
+    return extended_times, extended_probs
+
+def calculate_area_between_curves(data, bin_obj, fibers):
+    """
+    Calculate area between survival curves with proper zero handling
+    """
+    feature_sums = data[bin_obj.feature_list].sum(axis=1)
+    
+    if len(bin_obj.group_threshold_list) == 2:
+        # 3-group bin
+        low_thresh, high_thresh = bin_obj.group_threshold_list
+        
+        low_mask = feature_sums <= low_thresh
+        mid_mask = (feature_sums > low_thresh) & (feature_sums <= high_thresh)
+        high_mask = feature_sums > high_thresh
+        
+        groups = [
+            (low_mask, 'Low', 'blue'),
+            (mid_mask, 'Medium', 'orange'),
+            (high_mask, 'High', 'red')
+        ]
+    else:
+        # 2-group bin
+        thresh = bin_obj.group_threshold_list[0]
+        
+        low_mask = feature_sums <= thresh
+        high_mask = feature_sums > thresh
+        
+        groups = [
+            (low_mask, 'Low', 'blue'),
+            (high_mask, 'High', 'red')
+        ]
+    
+    # Fit KM curves for each group
+    kmf = KaplanMeierFitter()
+    survival_functions = {}
+    max_time = 0
+    
+    for mask, label, color in groups:
+        if mask.sum() > 0:
+            durations = data.loc[mask, fibers.outcome_label]
+            events = data.loc[mask, fibers.censor_label]
+            
+            kmf.fit(durations, events, label=label)
+            
+            times = kmf.survival_function_.index.values
+            probs = kmf.survival_function_[label].values
+            
+            max_time = max(max_time, times[-1])
+            
+            survival_functions[label] = {
+                'times': times,
+                'probs': probs,
+                'count': mask.sum()
+            }
+    
+    for label in survival_functions:
+        extended_times, extended_probs = extend_curve_to_zero(
+            survival_functions[label]['times'],
+            survival_functions[label]['probs'],
+            max_time
+        )
+        survival_functions[label]['times'] = extended_times
+        survival_functions[label]['probs'] = extended_probs
+    
+    # Calculate areas between curves
+    areas = {}
+    
+    if len(survival_functions) == 2:
+        # 2-group
+        low_data = survival_functions['Low']
+        high_data = survival_functions['High']
+        
+        area = calculate_area_between_two_curves(low_data, high_data)
+        areas['Low_vs_High'] = area
+        
+    elif len(survival_functions) == 3:
+        # 3-group
+        low_data = survival_functions['Low']
+        mid_data = survival_functions['Medium']
+        high_data = survival_functions['High']
+        
+        areas['Low_vs_Medium'] = calculate_area_between_two_curves(low_data, mid_data)
+        areas['Low_vs_High'] = calculate_area_between_two_curves(low_data, high_data)
+        areas['Medium_vs_High'] = calculate_area_between_two_curves(mid_data, high_data)
+    
+    return areas, survival_functions
+
+def calculate_area_between_two_curves(curve1_data, curve2_data):
+    """
+    Calculate area between two survival curves using trapezoidal rule with proper zero handling
+    """
+    all_times = np.unique(np.concatenate([curve1_data['times'], curve2_data['times']]))
+    all_times = np.sort(all_times)
+    
+    curve1_interp = np.interp(all_times, curve1_data['times'], curve1_data['probs'])
+    curve2_interp = np.interp(all_times, curve2_data['times'], curve2_data['probs'])
+    
+    diff = np.abs(curve1_interp - curve2_interp)
+    area = np.trapz(diff, all_times)
+    
+    return area
+
+def plot_curves_with_shaded_area(data, bin_obj, fibers, title_suffix=""):
+    """
+    Plot survival curves with properly colored shaded areas between them
+    """
+    areas, survival_functions = calculate_area_between_curves(data, bin_obj, fibers)
+    
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    colors = {'Low': 'blue', 'Medium': 'orange', 'High': 'red'}
+    
+    for label, sf_data in survival_functions.items():
+        ax.plot(sf_data['times'], sf_data['probs'], 
+                color=colors[label], linewidth=3, label=f"{label} Risk (n={sf_data['count']})")
+    
+    # Shade area between curves with different colors
+    if len(survival_functions) == 2:
+        # 2-group
+        low_data = survival_functions['Low']
+        high_data = survival_functions['High']
+        
+        # Get common time grid for shading
+        all_times = np.unique(np.concatenate([low_data['times'], high_data['times']]))
+        all_times = np.sort(all_times)
+        
+        low_interp = np.interp(all_times, low_data['times'], low_data['probs'])
+        high_interp = np.interp(all_times, high_data['times'], high_data['probs'])
+        
+        ax.fill_between(all_times, low_interp, high_interp, 
+                       alpha=0.3, color='gray', label=f'Area = {areas["Low_vs_High"]:.3f}')
+        
+    elif len(survival_functions) == 3:
+        # 3-group
+        low_data = survival_functions['Low']
+        mid_data = survival_functions['Medium']
+        high_data = survival_functions['High']
+        
+        all_times = np.unique(np.concatenate([
+            low_data['times'], mid_data['times'], high_data['times']
+        ]))
+        all_times = np.sort(all_times)
+        
+        low_interp = np.interp(all_times, low_data['times'], low_data['probs'])
+        mid_interp = np.interp(all_times, mid_data['times'], mid_data['probs'])
+        high_interp = np.interp(all_times, high_data['times'], high_data['probs'])
+        
+        # Shade Low vs Medium area
+        ax.fill_between(all_times, low_interp, mid_interp, 
+                       alpha=0.4, color='lightblue', 
+                       label=f'Low vs Medium Area = {areas["Low_vs_Medium"]:.3f}')
+        
+        # Shade Medium vs High area
+        ax.fill_between(all_times, mid_interp, high_interp, 
+                       alpha=0.4, color='lightcoral',
+                       label=f'Medium vs High Area = {areas["Medium_vs_High"]:.3f}')
+        
+        # Add Low vs High area as text
+        textstr = f'Low vs High Area = {areas["Low_vs_High"]:.3f}'
+        props = dict(boxstyle='round', facecolor='lightyellow', alpha=0.8)
+        ax.text(0.02, 0.85, textstr, transform=ax.transAxes, fontsize=11,
+                bbox=props, fontweight='bold')
+    
+    ax.set_xlabel('Time After Event', fontsize=12)
+    ax.set_ylabel('Survival Probability', fontsize=12)
+    ax.set_title(f'Survival Curves with Area Between Curves{title_suffix}', fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=10)
+    
+    plt.tight_layout()
+    return areas, fig
+
+def calculate_area_under_curve(times, probs):
+    """
+    Calculate area under a single survival curve using trapezoidal rule
+    """
+    return np.trapz(probs, times)

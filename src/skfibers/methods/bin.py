@@ -13,8 +13,8 @@ import sys                         # testing purposes
 class BIN:
     def __init__(self, pareto):
         self.feature_list = [] # List of feature names (across which instance values are summed)
+        self.group_threshold_list = [] # Thresholds for each group
         self.group_threshold = None # Threshold after which an instance is place in the 'above threshold' group - determines group strata of instances
-        self.group_threshold_list = []
         self.fitness = None # Bin fitness (higher fitness is better) - proportional to parent selection probability, and inversely proportional to deletion probability
         self.pre_fitness = None
         self.log_rank_score = None  # Log-rank Score
@@ -39,6 +39,8 @@ class BIN:
         self.adj_HR_p_value = None
         # added features
         self.pareto = pareto
+        self.pairwise_scores = [] # pairwise logrank scores
+        self.group_prop_list = [] # count / total for each risk group
 
 
     def update_deletion_prop(self,deletion_prop, cluster):
@@ -64,23 +66,29 @@ class BIN:
                 self.group_threshold_list.sort()
     
 
-    def initialize_manual(self,feature_names,loaded_bin,loaded_thresh,group_thresh,min_thresh,max_thresh,birth_iteration):
-        if birth_iteration == None:
+    def initialize_manual(self,feature_names,loaded_bin,loaded_thresh_list,group_thresh,min_thresh,max_thresh,birth_iteration):
+        if birth_iteration is None:
             self.birth_iteration = 0
         else:
             self.birth_iteration = birth_iteration
+        
         for feature in loaded_bin:
             #Initialize manual feature lists
             if feature in feature_names:
                 self.feature_list.append(feature)
             else:
                 print("Warning: feature ("+str(feature)+") not found in dataset for manual bin initialization")
-            if group_thresh != None and loaded_thresh != group_thresh:
-                print("Warning: threshold ("+str(loaded_thresh)+") is not equal to the specified group_thresh")
-            elif loaded_thresh < min_thresh or loaded_thresh > max_thresh:
-                print("Warning: threshold ("+str(loaded_thresh)+") is outside of min and max thresh")
-            else:
-                self.group_threshold = loaded_thresh
+        
+        if not isinstance(loaded_thresh_list, list):
+            loaded_thresh_list = [loaded_thresh_list]
+
+        if group_thresh is not None and loaded_thresh_list != group_thresh:
+            print("Warning: thresholds ("+str(loaded_thresh_list)+") is not equal to the specified group_thresh")
+        elif min(loaded_thresh_list) < min_thresh or max(loaded_thresh_list) > max_thresh:
+            print("Warning: thresholds ("+str(loaded_thresh_list)+") are outside of min and max thresh")
+        else:
+            self.group_threshold_list = loaded_thresh_list
+        
         self.bin_size = len(self.feature_list)
 
 
@@ -161,6 +169,43 @@ class BIN:
             self.low_risk_area = low_risk_area
         self.bin_size = len(self.feature_list)
 
+    # New method added to evaluate a fixed bin - helpful for evaluation after bin injection
+    def evaluate_fixed_bin(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
+                censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,multi_thresholding,iterations,
+                iteration,residuals,covariate_df, naive_survival_optimization, thresh_list):
+        feature_sums = feature_df[self.feature_list].sum(axis=1)
+        bin_df = pd.DataFrame({'feature_sum':feature_sums})
+        bin_df = pd.concat([bin_df,outcome_df,censor_df],axis=1)
+
+        num_thresh = len(thresh_list)
+        if num_thresh == 2:
+            # For 3-group bins
+            log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at, low_risk_area = self.evaluate_for_thresholds(
+                multi_thresholding, [thresh_list[0],thresh_list[1]], bin_df, outcome_label, censor_label, 
+                outcome_type, fitness_metric, log_rank_weighting, residuals, covariate_df, naive_survival_optimization)
+            
+            self.count_mt = count_mt
+            
+        else:
+            # For 2-group bins
+            log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at,low_risk_area = self.evaluate_for_thresholds(
+                multi_thresholding, [thresh_list[0]], bin_df, outcome_label, censor_label,
+                outcome_type, fitness_metric, log_rank_weighting, residuals, covariate_df, naive_survival_optimization)
+            
+            self.count_mt = 0
+            self.low_risk_area = low_risk_area
+        
+        # Assign values to bin
+        self.log_rank_score = log_rank_score
+        self.log_rank_p_value = p_value
+        self.residuals_score = residuals_score
+        self.residuals_p_value = residuals_p_value
+        self.count_bt = count_bt
+        self.count_at = count_at
+        self.bin_size = len(self.feature_list)
+        
+        self.group_threshold_list = thresh_list.copy()
+
 
     def evaluate_for_thresholds(self,multi_thresholding,group_thresh_list,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df, naive_survival_optimization):
         low_thresh = None
@@ -190,8 +235,9 @@ class BIN:
                         high_df = bin_df[bin_df['feature_sum'] > high_thresh]
                         mid_censor = mid_df[censor_label].to_list()
                         count_mt = len(mid_outcome)
-                    else: 
+                    else:
                         high_df = bin_df[bin_df['feature_sum'] > low_thresh]
+                        count_mt = 0
                     
                     low_outcome = low_df[outcome_label].to_list()
                     high_outcome = high_df[outcome_label].to_list()
@@ -201,6 +247,7 @@ class BIN:
                     
                     count_bt = len(low_outcome)
                     count_at = len(high_outcome)
+                    
                     # FINDING AREA UNDER CURVE
                     kmf1 = KaplanMeierFitter()
 
@@ -210,7 +257,7 @@ class BIN:
                         residuals_score = 0
                         residuals_p_value = None
                         low_risk_area = 0
-                        return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,0,count_at,low_risk_area
+                        return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at,low_risk_area
                     
                     # fit the model for 1st cohort
                     kmf1.fit(low_outcome, low_censor, label='At/Below Bin Threshold')
@@ -230,70 +277,94 @@ class BIN:
                 if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals' or fitness_metric == 'pareto':
                     #Create dataframes including instances from either strata-groups
                     try:
-                        results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
-                        log_rank_score = results.test_statistic #test all thresholds by default in initial pop.
-                        p_value = results.p_value
-                    except:
+                        if num_thresh == 2:
+                            # For 3-group bins, use pairwise log-rank tests
+                            mid_outcome = mid_df[outcome_label].to_list()
+                            mid_censor = mid_df[censor_label].to_list()
+                            
+                            # Check if any group is empty
+                            if len(low_outcome) == 0 or len(mid_outcome) == 0 or len(high_outcome) == 0:
+                                log_rank_score = 0
+                                p_value = None
+                                self.pairwise_scores = [0, 0, 0]
+                            else:
+                                # Calculate three pairwise log-rank tests: Low-High, Low-Medium, Medium-High
+                                lh_results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
+                                lm_results = logrank_test(low_outcome, mid_outcome, event_observed_A=low_censor,event_observed_B=mid_censor,weightings=log_rank_weighting)
+                                mh_results = logrank_test(mid_outcome, high_outcome, event_observed_A=mid_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
+                                
+                                lh_stat = lh_results.test_statistic if lh_results is not None else 0
+                                lm_stat = lm_results.test_statistic if lm_results is not None else 0
+                                mh_stat = mh_results.test_statistic if mh_results is not None else 0
+
+                                lh_pval = lh_results.p_value if lh_results is not None else None
+                                lm_pval = lm_results.p_value if lm_results is not None else None
+                                mh_pval = mh_results.p_value if mh_results is not None else None
+
+                                # Use average of pairwise scores as overall log-rank score
+                                avg_stat = (lh_stat + lm_stat + mh_stat) / 3
+                                self.pairwise_scores = [round(stat, 3) for stat in [lh_stat, lm_stat, mh_stat]]
+                                
+                                log_rank_score = avg_stat
+                                p_value = min(lh_pval, lm_pval, mh_pval) if all(p is not None for p in [lh_pval, lm_pval, mh_pval]) else None
+                            
+                            total = count_bt + count_mt + count_at
+                            if total > 0:
+                                self.group_prop_list = [count_bt/total, count_mt/total, count_at/total]
+                            else:
+                                self.group_prop_list = [0, 0, 0]
+                        else:
+                            # For 2-group bins, use standard log-rank test
+                            results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
+                            log_rank_score = results.test_statistic
+                            p_value = results.p_value
+                            
+                            total = count_bt + count_at
+                            if total > 0:
+                                self.group_prop_list = [count_bt/total, 0, count_at/total]
+                            else:
+                                self.group_prop_list = [0, 0, 0]
+                            
+                            self.pairwise_scores = []  # No pairwise scores for 2-group bins
+                            
+                        # Multivariate log-rank test approach
+                        # This code can be uncommented and used instead of the pairwise approach above
+                        # if num_thresh == 2:
+                        #     mid_outcome = mid_df[outcome_label].to_list()
+                        #     mid_censor = mid_df[censor_label].to_list()
+                        #     count_mt = len(mid_outcome)
+                        #     
+                        #     combined_outcomes = low_outcome + mid_outcome + high_outcome # event_durations for all individuals
+                        #     combined_groups = [0] * len(low_outcome) + [1] * len(mid_outcome)  + [2] * len(high_outcome) # Assign group 0 to low_outcome and group 1 to high_outcome (group labels for each individual)
+                        #     combined_censors = low_censor + mid_censor + high_censor # event_observed (censoring) for all individuals
+                        #     
+                        # else:
+                        #     count_mt = 0
+                        #     combined_outcomes = low_outcome + high_outcome
+                        #     combined_groups = [0] * len(low_outcome) + [1] * len(high_outcome)
+                        #     combined_censors = low_censor + high_censor
+                        #
+                        # try:
+                        #     # results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
+                        #     results = multivariate_logrank_test(combined_outcomes, combined_groups, event_observed=combined_censors, weightings=log_rank_weighting)
+                        #     log_rank_score = results.test_statistic #test all thresholds by default in initial pop.
+                        #     p_value = results.p_value
+                        # except:
+                        #     log_rank_score = 0
+                        #     p_value = None
+                            
+                    except Exception as e:
                         log_rank_score = 0
                         p_value = None
+                        self.pairwise_scores = [0, 0, 0] if num_thresh == 2 else []
 
-                    if num_thresh == 2:
-                        mid_outcome = mid_df[outcome_label].to_list()
-                        mid_censor = mid_df[censor_label].to_list()
-                        count_mt = len(mid_outcome)
-                        
-                        combined_outcomes = low_outcome + mid_outcome + high_outcome # event_durations for all individuals
-                        combined_groups = [0] * len(low_outcome) + [1] * len(mid_outcome)  + [2] * len(high_outcome) # Assign group 0 to low_outcome and group 1 to high_outcome (group labels for each individual)
-                        combined_censors = low_censor + mid_censor + high_censor # event_observed (censoring) for all individuals
-                        
-                    else:
-                        count_mt = 0
-                        combined_outcomes = low_outcome + high_outcome
-                        combined_groups = [0] * len(low_outcome) + [1] * len(high_outcome)
-                        combined_censors = low_censor + high_censor
+                # Handle residuals evaluation if needed
+                if fitness_metric == 'residuals' or fitness_metric == 'log_rank_residuals':
+                    # Add residuals evaluation code here if needed
+                    residuals_score = 0
+                    residuals_p_value = None
 
-                    try:
-                        # results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
-                        results = multivariate_logrank_test(combined_outcomes, combined_groups, event_observed=combined_censors, weightings=log_rank_weighting)
-                        log_rank_score = results.test_statistic #test all thresholds by default in initial pop.
-                        p_value = results.p_value
-                    except:
-                        log_rank_score = 0
-                        p_value = None
-
-                if fitness_metric == 'residuals' or fitness_metric == 'log_rank_residuals': # In addition to log_rank, calculate residuals differences between groups
-                    low_residuals_df = residuals.loc[bin_df['feature_sum'] <= low_thresh] #Does the threshold work the same way since these are residual? Transformed?
-                    mid_residuals_df = residuals.loc[(bin_df['feature_sum'] > low_thresh) & (bin_df['feature_sum'] <= high_thresh)]
-                    high_residuals_df = residuals.loc[bin_df['feature_sum'] > high_thresh] # or is the residuals data the same and only the duration changed?
-                    
-                    low_residuals_df = low_residuals_df["deviance"]
-                    mid_residuals_df = mid_residuals_df["deviance"]
-                    high_residuals_df = high_residuals_df["deviance"]
-
-                    count_bt = len(low_residuals_df)
-                    count_mt = len(mid_residuals_df)
-                    count_at = len(high_residuals_df)
-
-                    if len(low_residuals_df) == 0 or len(mid_residuals_df) == 0 or len(high_residuals_df) == 0:
-                        residuals_score = 0
-                        residuals_p_value = None
-                    else:
-                        try:
-                            # results = ranksums(low_residuals_df, high_residuals_df)
-                            results = kruskal(low_residuals_df, mid_residuals_df, high_residuals_df)
-                            residuals_score = abs(results.statistic)
-                            residuals_p_value = results.pvalue
-                        except:
-                            residuals_score = 0
-                            residuals_p_value = None
-
-            elif outcome_type == 'class':
-                print("Classification not yet implemented")
-            else:
-                print("Specified outcome_type not supported")
-
-            return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at,low_risk_area
-        
+                return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at,low_risk_area
         else:
             if outcome_type == 'survival':
                 residuals_score = None
@@ -339,6 +410,9 @@ class BIN:
                 low_risk_area = np.trapz(survival_probabilities_scaled, survival_times)
                 low_risk_area = low_risk_area / scale_factor
 
+                total = self.count_bt + self.count_at
+                self.group_prop_list = [self.count_bt/total,0,self.count_at/total]
+
                 if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals' or fitness_metric == 'pareto':
                     #Create dataframes including instances from either strata-groups
                     try:
@@ -383,6 +457,7 @@ class BIN:
         self.feature_list = copy.deepcopy(parent.feature_list) #sorting is for feature list comparison
         self.group_threshold_list = copy.deepcopy(parent.group_threshold_list)
         self.birth_iteration = iteration
+        self.pairwise_scores = copy.deepcopy(parent.pairwise_scores)
 
 
     def uniform_crossover(self,other_offspring,crossover_prob,threshold_evolving,multi_thresholding,max_thresh,random):
@@ -583,18 +658,22 @@ class BIN:
 
 
     def calculate_pre_fitness(self,group_strata_min,penalty,fitness_metric,feature_names, naive_survival_optimization):
+        # adjust minimum group strata parameter based on number of risk curves in bin
+        num_curves = len(self.group_threshold_list) + 1
+        group_strata_min /= num_curves
         # Penalize fitness if group counts are beyond the minimum group strata parameter (Ryan Check below)
-        if len(self.group_threshold_list) == 2:
-            self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_mt+self.count_at),self.count_mt/(self.count_bt+self.count_mt+self.count_at),
-                                     self.count_at/(self.count_bt+self.count_mt+self.count_at))
+        total = self.count_bt + self.count_at
+        if num_curves == 3:
+            total += self.count_mt
+            self.group_strata_prop = min(self.count_bt/total,self.count_mt/total,self.count_at/total)
         else:
-            self.group_strata_prop = min(self.count_bt/(self.count_bt+self.count_at),self.count_at/(self.count_bt+self.count_at))
+            self.group_strata_prop = min(self.count_bt/total,self.count_at/total)
 
         if self.group_strata_prop == 0.0:
             self.pre_fitness = 0.0
         else:
             if fitness_metric == 'log_rank':
-                if self.group_strata_prop < group_strata_min: 
+                if self.group_strata_prop < group_strata_min:
                     self.pre_fitness = (1-penalty) * self.log_rank_score
                 else:
                     self.pre_fitness = self.log_rank_score
@@ -638,9 +717,10 @@ class BIN:
     def bin_report(self):
         pd.set_option('display.max_colwidth', None) # prevent truncation of dataframe
         columns = ['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Log-Rank Score:', 'Log-Rank p-value:' ,'Bin Size:', 'Group Ratio:', 
-                    'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:','Residuals Score:','Residuals p-value', 'Area']
+                    'Count At/Below Threshold:', 'Count Above Threshold:','Birth Iteration:','Residuals Score:','Residuals p-value', 'Area', 'Pairwise Scores', 'Strata Prop List']
         report_df = pd.DataFrame([[self.feature_list, self.group_threshold_list, self.fitness,self.pre_fitness,self.log_rank_score, self.log_rank_p_value,
-                                   self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration,self.residuals_score,self.residuals_p_value,self.low_risk_area]],columns=columns,index=None)
+                                   self.bin_size, self.group_strata_prop, self.count_bt, self.count_at, self.birth_iteration,self.residuals_score,
+                                   self.residuals_p_value,self.low_risk_area,self.pairwise_scores, self.group_prop_list]],columns=columns,index=None)
         return report_df
     
     def get_bin_composition(self, df,feature_names, predictive_features, threshold):
@@ -769,5 +849,5 @@ class BIN:
 
     def bin_short_report(self):
         columns = ['Features in Bin:', 'Threshold:', 'Fitness','Pre-Fitness:', 'Bin Size:', 'Group Ratio:','Birth Iteration:']
-        report_df = pd.DataFrame([[self.feature_list, self.group_threshold, self.fitness,self.pre_fitness, self.bin_size, self.group_strata_prop,self.birth_iteration]],columns=columns,index=None).T
+        report_df = pd.DataFrame([[self.feature_list, self.group_threshold_list, self.fitness,self.pre_fitness, self.bin_size, self.group_strata_prop,self.birth_iteration]],columns=columns,index=None).T
         return report_df
