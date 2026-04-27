@@ -190,7 +190,7 @@ class BIN:
             raise NotImplementedError
         else:
             print("Specified outcome_type not supported")
-            raise
+            raise Exception("Specified outcome_type not supported")
 
         return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at
 
