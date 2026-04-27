@@ -167,7 +167,7 @@ def test_protective_mode_filters_wrong_direction_bins_and_encodes_presence():
     )
 
 
-def test_permissive_mode_preserves_default_population_but_flips_binary_encoding():
+def test_permissive_mode_preserves_default_thresholding_flips_binary_encoding_and_keeps_cox_coding():
     data = make_directional_dataset()
     manual_bin_init = make_manual_population()
 
@@ -194,7 +194,7 @@ def test_permissive_mode_preserves_default_population_but_flips_binary_encoding(
         permissive_model.get_pop()[compared_columns].reset_index(drop=True),
     )
 
-    top_bin = default_model.set.bin_pop[0]
+    top_bin = permissive_model.set.bin_pop[0]
     feature_sums = data[top_bin.feature_list].sum(axis=1)
     expected_default = (feature_sums > top_bin.group_threshold).astype(int)
     expected_permissive = (feature_sums <= top_bin.group_threshold).astype(int)
@@ -214,6 +214,13 @@ def test_permissive_mode_preserves_default_population_but_flips_binary_encoding(
     assert not np.array_equal(
         default_model.predict(data, bin_number=0),
         permissive_model.predict(data, bin_number=0),
+    )
+
+    default_hr_summary = default_model.get_cox_prop_hazard_unadjust(data, bin_index=0)
+    permissive_hr_summary = permissive_model.get_cox_prop_hazard_unadjust(data, bin_index=0)
+    assert np.isclose(
+        default_hr_summary["exp(coef)"].iloc[0],
+        permissive_hr_summary["exp(coef)"].iloc[0],
     )
 
 

@@ -79,7 +79,7 @@ def parse_args():
         "--core-shared-min",
         dest="core_shared_min",
         type=int,
-        default=3,
+        default=4,
         help="Minimum count in both modes for a feature to be labeled core shared.",
     )
     parser.add_argument(
@@ -250,7 +250,7 @@ def categorize_features(reference_counts, compare_counts, compare_mode, core_sha
             core_shared.append(feature_name)
         elif reference_count == 0:
             compare_only.append(feature_name)
-        elif compare_count > reference_count:
+        elif reference_count > 0 and compare_count > 0:
             compare_skewed_shared.append(feature_name)
 
     core_shared = sort_group(core_shared, reference_counts, compare_counts)

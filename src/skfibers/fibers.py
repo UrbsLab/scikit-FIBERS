@@ -656,10 +656,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not use_bin_sums:
             # Transform bin feature values according to respective bin threshold
-            if self.desired_bin_effect == "permissive":
-                bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 1 if x <= self.set.bin_pop[bin_index].group_threshold else 0)
-            else:
-                bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
+            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
 
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
         summary = None
@@ -698,10 +695,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         if not use_bin_sums:
             # Transform bin feature values according to respective bin threshold
-            if self.desired_bin_effect == "permissive":
-                bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 1 if x <= self.set.bin_pop[bin_index].group_threshold else 0)
-            else:
-                bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
+            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
 
         bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
         summary = None
@@ -736,10 +730,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
             if not use_bin_sums:
                 # Transform bin feature values according to respective bin threshold
-                if self.desired_bin_effect == "permissive":
-                    bin_df['Bin'] = bin_df['Bin'].apply(lambda x: 1 if x <= bin.group_threshold else 0)
-                else:
-                    bin_df['Bin'] = bin_df['Bin'].apply(lambda x: 0 if x <= bin.group_threshold else 1)
+                bin_df['Bin'] = bin_df['Bin'].apply(lambda x: 0 if x <= bin.group_threshold else 1)
 
             # Create evaluation dataframe including bin sum feature, outcome, and censoring alone
             bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
