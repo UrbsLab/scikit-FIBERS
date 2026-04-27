@@ -167,6 +167,33 @@ def test_protective_mode_filters_wrong_direction_bins_and_encodes_presence():
     )
 
 
+def test_high_risk_mode_filters_wrong_direction_bins_and_preserves_default_encoding():
+    data = make_directional_dataset()
+    manual_bin_init = make_manual_population()
+    model = FIBERS(
+        **make_base_fibers_kwargs(manual_bin_init),
+        desired_bin_effect="high_risk",
+    ).fit(data)
+
+    top_bin = model.set.bin_pop[0]
+    assert top_bin.feature_list == ["F_wrong"]
+
+    low_outcome, high_outcome, low_censor, high_censor = model.get_bin_groups(data, 0)
+    time_point = min(max(low_outcome), max(high_outcome))
+    assert restricted_mean_survival_time(high_outcome, high_censor, time_point) < restricted_mean_survival_time(low_outcome, low_censor, time_point)
+
+    wrong_direction_bin = get_pop_row_for_feature(model, "F_protect")
+    assert wrong_direction_bin["pre_fitness"] == 0.0
+
+    expected_high_risk = (data["F_wrong"] > top_bin.group_threshold).astype(int)
+    np.testing.assert_array_equal(model.predict(data, bin_number=0), expected_high_risk.to_numpy())
+    pd.testing.assert_series_equal(
+        model.transform(data, full_sums=False)["Bin_0"],
+        expected_high_risk,
+        check_names=False,
+    )
+
+
 def test_permissive_mode_preserves_default_thresholding_flips_binary_encoding_and_keeps_cox_coding():
     data = make_directional_dataset()
     manual_bin_init = make_manual_population()
@@ -224,7 +251,7 @@ def test_permissive_mode_preserves_default_thresholding_flips_binary_encoding_an
     )
 
 
-def test_adaptive_thresholding_respects_default_protective_and_permissive_modes():
+def test_adaptive_thresholding_respects_default_protective_high_risk_and_permissive_modes():
     feature_df = pd.DataFrame(
         {
             "F": ([0] * 200) + ([1] * 300) + ([2] * 20),
@@ -295,6 +322,30 @@ def test_adaptive_thresholding_respects_default_protective_and_permissive_modes(
         covariate_df,
         "protective",
     )[0]
+    high_risk_score_threshold_0 = BIN().evaluate_for_threshold(
+        0,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "high_risk",
+    )[0]
+    high_risk_score_threshold_1 = BIN().evaluate_for_threshold(
+        1,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "high_risk",
+    )[0]
     permissive_score_threshold_0 = BIN().evaluate_for_threshold(
         0,
         bin_df,
@@ -325,6 +376,8 @@ def test_adaptive_thresholding_respects_default_protective_and_permissive_modes(
     assert permissive_score_threshold_0 == default_score_threshold_0
     assert protective_score_threshold_0 > 0
     assert protective_score_threshold_1 == 0
+    assert high_risk_score_threshold_0 == 0
+    assert high_risk_score_threshold_1 > 0
 
     default_bin = BIN()
     default_bin.feature_list = ["F"]
@@ -398,6 +451,30 @@ def test_adaptive_thresholding_respects_default_protective_and_permissive_modes(
     )
     assert protective_bin.group_threshold == 0
 
+    high_risk_bin = BIN()
+    high_risk_bin.feature_list = ["F"]
+    high_risk_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "high_risk",
+    )
+    assert high_risk_bin.group_threshold == 1
+
 
 def test_protective_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
     feature_df = pd.DataFrame(
@@ -470,3 +547,75 @@ def test_protective_all_wrong_direction_thresholds_keep_raw_best_threshold_with_
     assert protective_bin.pre_fitness == 0
     assert protective_bin.count_bt == default_bin.count_bt
     assert protective_bin.count_at == default_bin.count_at
+
+
+def test_high_risk_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 120) + ([1] * 120) + ([2] * 120),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [1.0 + (i * 0.01) for i in range(120)]
+                + [8.0 + (i * 0.01) for i in range(120)]
+                + [10.0 + (i * 0.01) for i in range(120)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    default_bin = BIN()
+    default_bin.feature_list = ["F"]
+    default_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "default",
+    )
+
+    high_risk_bin = BIN()
+    high_risk_bin.feature_list = ["F"]
+    high_risk_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "high_risk",
+    )
+    high_risk_bin.calculate_pre_fitness(0.2, 0.5, "log_rank", ["F"])
+
+    assert high_risk_bin.group_threshold == default_bin.group_threshold
+    assert high_risk_bin.log_rank_score == 0
+    assert high_risk_bin.pre_fitness == 0
+    assert high_risk_bin.count_bt == default_bin.count_bt
+    assert high_risk_bin.count_at == default_bin.count_at

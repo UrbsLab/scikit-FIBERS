@@ -108,6 +108,8 @@ def main(argv):
     #int_thresh = options.int_thresh
     thresh_evolve_prob = options.thresh_evolve_prob
     desired_bin_effect = options.desired_bin_effect
+    if desired_bin_effect == "highrisk":
+        desired_bin_effect = "high_risk"
     covariates = None #Manually included in script
     if options.pop_clean == 'None':
         pop_clean = None
@@ -115,8 +117,8 @@ def main(argv):
         pop_clean = str(options.pop_clean)
     random_seed = options.random_seed
 
-    if desired_bin_effect not in ["default", "protective", "permissive"]:
-        raise Exception("'desired_bin_effect' must be one of: 'default', 'protective', 'permissive'")
+    if desired_bin_effect not in ["default", "protective", "high_risk", "permissive"]:
+        raise Exception("'desired_bin_effect' must be one of: 'default', 'protective', 'high_risk', 'permissive'")
 
     #Hard Coded Covariate Information
     #If there is a colinearity issue with calculating residuals, Keith indicated that we can remove dcadcodoth and/or PKPRA_MS from covariate list

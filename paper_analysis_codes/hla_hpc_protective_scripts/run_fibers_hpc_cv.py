@@ -45,7 +45,7 @@ def main(argv):
     parser.add_argument('--at', dest='max_thresh', help='maximum threshold', type=int, default=5)
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
-    parser.add_argument('--de-list', dest='desired_bin_effects', help='comma separated desired bin effect modes', type=str, default='default,protective,permissive')
+    parser.add_argument('--de-list', dest='desired_bin_effects', help='comma separated desired bin effect modes', type=str, default='default,protective,high_risk,permissive')
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=str, default='None')
 
@@ -90,14 +90,15 @@ def main(argv):
     #int_thresh = options.int_thresh
     thresh_evolve_prob = options.thresh_evolve_prob
     desired_bin_effects = [effect.strip() for effect in options.desired_bin_effects.split(',') if effect.strip() != '']
+    desired_bin_effects = ['high_risk' if effect == 'highrisk' else effect for effect in desired_bin_effects]
     #covariates = None #Manually included in script
     pop_clean = options.pop_clean
     random_seed = options.random_seed
     algorithm = 'Fibers2.0_org' #hard coded here
 
-    valid_effects = ['default', 'protective', 'permissive']
+    valid_effects = ['default', 'protective', 'high_risk', 'permissive']
     if not set(desired_bin_effects).issubset(set(valid_effects)):
-        raise Exception("One or more items in 'desired_bin_effects' are not in the supported list: default, protective, permissive.")
+        raise Exception("One or more items in 'desired_bin_effects' are not in the supported list: default, protective, high_risk, permissive.")
 
     #Folder Management------------------------------
     #Main Write Path-----------------

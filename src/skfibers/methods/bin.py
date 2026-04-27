@@ -87,7 +87,7 @@ class BIN:
             fallback_threshold = None
             found_valid_threshold = False
             for threshold in range(min_thresh, max_thresh + 1):
-                if desired_bin_effect == "protective":
+                if desired_bin_effect == "protective" or desired_bin_effect == "high_risk":
                     raw_result = self.evaluate_for_threshold(
                         threshold,
                         bin_df,
@@ -135,7 +135,7 @@ class BIN:
                         self.assign_eval_result(threshold, result)
                         best_score = thresh_score
 
-            if desired_bin_effect == "protective" and not found_valid_threshold and fallback_result is not None:
+            if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and fallback_result is not None:
                 self.assign_eval_result(fallback_threshold, fallback_result)
 
         else: #Use the given group threshold to evaluate the bin
@@ -171,19 +171,23 @@ class BIN:
             count_at = len(high_outcome)
 
             directionally_valid_bin = True
-            if desired_bin_effect == "protective":
+            if desired_bin_effect == "protective" or desired_bin_effect == "high_risk":
                 try:
                     # Directional-only rule using censoring-aware RMST.
                     time_point = min(max(low_outcome), max(high_outcome))
                     low_rmst = self.restricted_mean_survival_time(low_outcome, low_censor, time_point)
                     high_rmst = self.restricted_mean_survival_time(high_outcome, high_censor, time_point)
-                    if high_rmst <= low_rmst:
-                        directionally_valid_bin = False
+                    if desired_bin_effect == "protective":
+                        if high_rmst <= low_rmst:
+                            directionally_valid_bin = False
+                    elif desired_bin_effect == "high_risk":
+                        if high_rmst >= low_rmst:
+                            directionally_valid_bin = False
                 except:
                     directionally_valid_bin = False
 
             if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals':
-                if desired_bin_effect == "protective" and not directionally_valid_bin:
+                if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not directionally_valid_bin:
                     log_rank_score = 0
                     p_value = None
                 else:
@@ -196,19 +200,27 @@ class BIN:
                         p_value = None
 
             if fitness_metric == 'residuals' or fitness_metric == 'log_rank_residuals': # In addition to log_rank, calculate residuals differences between groups
+                # if desired_bin_effect == "permissive":
+                #     high_residuals_df = residuals.loc[bin_df['feature_sum'] <= threshold] #Does the threshold work the same way since these are residual? Transformed?
+                #     low_residuals_df = residuals.loc[bin_df['feature_sum'] > threshold] # or is the residuals data the same and only the duration changed?
+                #     low_residuals_df = low_residuals_df["deviance"]
+                #     high_residuals_df = high_residuals_df["deviance"]
+                # else:
+                #     low_residuals_df = residuals.loc[bin_df['feature_sum'] <= threshold] #Does the threshold work the same way since these are residual? Transformed?
+                #     high_residuals_df = residuals.loc[bin_df['feature_sum'] > threshold] # or is the residuals data the same and only the duration changed?
+                #     low_residuals_df = low_residuals_df["deviance"]
+                #     high_residuals_df = high_residuals_df["deviance"]
+                
+                mask = bin_df['feature_sum'] <= threshold  # choose ONE convention and stick to it
                 if desired_bin_effect == "permissive":
-                    high_residuals_df = residuals.loc[bin_df['feature_sum'] <= threshold] #Does the threshold work the same way since these are residual? Transformed?
-                    low_residuals_df = residuals.loc[bin_df['feature_sum'] > threshold] # or is the residuals data the same and only the duration changed?
-                    low_residuals_df = low_residuals_df["deviance"]
-                    high_residuals_df = high_residuals_df["deviance"]
+                    high_residuals_df = residuals.loc[mask, "deviance"]
+                    low_residuals_df  = residuals.loc[~mask, "deviance"]
                 else:
-                    low_residuals_df = residuals.loc[bin_df['feature_sum'] <= threshold] #Does the threshold work the same way since these are residual? Transformed?
-                    high_residuals_df = residuals.loc[bin_df['feature_sum'] > threshold] # or is the residuals data the same and only the duration changed?
-                    low_residuals_df = low_residuals_df["deviance"]
-                    high_residuals_df = high_residuals_df["deviance"]
+                    low_residuals_df  = residuals.loc[mask, "deviance"]
+                    high_residuals_df = residuals.loc[~mask, "deviance"]
                 count_bt = len(low_residuals_df)
                 count_at = len(high_residuals_df)
-                if desired_bin_effect == "protective" and not directionally_valid_bin:
+                if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not directionally_valid_bin:
                     residuals_score = 0
                     residuals_p_value = None
                 elif len(low_residuals_df) == 0 or len(high_residuals_df) == 0:

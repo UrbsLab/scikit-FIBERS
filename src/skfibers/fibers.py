@@ -63,7 +63,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have pre-fitness penalizaiton applied
         :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
         :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
-        :param desired_bin_effect: controls survival direction filtering ['default','protective','permissive']
+        :param desired_bin_effect: controls survival direction filtering ['default','protective','high_risk','permissive']
 
         ..
             Adaptive Bin Threshold Parameters
@@ -140,8 +140,11 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if fitness_metric!="log_rank" and fitness_metric!="residuals" and fitness_metric!="log_rank_residuals":
             raise Exception("'fitness_metric' param can only have values of 'log_rank', 'residuals', or 'log_rank_residuals'")
 
-        if desired_bin_effect != "default" and desired_bin_effect != "protective" and desired_bin_effect != "permissive":
-            raise Exception("'desired_bin_effect' param can only have values of 'default', 'protective', or 'permissive'")
+        if desired_bin_effect == "highrisk":
+            desired_bin_effect = "high_risk"
+
+        if desired_bin_effect != "default" and desired_bin_effect != "protective" and desired_bin_effect != "high_risk" and desired_bin_effect != "permissive":
+            raise Exception("'desired_bin_effect' param can only have values of 'default', 'protective', 'high_risk', or 'permissive'")
         
         if log_rank_weighting!="wilcoxon" and log_rank_weighting!="tarone-ware" and log_rank_weighting!="peto" and log_rank_weighting!='fleming-harrington'and log_rank_weighting != None:
             raise Exception("'log_rank_weighting' param can only have values of 'wilcoxon', 'tarone-wares', 'peto' or 'fleming-harrington'")

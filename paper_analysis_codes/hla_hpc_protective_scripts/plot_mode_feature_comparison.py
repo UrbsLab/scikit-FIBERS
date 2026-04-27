@@ -27,12 +27,14 @@ LOCUS_COLORS = {
 MODE_HEADER_COLORS = {
     "default": "#5477A8",
     "protective": "#4C8F5A",
+    "high_risk": "#B45A4A",
     "permissive": "#8A6BBE",
 }
 
 COUNT_LABELS = {
     "default": "D",
     "protective": "P",
+    "high_risk": "HR",
     "permissive": "Pm",
 }
 
@@ -52,13 +54,13 @@ def parse_args():
         dest="output_root",
         type=str,
         required=True,
-        help="Folder containing mode subfolders such as default/, protective/, permissive/.",
+        help="Folder containing mode subfolders such as default/, protective/, high_risk/, permissive/.",
     )
     parser.add_argument(
         "--compare-modes",
         dest="compare_modes",
         type=str,
-        default="protective,permissive",
+        default="protective,high_risk,permissive",
         help="Comma-separated modes to compare against default.",
     )
     parser.add_argument(
