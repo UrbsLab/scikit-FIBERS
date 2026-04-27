@@ -551,6 +551,54 @@ def test_protective_adaptive_threshold_skips_directionally_valid_thresholds_that
     assert protective_bin.group_threshold == 0
 
 
+def test_protective_adaptive_threshold_zeroes_bin_when_only_direction_valid_threshold_fails_group_strata_min():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 200) + ([1] * 300) + ([2] * 20),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [10.0 for _ in range(200)]
+                + [1.0 for _ in range(300)]
+                + [100.0 for _ in range(20)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    protective_bin = BIN()
+    protective_bin.feature_list = ["F"]
+    protective_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "protective",
+        0.2,
+    )
+    protective_bin.calculate_pre_fitness(0.2, 0.5, "log_rank", ["F"])
+
+    assert protective_bin.group_threshold == 0
+    assert protective_bin.log_rank_score == 0
+    assert protective_bin.pre_fitness == 0
+
+
 def test_protective_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
     feature_df = pd.DataFrame(
         {

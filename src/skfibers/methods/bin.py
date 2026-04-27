@@ -150,8 +150,10 @@ class BIN:
 
             if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and strata_valid_fallback_result is not None:
                 self.assign_eval_result(strata_valid_fallback_threshold, strata_valid_fallback_result)
+                self.zero_eval_scores()
             elif (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and fallback_result is not None:
                 self.assign_eval_result(fallback_threshold, fallback_result)
+                self.zero_eval_scores()
 
         else: #Use the given group threshold to evaluate the bin
             log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at,_ = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
@@ -287,6 +289,13 @@ class BIN:
         self.group_threshold = threshold
         self.count_bt = count_bt
         self.count_at = count_at
+
+
+    def zero_eval_scores(self):
+        self.log_rank_score = 0
+        self.log_rank_p_value = None
+        self.residuals_score = 0
+        self.residuals_p_value = None
 
 
     def km_survival_at_time(self,outcome,censor,time_point):
