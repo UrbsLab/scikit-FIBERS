@@ -45,6 +45,7 @@ def main(argv):
     parser.add_argument('--at', dest='max_thresh', help='maximum threshold', type=int, default=5)
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
+    parser.add_argument('--de-list', dest='desired_bin_effects', help='comma separated desired bin effect modes', type=str, default='default,protective,permissive')
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=str, default='None')
 
@@ -88,10 +89,15 @@ def main(argv):
     max_thresh = options.max_thresh 
     #int_thresh = options.int_thresh
     thresh_evolve_prob = options.thresh_evolve_prob
+    desired_bin_effects = [effect.strip() for effect in options.desired_bin_effects.split(',') if effect.strip() != '']
     #covariates = None #Manually included in script
     pop_clean = options.pop_clean
     random_seed = options.random_seed
     algorithm = 'Fibers2.0_org' #hard coded here
+
+    valid_effects = ['default', 'protective', 'permissive']
+    if not set(desired_bin_effects).issubset(set(valid_effects)):
+        raise Exception("One or more items in 'desired_bin_effects' are not in the supported list: default, protective, permissive.")
 
     #Folder Management------------------------------
     #Main Write Path-----------------
@@ -126,34 +132,42 @@ def main(argv):
             raise Exception("One or more items in 'cov_list' are not in default loci list.")
 
     jobCount = 0
-    for part in range(1, cv+1):
-        if not os.path.exists(outputPath+'/'+str(part)):
-            os.mkdir(outputPath+'/'+str(part)) 
-        outputpath = outputPath+'/'+str(part) 
+    for desired_bin_effect in desired_bin_effects:
+        mode_output_path = outputPath+'/'+desired_bin_effect
+        if not os.path.exists(mode_output_path):
+            os.mkdir(mode_output_path)
 
-        if run_cluster == 'LSF':
-            submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
-                                    iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
-                                    diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,loci_list,cov_list,rare_filter,random_seed)
-            jobCount +=1
-        elif run_cluster == 'SLURM':
-            submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
-                                    iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
-                                    diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,loci_list,cov_list,rare_filter,random_seed)
-            jobCount +=1
-        else:
-            print('ERROR: Cluster type not found')
-    print(str(jobCount)+' jobs submitted successfully')
+        for part in range(1, cv+1):
+            if not os.path.exists(mode_output_path+'/'+str(part)):
+                os.mkdir(mode_output_path+'/'+str(part)) 
+            outputpath = mode_output_path+'/'+str(part) 
+
+            if run_cluster == 'LSF':
+                submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
+                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
+                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
+                                        group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,
+                                        loci_list,cov_list,rare_filter,random_seed)
+                jobCount +=1
+            elif run_cluster == 'SLURM':
+                submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
+                                        iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
+                                        diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
+                                        group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,
+                                        loci_list,cov_list,rare_filter,random_seed)
+                jobCount +=1
+            else:
+                print('ERROR: Cluster type not found')
+    print(str(jobCount)+' jobs submitted successfully across modes: '+', '.join(desired_bin_effects))
 
 #legacy mode just for cedars (no head node) note cedars has a different hpc - we'd need to write a method for (this is the more recent one)
 def submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                     iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                     diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,loci_list,cov_list,rare_filter,random_seed): 
+                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,
+                                    loci_list,cov_list,rare_filter,random_seed): 
     job_ref = str(time.time())
-    job_name = 'FIBERS_'+str(part)+'_'+job_ref
+    job_name = 'FIBERS_'+desired_bin_effect+'_'+str(part)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
@@ -163,13 +177,13 @@ def submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manu
     # sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
     sh_file.write('#SBATCH -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#SBATCH -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('srun python job_fibers_hpc_cv_org.py'+' --d '+str(datafolder)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)
+    sh_file.write('srun python job_fibers_hpc_cv.py'+' --d '+str(datafolder)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)
         +' --ol '+str(outcome_label)+' --ot '+str(outcome_type)+' --cv '+str(part)+' --r '+str(random_seed)
         +' --i '+str(iterations)+' --ps '+str(pop_size)+' --tp '+str(tournament_prop)+' --cp '+str(crossover_prob)+' --mi '+str(min_mutation_prob)
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n')
+        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -178,9 +192,10 @@ def submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manu
 def submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                     iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                     diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,pop_clean,loci_list,cov_list,rare_filter,random_seed): 
+                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,
+                                    loci_list,cov_list,rare_filter,random_seed): 
     job_ref = str(time.time())
-    job_name = 'FIBERS_'+str(part)+'_'+job_ref
+    job_name = 'FIBERS_'+desired_bin_effect+'_'+str(part)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
     sh_file = open(job_path, 'w')
     sh_file.write('#!/bin/bash\n')
@@ -190,13 +205,13 @@ def submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual
     sh_file.write('#BSUB -M ' + str(reserved_memory) + 'GB' + '\n')
     sh_file.write('#BSUB -o ' + logPath+'/'+job_name + '.o\n')
     sh_file.write('#BSUB -e ' + logPath+'/'+job_name + '.e\n')
-    sh_file.write('python job_fibers_hpc_cv_org.py'+' --d '+str(datafolder)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)
+    sh_file.write('python job_fibers_hpc_cv.py'+' --d '+str(datafolder)+' --o '+str(outputpath)+' --pi '+str(manual_bin_init)
         +' --ol '+str(outcome_label)+' --ot '+str(outcome_type)+' --cv '+str(part)+' --r '+str(random_seed)
         +' --i '+str(iterations)+' --ps '+str(pop_size)+' --tp '+str(tournament_prop)+' --cp '+str(crossover_prob)+' --mi '+str(min_mutation_prob)
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n')
+        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 

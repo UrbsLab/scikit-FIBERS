@@ -3,8 +3,14 @@ import sys
 import argparse
 import pickle
 import pandas as pd
-# sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS-dev')
-sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS')
+
+script_path = os.path.dirname(os.path.abspath(__file__))
+repo_root = os.path.abspath(os.path.join(script_path, '..', '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+# Fallback shared cluster checkout.
+if '/project/kamoun_shared/code_shared/scikit-FIBERS-protective' not in sys.path:
+    sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS-protective')
 # sys.path.append('/project/kamoun_shared/amy_fibers_project/')
 from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
@@ -47,6 +53,7 @@ def main(argv):
     parser.add_argument('--at', dest='max_thresh', help='maximum threshold', type=int, default=5)
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
+    parser.add_argument('--de', dest='desired_bin_effect', help='desired bin effect mode', type=str, default='default')
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
 
@@ -57,7 +64,7 @@ def main(argv):
     if options.manual_bin_init == 'None':
         manual_bin_init = None
     else:
-        manual_bin_init = pd.read_csv(manual_bin_init,low_memory=False)
+        manual_bin_init = pd.read_csv(options.manual_bin_init,low_memory=False)
     loci_list = options.loci_list.split(',')
     if options.cov_list == 'None':
         cov_list = None
@@ -100,12 +107,16 @@ def main(argv):
     max_thresh = options.max_thresh 
     #int_thresh = options.int_thresh
     thresh_evolve_prob = options.thresh_evolve_prob
+    desired_bin_effect = options.desired_bin_effect
     covariates = None #Manually included in script
     if options.pop_clean == 'None':
         pop_clean = None
     else:
         pop_clean = str(options.pop_clean)
     random_seed = options.random_seed
+
+    if desired_bin_effect not in ["default", "protective", "permissive"]:
+        raise Exception("'desired_bin_effect' must be one of: 'default', 'protective', 'permissive'")
 
     #Hard Coded Covariate Information
     #If there is a colinearity issue with calculating residuals, Keith indicated that we can remove dcadcodoth and/or PKPRA_MS from covariate list
@@ -214,7 +225,7 @@ def main(argv):
                     max_bin_init_size=max_bin_init_size, fitness_metric=fitness_metric, log_rank_weighting=log_rank_weighting, censor_label=censor_label, 
                     group_strata_min=group_strata_min, penalty=penalty, group_thresh=group_thresh, min_thresh=min_thresh, max_thresh=max_thresh,
                     int_thresh=True, thresh_evolve_prob=thresh_evolve_prob, manual_bin_init=manual_bin_init, covariates=final_covariates, pop_clean=pop_clean,  
-                    report=None, random_seed=random_seed, verbose=False)
+                    report=None, random_seed=random_seed, verbose=False, desired_bin_effect=desired_bin_effect)
 
     fibers = fibers.fit(train_data)
     bin_index = 0 #top bin
