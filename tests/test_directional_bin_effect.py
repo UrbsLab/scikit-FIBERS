@@ -390,3 +390,76 @@ def test_adaptive_thresholding_respects_default_protective_and_permissive_modes(
         "protective",
     )
     assert protective_bin.group_threshold == 0
+
+
+def test_protective_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 120) + ([1] * 120) + ([2] * 120),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [10.0 + (i * 0.01) for i in range(120)]
+                + [8.0 + (i * 0.01) for i in range(120)]
+                + [1.0 + (i * 0.01) for i in range(120)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    default_bin = BIN()
+    default_bin.feature_list = ["F"]
+    default_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "default",
+    )
+
+    protective_bin = BIN()
+    protective_bin.feature_list = ["F"]
+    protective_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "protective",
+    )
+    protective_bin.calculate_pre_fitness(0.2, 0.5, "log_rank", ["F"])
+
+    assert default_bin.group_threshold == 1
+    assert protective_bin.group_threshold == default_bin.group_threshold
+    assert protective_bin.log_rank_score == 0
+    assert protective_bin.pre_fitness == 0
+    assert protective_bin.count_bt == default_bin.count_bt
+    assert protective_bin.count_at == default_bin.count_at

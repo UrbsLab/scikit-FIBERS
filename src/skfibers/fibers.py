@@ -5,6 +5,7 @@ import time
 from sklearn.base import BaseEstimator, TransformerMixin
 from .methods.data_handling import prepare_data
 from .methods.data_handling import calculate_residuals
+from .methods.bin import BIN
 from .methods.population import BIN_SET
 from .methods.util import plot_pareto
 from .methods.util import plot_feature_tracking
@@ -615,6 +616,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         """   
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
+        self._validate_bin_index(bin_index)
 
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
@@ -642,6 +644,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def get_cox_prop_hazard_unadjust(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
+        self._validate_bin_index(bin_index)
         
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
@@ -678,6 +681,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False, new_covariates=None):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
+        self._validate_bin_index(bin_index)
 
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
@@ -777,8 +781,17 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def get_pop(self):
         self.set.sort_feature_lists()
+        if len(self.set.bin_pop) == 0:
+            return pd.DataFrame(columns=list(vars(BIN()).keys()))
         pop_df = pd.DataFrame([vars(instance) for instance in self.set.bin_pop])
         return pop_df
+
+
+    def _validate_bin_index(self, bin_index):
+        if len(self.set.bin_pop) == 0:
+            raise Exception("FIBERS completed training but the final bin population is empty. This can happen when filtering or cleanup removes every candidate bin.")
+        if bin_index < 0 or bin_index >= len(self.set.bin_pop):
+            raise IndexError("Requested bin_index is outside the current bin population.")
 
 
     def get_pareto_plot(self,show=True,save=False,output_folder=None,data_name=None):

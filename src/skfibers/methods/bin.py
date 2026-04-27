@@ -82,31 +82,64 @@ class BIN:
         if (group_thresh == None and not threshold_evolving) or (group_thresh == None and iteration == iterations-1): #Adaptive thresholding activated (always applied on last iteration)
             # Select best threshold by evaluating all considered
             best_score = None
-            thresh_score = 0
+            raw_best_score = None
+            raw_best_result = None
+            raw_best_threshold = None
+            found_valid_threshold = False
             for threshold in range(min_thresh, max_thresh + 1):
-                log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,residuals,covariate_df,desired_bin_effect)
-                if fitness_metric == 'log_rank':
-                    thresh_score = log_rank_score
+                if desired_bin_effect == "protective":
+                    raw_result = self.evaluate_for_threshold(
+                        threshold,
+                        bin_df,
+                        outcome_label,
+                        censor_label,
+                        outcome_type,
+                        fitness_metric,
+                        log_rank_weighting,
+                        residuals,
+                        covariate_df,
+                        "default",
+                    )
+                    protected_result = self.evaluate_for_threshold(
+                        threshold,
+                        bin_df,
+                        outcome_label,
+                        censor_label,
+                        outcome_type,
+                        fitness_metric,
+                        log_rank_weighting,
+                        residuals,
+                        covariate_df,
+                        "protective",
+                    )
 
-                elif fitness_metric == 'residuals': 
-                    thresh_score = residuals_score
+                    raw_thresh_score = self.get_threshold_score(fitness_metric, raw_result[0], raw_result[2])
+                    protected_thresh_score = self.get_threshold_score(fitness_metric, protected_result[0], protected_result[2])
+                    threshold_matches_effect = protected_result[6]
 
-                elif fitness_metric == 'log_rank_residuals':
-                    thresh_score = log_rank_score * residuals_score
+                    if raw_best_score == None or raw_thresh_score > raw_best_score:
+                        raw_best_score = raw_thresh_score
+                        raw_best_result = protected_result
+                        raw_best_threshold = threshold
 
-                if best_score == None or thresh_score > best_score:
-                    self.log_rank_score = log_rank_score
-                    self.log_rank_p_value = p_value
-                    self.residuals_score = residuals_score
-                    self.residuals_p_value = residuals_p_value
-                    self.group_threshold = threshold
-                    self.count_bt= count_bt
-                    self.count_at = count_at
-                    best_score = thresh_score
+                    if threshold_matches_effect and (best_score == None or protected_thresh_score > best_score):
+                        self.assign_eval_result(threshold, protected_result)
+                        best_score = protected_thresh_score
+                        found_valid_threshold = True
+                else:
+                    result = self.evaluate_for_threshold(threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+                            log_rank_weighting,residuals,covariate_df,desired_bin_effect)
+                    thresh_score = self.get_threshold_score(fitness_metric, result[0], result[2])
+
+                    if best_score == None or thresh_score > best_score:
+                        self.assign_eval_result(threshold, result)
+                        best_score = thresh_score
+
+            if desired_bin_effect == "protective" and not found_valid_threshold and raw_best_result is not None:
+                self.assign_eval_result(raw_best_threshold, raw_best_result)
 
         else: #Use the given group threshold to evaluate the bin
-            log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+            log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at,_ = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
                         log_rank_weighting,residuals,covariate_df,desired_bin_effect)
             self.log_rank_score = log_rank_score
             self.log_rank_p_value = p_value
@@ -192,7 +225,28 @@ class BIN:
             print("Specified outcome_type not supported")
             raise Exception("Specified outcome_type not supported")
 
-        return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at
+        return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at,protective_bin
+
+
+    def get_threshold_score(self,fitness_metric,log_rank_score,residuals_score):
+        if fitness_metric == 'log_rank':
+            return log_rank_score
+        if fitness_metric == 'residuals':
+            return residuals_score
+        if fitness_metric == 'log_rank_residuals':
+            return log_rank_score * residuals_score
+        return 0
+
+
+    def assign_eval_result(self,threshold,result):
+        log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at,_ = result
+        self.log_rank_score = log_rank_score
+        self.log_rank_p_value = p_value
+        self.residuals_score = residuals_score
+        self.residuals_p_value = residuals_p_value
+        self.group_threshold = threshold
+        self.count_bt = count_bt
+        self.count_at = count_at
 
 
     def km_survival_at_time(self,outcome,censor,time_point):

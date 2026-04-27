@@ -185,9 +185,12 @@ def sort_cv_labels(cv_labels):
 
 
 def load_fold_features(pop_file, top_bin_count):
-    pop_df = pd.read_csv(pop_file, low_memory=False)
-    if "feature_list" not in pop_df.columns:
-        raise KeyError(f"'feature_list' column missing in {pop_file}")
+    try:
+        pop_df = pd.read_csv(pop_file, low_memory=False)
+    except pd.errors.EmptyDataError:
+        return set()
+    if "feature_list" not in pop_df.columns or len(pop_df) == 0:
+        return set()
 
     selected_rows = pop_df.head(max(top_bin_count, 1))
     selected_features = set()

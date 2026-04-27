@@ -233,6 +233,23 @@ def main(argv):
     use_bin_sums = False
     show_progress = True
 
+    # Save core run artifacts even if no bins survive cleanup/filtering.
+    pop_df = fibers.get_pop()
+    pop_df.to_csv(outputpath+'/'+str(cv)+'_pop'+'.csv', index=False)
+
+    with open(outputpath+'/'+str(cv)+'_fibers.pickle', 'wb') as f:
+        pickle.dump(fibers, f)
+    
+    fibers.save_run_params(outputpath+'/'+str(cv)+'_run_parameters.txt')
+
+    if len(fibers.set.bin_pop) == 0:
+        with open(outputpath+'/'+str(cv)+'_no_valid_bins.txt', 'w') as file:
+            file.write('No bins remained after training/cleanup.\n')
+            file.write('desired_bin_effect: '+str(desired_bin_effect)+'\n')
+            file.write('pop_clean: '+str(pop_clean)+'\n')
+            file.write('group_strata_min: '+str(group_strata_min)+'\n')
+        return
+
     summary = fibers.get_cox_prop_hazard_unadjust(train_data, y, bin_index, use_bin_sums, show_progress)
     summary.to_csv(outputpath+'/'+str(cv)+'_coxph_unadj_bin_train_'+str(bin_index)+'.csv', index=True)
 
@@ -284,16 +301,6 @@ def main(argv):
                 temp_covariates.remove('PKPRA_MS')
                 summary = fibers.get_cox_prop_hazard_adjusted(test_data_new, y, bin_index, use_bin_sums, show_progress, temp_covariates)
                 summary.to_csv(outputpath+'/'+str(cv)+'_coxph_adj_bin_test_'+str(bin_index)+'_NoAg.csv', index=True)
-
-    #Save bin population as csv
-    pop_df = fibers.get_pop()
-    pop_df.to_csv(outputpath+'/'+str(cv)+'_pop'+'.csv', index=False)
-
-    #Pickle FIBERS trained object
-    with open(outputpath+'/'+str(cv)+'_fibers.pickle', 'wb') as f:
-        pickle.dump(fibers, f)
-    
-    fibers.save_run_params(outputpath+'/'+str(cv)+'_run_parameters.txt')
 
 if __name__=="__main__":
     sys.exit(main(sys.argv))
