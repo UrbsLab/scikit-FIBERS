@@ -30,6 +30,7 @@ class BIN:
         self.adj_HR = None #The adjusted hazard ratio of the bin calculated with CoxPHFitter after algorithm training
         self.adj_HR_CI = None #The associated adjusted hazard ratio confidence interval calculated with CoxPHFitter after algorithm training
         self.adj_HR_p_value = None # The associated adjusted hazard ratio p-value calculated with CoxPHFitter after algorithm training
+        self.used_group_strata_fallback = False
 
 
     def update_deletion_prop(self,deletion_prop, cluster):
@@ -72,6 +73,7 @@ class BIN:
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df,
                  desired_bin_effect,group_strata_min):
+        self.used_group_strata_fallback = False
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
         bin_df = pd.DataFrame({'feature_sum':feature_sums})
@@ -85,6 +87,9 @@ class BIN:
             raw_best_score = None
             fallback_result = None
             fallback_threshold = None
+            directional_fallback_result = None
+            directional_fallback_threshold = None
+            directional_fallback_score = None
             strata_valid_fallback_result = None
             strata_valid_fallback_threshold = None
             strata_valid_fallback_score = None
@@ -130,6 +135,11 @@ class BIN:
                         fallback_result = directional_result
                         fallback_threshold = threshold
 
+                    if threshold_matches_effect and (directional_fallback_score == None or raw_thresh_score > directional_fallback_score):
+                        directional_fallback_score = raw_thresh_score
+                        directional_fallback_result = directional_result
+                        directional_fallback_threshold = threshold
+
                     if threshold_matches_group_strata and (strata_valid_fallback_score == None or raw_thresh_score > strata_valid_fallback_score):
                         strata_valid_fallback_score = raw_thresh_score
                         strata_valid_fallback_result = directional_result
@@ -149,11 +159,17 @@ class BIN:
                         best_score = thresh_score
 
             if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and strata_valid_fallback_result is not None:
-                self.assign_eval_result(strata_valid_fallback_threshold, strata_valid_fallback_result)
-                self.zero_eval_scores()
+                if directional_fallback_result is not None:
+                    self.assign_eval_result(directional_fallback_threshold, directional_fallback_result)
+                    self.used_group_strata_fallback = True
+                else:
+                    self.assign_eval_result(strata_valid_fallback_threshold, strata_valid_fallback_result)
             elif (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and fallback_result is not None:
-                self.assign_eval_result(fallback_threshold, fallback_result)
-                self.zero_eval_scores()
+                if directional_fallback_result is not None:
+                    self.assign_eval_result(directional_fallback_threshold, directional_fallback_result)
+                    self.used_group_strata_fallback = True
+                else:
+                    self.assign_eval_result(fallback_threshold, fallback_result)
 
         else: #Use the given group threshold to evaluate the bin
             log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at,_ = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
@@ -447,6 +463,9 @@ class BIN:
                     self.pre_fitness = (1-penalty) * self.log_rank_score * self.residuals_score
                 else:
                     self.pre_fitness = self.log_rank_score * self.residuals_score
+
+        if self.used_group_strata_fallback and self.pre_fitness != None:
+            self.pre_fitness = (1-penalty) * self.pre_fitness
 
 
     def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):

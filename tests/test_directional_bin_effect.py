@@ -478,8 +478,9 @@ def test_adaptive_thresholding_respects_default_protective_high_risk_and_permiss
         "high_risk",
         0.2,
     )
-    assert high_risk_bin.group_threshold == 0
-    assert high_risk_bin.log_rank_score == 0
+    assert high_risk_bin.group_threshold == 1
+    assert high_risk_bin.used_group_strata_fallback is True
+    assert high_risk_bin.log_rank_score > 0
 
 
 def test_protective_adaptive_threshold_skips_directionally_valid_thresholds_that_fail_group_strata_min():
@@ -552,7 +553,7 @@ def test_protective_adaptive_threshold_skips_directionally_valid_thresholds_that
     assert protective_bin.group_threshold == 0
 
 
-def test_protective_adaptive_threshold_zeroes_bin_when_only_direction_valid_threshold_fails_group_strata_min():
+def test_protective_adaptive_threshold_heavily_penalizes_bin_when_only_direction_valid_threshold_fails_group_strata_min():
     feature_df = pd.DataFrame(
         {
             "F": ([0] * 200) + ([1] * 300) + ([2] * 20),
@@ -595,9 +596,11 @@ def test_protective_adaptive_threshold_zeroes_bin_when_only_direction_valid_thre
     )
     protective_bin.calculate_pre_fitness(0.2, 0.5, "log_rank", ["F"])
 
-    assert protective_bin.group_threshold == 0
-    assert protective_bin.log_rank_score == 0
-    assert protective_bin.pre_fitness == 0
+    assert protective_bin.group_threshold == 1
+    assert protective_bin.log_rank_score > 0
+    assert protective_bin.pre_fitness > 0
+    assert np.isclose(protective_bin.pre_fitness, protective_bin.log_rank_score * 0.25)
+    assert protective_bin.used_group_strata_fallback is True
 
 
 def test_protective_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
