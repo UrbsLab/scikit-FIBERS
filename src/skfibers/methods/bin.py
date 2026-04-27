@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
 import copy
+from lifelines import KaplanMeierFitter
 from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
+from lifelines.utils import restricted_mean_survival_time as lifelines_restricted_mean_survival_time
 from scipy.stats import ranksums
 
 class BIN:
@@ -68,7 +70,8 @@ class BIN:
 
 
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df):
+                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df,
+                 desired_bin_effect):
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
         bin_df = pd.DataFrame({'feature_sum':feature_sums})
@@ -82,7 +85,7 @@ class BIN:
             thresh_score = 0
             for threshold in range(min_thresh, max_thresh + 1):
                 log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,residuals,covariate_df)
+                        log_rank_weighting,residuals,covariate_df,desired_bin_effect)
                 if fitness_metric == 'log_rank':
                     thresh_score = log_rank_score
 
@@ -104,7 +107,7 @@ class BIN:
 
         else: #Use the given group threshold to evaluate the bin
             log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,residuals,covariate_df)
+                        log_rank_weighting,residuals,covariate_df,desired_bin_effect)
             self.log_rank_score = log_rank_score
             self.log_rank_p_value = p_value
             self.residuals_score = residuals_score
@@ -114,7 +117,8 @@ class BIN:
         self.bin_size = len(self.feature_list)
 
 
-    def evaluate_for_threshold(self,threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df):
+    def evaluate_for_threshold(self,threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df,
+                               desired_bin_effect):
         # Apply selected evaluation strategy/metric(s)
         if outcome_type == 'survival':
             residuals_score = None
@@ -124,23 +128,40 @@ class BIN:
             count_bt = None
             count_at = None
 
-            if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals':
-                #Create dataframes including instances from either strata-groups
-                low_df = bin_df[bin_df['feature_sum'] <= threshold]
-                high_df = bin_df[bin_df['feature_sum'] > threshold]
-                low_outcome = low_df[outcome_label].to_list()
-                high_outcome = high_df[outcome_label].to_list()
-                low_censor = low_df[censor_label].to_list()
-                high_censor = high_df[censor_label].to_list()
-                count_bt = len(low_outcome)
-                count_at = len(high_outcome)
+            low_df = bin_df[bin_df['feature_sum'] <= threshold]
+            high_df = bin_df[bin_df['feature_sum'] > threshold]
+            low_outcome = low_df[outcome_label].to_list()
+            high_outcome = high_df[outcome_label].to_list()
+            low_censor = low_df[censor_label].to_list()
+            high_censor = high_df[censor_label].to_list()
+            count_bt = len(low_outcome)
+            count_at = len(high_outcome)
+
+            protective_bin = True
+            if desired_bin_effect == "protective":
                 try:
-                    results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
-                    log_rank_score = results.test_statistic #test all thresholds by default in initial pop.
-                    p_value = results.p_value
+                    # Protective-only rule:
+                    # > threshold group must have better censoring-aware RMST.
+                    time_point = min(max(low_outcome), max(high_outcome))
+                    low_rmst = self.restricted_mean_survival_time(low_outcome, low_censor, time_point)
+                    high_rmst = self.restricted_mean_survival_time(high_outcome, high_censor, time_point)
+                    if high_rmst <= low_rmst:
+                        protective_bin = False
                 except:
+                    protective_bin = False
+
+            if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals':
+                if desired_bin_effect == "protective" and not protective_bin:
                     log_rank_score = 0
                     p_value = None
+                else:
+                    try:
+                        results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
+                        log_rank_score = results.test_statistic #test all thresholds by default in initial pop.
+                        p_value = results.p_value
+                    except:
+                        log_rank_score = 0
+                        p_value = None
 
             if fitness_metric == 'residuals' or fitness_metric == 'log_rank_residuals': # In addition to log_rank, calculate residuals differences between groups
                 low_residuals_df = residuals.loc[bin_df['feature_sum'] <= threshold] #Does the threshold work the same way since these are residual? Transformed?
@@ -149,7 +170,10 @@ class BIN:
                 high_residuals_df = high_residuals_df["deviance"]
                 count_bt = len(low_residuals_df)
                 count_at = len(high_residuals_df)
-                if len(low_residuals_df) == 0 or len(high_residuals_df) == 0:
+                if desired_bin_effect == "protective" and not protective_bin:
+                    residuals_score = 0
+                    residuals_p_value = None
+                elif len(low_residuals_df) == 0 or len(high_residuals_df) == 0:
                     residuals_score = 0
                     residuals_p_value = None
                 else:
@@ -163,10 +187,24 @@ class BIN:
 
         elif outcome_type == 'class':
             print("Classification not yet implemented")
+            raise NotImplementedError
         else:
             print("Specified outcome_type not supported")
+            raise
 
         return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at
+
+
+    def km_survival_at_time(self,outcome,censor,time_point):
+        kmf = KaplanMeierFitter()
+        kmf.fit(outcome,event_observed=censor)
+        return float(kmf.survival_function_at_times(time_point).iloc[0])
+
+
+    def restricted_mean_survival_time(self,outcome,censor,time_point):
+        kmf = KaplanMeierFitter()
+        kmf.fit(outcome,event_observed=censor)
+        return float(lifelines_restricted_mean_survival_time(kmf, t=time_point))
     
     
     def copy_parent(self,parent,iteration):
