@@ -375,4 +375,12 @@ class BIN_SET:
         for bin in self.bin_pop:
             if bin.group_strata_prop >= group_strata_min:
                 temp_pop.append(bin)
-        self.bin_pop = temp_pop
+        if len(temp_pop) > 0 or len(self.bin_pop) == 0:
+            self.bin_pop = temp_pop
+            return
+
+        max_group_strata_prop = max(bin.group_strata_prop for bin in self.bin_pop)
+        fallback_pop = [bin for bin in self.bin_pop if bin.group_strata_prop == max_group_strata_prop]
+        max_pre_fitness = max(bin.pre_fitness for bin in fallback_pop)
+        fallback_pop = [bin for bin in fallback_pop if bin.pre_fitness == max_pre_fitness]
+        self.bin_pop = fallback_pop

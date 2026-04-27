@@ -46,7 +46,7 @@ def main(argv):
     parser.add_argument('--f', dest='fitness_metric', help='fitness metric', type=str, default='log_rank')
     parser.add_argument('--we', dest='log_rank_weighting', help='log-rank test weighting', type=str, default='None')
     parser.add_argument('--c', dest='censor_label', help='censor column label', type=str, default='Censoring')
-    parser.add_argument('--g', dest='group_strata_min', help='group strata minimum', type=float, default=0.2)
+    parser.add_argument('--g', dest='group_strata_min', help='group strata minimum', type=float, default=0.1)
     parser.add_argument('--p', dest='penalty', help='group strata min penalty', type=float, default=0.5)
     parser.add_argument('--t', dest='group_thresh', help='group threshold', type=str, default=0)
     parser.add_argument('--it', dest='min_thresh', help='minimum threshold', type=int, default=0)

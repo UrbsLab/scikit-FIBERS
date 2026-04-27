@@ -5,6 +5,7 @@ from lifelines.utils import restricted_mean_survival_time as lifelines_restricte
 
 from src.skfibers.fibers import FIBERS
 from src.skfibers.methods.bin import BIN
+from src.skfibers.methods.population import BIN_SET
 
 
 MANUAL_BIN_COLUMNS = [
@@ -746,3 +747,30 @@ def test_high_risk_all_wrong_direction_thresholds_keep_raw_best_threshold_with_z
     assert high_risk_bin.pre_fitness == 0
     assert high_risk_bin.count_bt == default_bin.count_bt
     assert high_risk_bin.count_at == default_bin.count_at
+
+
+def test_pop_clean_group_thresh_keeps_best_fallback_bin_when_no_bins_meet_min():
+    population = BIN_SET.__new__(BIN_SET)
+
+    weaker_bin = BIN()
+    weaker_bin.feature_list = ["A"]
+    weaker_bin.group_strata_prop = 0.05
+    weaker_bin.pre_fitness = 4.0
+
+    balanced_but_weaker_bin = BIN()
+    balanced_but_weaker_bin.feature_list = ["B"]
+    balanced_but_weaker_bin.group_strata_prop = 0.12
+    balanced_but_weaker_bin.pre_fitness = 2.0
+
+    balanced_and_stronger_bin = BIN()
+    balanced_and_stronger_bin.feature_list = ["C"]
+    balanced_and_stronger_bin.group_strata_prop = 0.12
+    balanced_and_stronger_bin.pre_fitness = 5.0
+
+    population.bin_pop = [weaker_bin, balanced_but_weaker_bin, balanced_and_stronger_bin]
+
+    population.pop_clean_group_thresh(0.2)
+
+    assert len(population.bin_pop) == 1
+    assert population.bin_pop[0].feature_list == ["C"]
+    assert population.bin_pop[0].group_strata_prop == 0.12
