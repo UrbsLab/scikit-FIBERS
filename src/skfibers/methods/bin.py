@@ -30,7 +30,6 @@ class BIN:
         self.adj_HR = None #The adjusted hazard ratio of the bin calculated with CoxPHFitter after algorithm training
         self.adj_HR_CI = None #The associated adjusted hazard ratio confidence interval calculated with CoxPHFitter after algorithm training
         self.adj_HR_p_value = None # The associated adjusted hazard ratio p-value calculated with CoxPHFitter after algorithm training
-        self.used_group_strata_fallback = False
 
 
     def update_deletion_prop(self,deletion_prop, cluster):
@@ -73,7 +72,6 @@ class BIN:
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df,
                  desired_bin_effect,group_strata_min):
-        self.used_group_strata_fallback = False
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
         bin_df = pd.DataFrame({'feature_sum':feature_sums})
@@ -87,15 +85,19 @@ class BIN:
             raw_best_score = None
             fallback_result = None
             fallback_threshold = None
+            # Track the best threshold that matches direction, even if it misses group_strata_min.
             directional_fallback_result = None
             directional_fallback_threshold = None
             directional_fallback_score = None
+            # Track the best threshold that matches group_strata_min, even if it misses direction.
             strata_valid_fallback_result = None
             strata_valid_fallback_threshold = None
             strata_valid_fallback_score = None
             found_valid_threshold = False
             for threshold in range(min_thresh, max_thresh + 1):
                 if desired_bin_effect == "protective" or desired_bin_effect == "high_risk":
+                    # Score each threshold twice: once with raw/default behavior for ranking,
+                    # and once with directional gating for the actual stored threshold result.
                     raw_result = self.evaluate_for_threshold(
                         threshold,
                         bin_df,
@@ -145,6 +147,7 @@ class BIN:
                         strata_valid_fallback_result = directional_result
                         strata_valid_fallback_threshold = threshold
 
+                    # Fully valid thresholds must satisfy both the requested direction and group_strata_min.
                     if threshold_matches_effect and threshold_matches_group_strata and (best_score == None or directional_thresh_score > best_score):
                         self.assign_eval_result(threshold, directional_result)
                         best_score = directional_thresh_score
@@ -158,17 +161,14 @@ class BIN:
                         self.assign_eval_result(threshold, result)
                         best_score = thresh_score
 
-            if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and strata_valid_fallback_result is not None:
+            if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold:
+                # Fallback order keeps bins alive without rewarding wrong-direction thresholds:
+                # prefer direction-correct, then strata-valid, then the raw-best threshold.
                 if directional_fallback_result is not None:
                     self.assign_eval_result(directional_fallback_threshold, directional_fallback_result)
-                    self.used_group_strata_fallback = True
-                else:
+                elif strata_valid_fallback_result is not None:
                     self.assign_eval_result(strata_valid_fallback_threshold, strata_valid_fallback_result)
-            elif (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and fallback_result is not None:
-                if directional_fallback_result is not None:
-                    self.assign_eval_result(directional_fallback_threshold, directional_fallback_result)
-                    self.used_group_strata_fallback = True
-                else:
+                elif fallback_result is not None:
                     self.assign_eval_result(fallback_threshold, fallback_result)
 
         else: #Use the given group threshold to evaluate the bin
@@ -305,14 +305,6 @@ class BIN:
         self.group_threshold = threshold
         self.count_bt = count_bt
         self.count_at = count_at
-
-
-    def zero_eval_scores(self):
-        self.log_rank_score = 0
-        self.log_rank_p_value = None
-        self.residuals_score = 0
-        self.residuals_p_value = None
-
 
     def km_survival_at_time(self,outcome,censor,time_point):
         kmf = KaplanMeierFitter()
@@ -463,10 +455,6 @@ class BIN:
                     self.pre_fitness = (1-penalty) * self.log_rank_score * self.residuals_score
                 else:
                     self.pre_fitness = self.log_rank_score * self.residuals_score
-
-        if self.used_group_strata_fallback and self.pre_fitness != None:
-            self.pre_fitness = (1-penalty) * self.pre_fitness
-
 
     def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):
         """Takes an previously generated offspring bin (that already existed in the pop) and generates an new feature_list """
