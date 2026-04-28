@@ -85,6 +85,13 @@ def parse_args():
         help="Minimum count in both modes for a feature to be labeled core shared.",
     )
     parser.add_argument(
+        "--min-feature-count",
+        dest="min_feature_count",
+        type=int,
+        default=3,
+        help="Minimum recurrence in either mode for a feature to appear in the figure.",
+    )
+    parser.add_argument(
         "--cv-order",
         dest="cv_order",
         type=str,
@@ -234,7 +241,7 @@ def build_mode_feature_summary(output_root, reference_mode, compare_mode, top_bi
     return cv_labels, reference_presence, compare_presence, reference_counts, compare_counts
 
 
-def categorize_features(reference_counts, compare_counts, compare_mode, core_shared_min):
+def categorize_features(reference_counts, compare_counts, compare_mode, core_shared_min, min_feature_count):
     all_features = sorted(set(reference_counts.keys()) | set(compare_counts.keys()))
 
     core_shared = []
@@ -244,6 +251,9 @@ def categorize_features(reference_counts, compare_counts, compare_mode, core_sha
     for feature_name in all_features:
         reference_count = reference_counts.get(feature_name, 0)
         compare_count = compare_counts.get(feature_name, 0)
+
+        if max(reference_count, compare_count) < min_feature_count:
+            continue
 
         if compare_count == 0:
             continue
@@ -301,16 +311,22 @@ def build_feature_summary_dataframe(section_rows, cv_labels, reference_presence,
 
 
 def draw_count_badge(ax, x_center, y_center, value, facecolor):
+    del facecolor
     ax.text(
         x_center,
         y_center,
         str(value),
         ha="center",
         va="center",
-        color="white",
+        color=TEXT_COLOR,
         fontsize=10,
         fontweight="bold",
-        bbox=dict(boxstyle="round,pad=0.28", facecolor=facecolor, edgecolor="none"),
+        bbox=dict(
+            boxstyle="round,pad=0.28",
+            facecolor="#F7F8FA",
+            edgecolor="#9AA3B2",
+            linewidth=0.9,
+        ),
     )
 
 
@@ -601,6 +617,7 @@ def main():
             compare_counts,
             compare_mode,
             args.core_shared_min,
+            args.min_feature_count,
         )
 
         if len(section_rows) == 0:
