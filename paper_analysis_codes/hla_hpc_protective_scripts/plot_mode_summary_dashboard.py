@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from feature_category_logic import categorize_three_mode_features
+from feature_category_logic import categorize_three_mode_features, mode_title
 
 
 MODE_COLORS = {
@@ -270,6 +270,10 @@ def add_value_labels(ax, x_positions, values):
         ax.text(x_position, value + 0.2, str(int(value)), ha="center", va="bottom", fontsize=9)
 
 
+def mode_tick_label(mode_name):
+    return mode_title(mode_name).replace(" ", "\n")
+
+
 def plot_dashboard(summary_df, feature_count_df, jaccard_modes, jaccard_matrix, figure_dir, prefix):
     modes = list(summary_df["mode"].drop_duplicates())
     mode_positions = np.arange(len(modes))
@@ -288,9 +292,9 @@ def plot_dashboard(summary_df, feature_count_df, jaccard_modes, jaccard_matrix, 
 
     heatmap = ax_jaccard.imshow(jaccard_matrix, cmap="Blues", vmin=0, vmax=1)
     ax_jaccard.set_xticks(np.arange(len(jaccard_modes)))
-    ax_jaccard.set_xticklabels([mode.replace("_", "\n") for mode in jaccard_modes], fontsize=10)
+    ax_jaccard.set_xticklabels([mode_tick_label(mode) for mode in jaccard_modes], fontsize=10)
     ax_jaccard.set_yticks(np.arange(len(jaccard_modes)))
-    ax_jaccard.set_yticklabels([mode.replace("_", " ") for mode in jaccard_modes], fontsize=10)
+    ax_jaccard.set_yticklabels([mode_title(mode) for mode in jaccard_modes], fontsize=10)
     ax_jaccard.set_title("Top-Feature Jaccard", fontsize=14, weight="bold")
     for i in range(len(jaccard_modes)):
         for j in range(len(jaccard_modes)):
@@ -300,7 +304,7 @@ def plot_dashboard(summary_df, feature_count_df, jaccard_modes, jaccard_matrix, 
     feature_counts = feature_count_df[modes].to_numpy()
     feature_heatmap = ax_features.imshow(feature_counts, cmap="YlGnBu", vmin=0, vmax=10, aspect="auto")
     ax_features.set_xticks(np.arange(len(modes)))
-    ax_features.set_xticklabels([mode.replace("_", "\n") for mode in modes], fontsize=10)
+    ax_features.set_xticklabels([mode_tick_label(mode) for mode in modes], fontsize=10)
     feature_font_size = 9 if len(feature_count_df) <= 26 else 8 if len(feature_count_df) <= 40 else 7
     ax_features.set_yticks(np.arange(len(feature_count_df)))
     ax_features.set_yticklabels(feature_count_df["feature"].tolist(), fontsize=feature_font_size)
@@ -344,7 +348,7 @@ def plot_dashboard(summary_df, feature_count_df, jaccard_modes, jaccard_matrix, 
         )
         ax_size.hlines(np.median(size_values), x_position - 0.22, x_position + 0.22, color="black", linewidth=1.2)
     ax_size.set_xticks(mode_positions)
-    ax_size.set_xticklabels([mode.replace("_", "\n") for mode in modes], fontsize=10)
+    ax_size.set_xticklabels([mode_tick_label(mode) for mode in modes], fontsize=10)
     ax_size.set_ylabel("Features", fontsize=10)
     ax_size.set_title("Top-Bin Size", fontsize=14, weight="bold")
     ax_size.grid(axis="y", alpha=0.2)
@@ -369,7 +373,7 @@ def plot_dashboard(summary_df, feature_count_df, jaccard_modes, jaccard_matrix, 
         if log_scale:
             ax.set_yscale("log")
         ax.set_xticks(mode_positions)
-        ax.set_xticklabels([mode.replace("_", "\n") for mode in modes], fontsize=10)
+        ax.set_xticklabels([mode_tick_label(mode) for mode in modes], fontsize=10)
         ax.set_ylabel(y_label, fontsize=10)
         ax.set_title(title, fontsize=12, weight="bold")
         ax.grid(axis="y", alpha=0.2)
@@ -388,7 +392,7 @@ def plot_dashboard(summary_df, feature_count_df, jaccard_modes, jaccard_matrix, 
         )
         ax_strata.hlines(np.median(strata_values), x_position - 0.22, x_position + 0.22, color="black", linewidth=1.2)
     ax_strata.set_xticks(mode_positions)
-    ax_strata.set_xticklabels([mode.replace("_", "\n") for mode in modes], fontsize=10)
+    ax_strata.set_xticklabels([mode_tick_label(mode) for mode in modes], fontsize=10)
     ax_strata.set_ylabel("Group strata", fontsize=10)
     ax_strata.set_ylim(0, 0.55)
     ax_strata.set_title("Top-Bin Group Strata", fontsize=12, weight="bold")
@@ -408,7 +412,7 @@ def plot_dashboard(summary_df, feature_count_df, jaccard_modes, jaccard_matrix, 
         )
         ax_threshold.hlines(np.median(threshold_values), x_position - 0.22, x_position + 0.22, color="black", linewidth=1.2)
     ax_threshold.set_xticks(mode_positions)
-    ax_threshold.set_xticklabels([mode.replace("_", "\n") for mode in modes], fontsize=10)
+    ax_threshold.set_xticklabels([mode_tick_label(mode) for mode in modes], fontsize=10)
     ax_threshold.set_ylabel("Threshold", fontsize=10)
     ax_threshold.set_title("Top-Bin Threshold", fontsize=12, weight="bold")
     ax_threshold.grid(axis="y", alpha=0.2)
