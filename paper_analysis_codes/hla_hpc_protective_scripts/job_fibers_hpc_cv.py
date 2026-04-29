@@ -24,7 +24,7 @@ def main(argv):
     parser.add_argument('--pi', dest='manual_bin_init', help='directory path to population initialization file', type=str, default = 'None') #full path/filename
     parser.add_argument('--loci-list', dest='loci_list', help='loci to include', type=str, default= 'A,B,C,DRB1,DRB345,DQA1,DQB1')
     parser.add_argument('--cov-list', dest='cov_list', help='loci covariates to include',type=str, default= 'None')
-    parser.add_argument('--ra', dest='rare_filter', help='rare frequency used for data cleaning', type=float, default=0)
+    parser.add_argument('--ra', dest='rare_filter', help='rare frequency used for data cleaning', type=float, default=0.1)
     parser.add_argument('--cv', dest='cv', help='current cv split', type=int, default='None')
 
     #FIBERS Parameters

@@ -41,6 +41,8 @@ data/
 src/Data1.csv
 sampledata.csv
 output/
+output_new/
+output_*/
 src/skfibersv2
 src/skfibers_no_ryan_fixes
 output.zip        
