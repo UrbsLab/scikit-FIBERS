@@ -598,7 +598,8 @@ def test_protective_adaptive_threshold_heavily_penalizes_bin_when_only_direction
     assert protective_bin.group_threshold == 1
     assert protective_bin.log_rank_score > 0
     assert protective_bin.pre_fitness > 0
-    assert np.isclose(protective_bin.pre_fitness, protective_bin.log_rank_score * 0.5)
+    assert np.isclose(protective_bin.pre_fitness, protective_bin.log_rank_score * 0.25)
+    assert protective_bin.used_group_strata_fallback is True
 
 
 def test_protective_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
