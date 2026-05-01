@@ -194,18 +194,45 @@ def main(argv):
         print("Sum of data missing values:", missing_sum)
 
     #Data Cleaning
+    # Calculate the percentage of occurrences greater than 0 for each MM feature.
+    percentages = train_data.loc[:,MM_feature_list].apply(lambda x: (x > 0).mean())
+    print(percentages)
+
     if rare_filter > 0.0: #filter out rare features and invariant features
-        # Calculate the percentage of occurrences greater than 0 for each column
-        percentages = train_data.loc[:,MM_feature_list].apply(lambda x: (x > 0).mean())
-        print(percentages)
         columns_to_remove = percentages[percentages < rare_filter].index.tolist()
-        train_data = train_data.drop(columns=columns_to_remove)
+        filter_rule = f"frequency < {rare_filter}"
+        filter_threshold = rare_filter
     else: #filter out invariant features only
-        # Calculate the percentage of occurrences greater than 0 for each column
-        percentages = train_data.loc[:,MM_feature_list].apply(lambda x: (x > 0).mean())
-        print(percentages)
         columns_to_remove = percentages[percentages == 0.0].index.tolist()
-        train_data = train_data.drop(columns=columns_to_remove)
+        filter_rule = "frequency == 0.0"
+        filter_threshold = 0.0
+
+    train_data = train_data.drop(columns=columns_to_remove)
+
+    percentages_df = (
+        percentages.rename("nonzero_fraction")
+        .reset_index()
+        .rename(columns={"index": "feature"})
+        .sort_values(by="feature")
+    )
+    percentages_df["nonzero_percent"] = percentages_df["nonzero_fraction"] * 100.0
+    percentages_df.to_csv(outputpath+'/'+str(cv)+'_rare_filter_percentages.csv', index=False)
+
+    frequency_df = (
+        percentages.rename("nonzero_fraction")
+        .reset_index()
+        .rename(columns={"index": "feature"})
+    )
+    frequency_df["nonzero_percent"] = frequency_df["nonzero_fraction"] * 100.0
+    frequency_df["filter_threshold"] = filter_threshold
+    frequency_df["filter_rule"] = filter_rule
+    frequency_df["removed_by_filter"] = frequency_df["feature"].isin(columns_to_remove)
+    frequency_df["kept_for_training"] = ~frequency_df["removed_by_filter"]
+    frequency_df = frequency_df.sort_values(
+        by=["removed_by_filter", "nonzero_fraction", "feature"],
+        ascending=[False, True, True],
+    )
+    frequency_df.to_csv(outputpath+'/'+str(cv)+'_rare_filter_feature_frequencies.csv', index=False)
 
     #Report filtering
     count_list = []
@@ -216,6 +243,9 @@ def main(argv):
         count_list.append(str(locus)+":"+str(count))
 
     with open(outputpath+'/'+str(cv)+'_post_filter_counts.txt', 'w') as file:
+        file.write('RareFilterThreshold:'+str(filter_threshold)+'\n')
+        file.write('RareFilterRule:'+filter_rule+'\n')
+        file.write('RemovedFeatures:'+str(len(columns_to_remove))+'\n')
         for item in count_list:
             file.write(f"{item}\n")
         file.write('Total:'+str(total_count))
