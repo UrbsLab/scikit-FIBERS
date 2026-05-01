@@ -14,23 +14,23 @@ import pandas as pd
 
 from feature_category_logic import categorize_three_mode_features, mode_title
 from plot_mode_feature_comparison import (
-    BACKGROUND_COLOR,
     EMPTY_CELL_COLOR,
     GRID_EDGE_COLOR,
     LOCUS_COLORS,
     MODE_HEADER_COLORS,
     SECTION_LINE_COLOR,
     TEXT_COLOR,
-    draw_count_badge,
     ensure_directory,
     feature_color,
     get_mode_fold_pop_files,
     load_fold_features,
-    short_mode_label,
     sort_cv_labels,
 )
 
 FIGURE_BACKGROUND_COLOR = "#FFFFFF"
+CV_HIGHLIGHT_FILL = "#E6F4EA"
+CV_HIGHLIGHT_EDGE = "#2E7D32"
+CV_HIGHLIGHT_TEXT = "#1B5E20"
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -139,6 +139,35 @@ def build_three_mode_feature_summary(output_root, mode_order, top_bin_count, cv_
     return cv_labels, presence_by_mode, counts_by_mode
 
 
+def load_adjusted_hr_below_one_flags(output_root, mode_order, cv_labels):
+    flags = {mode_name: {} for mode_name in mode_order}
+    for mode_name in mode_order:
+        for cv_label in cv_labels:
+            flags[mode_name][cv_label] = False
+            fold_dir = os.path.join(output_root, mode_name, str(cv_label))
+            preferred_paths = [
+                os.path.join(fold_dir, f"{cv_label}_coxph_adj_bin_test_0.csv"),
+                os.path.join(fold_dir, f"{cv_label}_coxph_adj_bin_test_0_NoAg.csv"),
+            ]
+            summary_path = None
+            for path in preferred_paths:
+                if os.path.exists(path):
+                    summary_path = path
+                    break
+            if summary_path is None:
+                continue
+            try:
+                df = pd.read_csv(summary_path)
+                bin_row = df.loc[df["covariate"] == "Bin_0"]
+                if len(bin_row) == 0:
+                    continue
+                hr = float(bin_row["exp(coef)"].iloc[0])
+                flags[mode_name][cv_label] = hr < 1.0
+            except Exception:
+                continue
+    return flags
+
+
 def build_feature_summary_dataframe(categorized_rows, cv_labels, mode_order, presence_by_mode):
     rows = []
     for categorized_row in categorized_rows:
@@ -188,13 +217,20 @@ def reorder_sections_for_focus(section_rows, categorized_rows, focus_mode):
     return section_rows, categorized_rows
 
 
+def resolve_focus_mode(focus_mode, mode_order):
+    if focus_mode is not None:
+        return focus_mode
+    if "protective" in mode_order:
+        return "protective"
+    return None
+
+
 def draw_three_way_feature_comparison_figure(
     section_rows,
     cv_labels,
     mode_order,
     presence_by_mode,
-    counts_by_mode,
-    min_feature_count,
+    adjusted_hr_below_one_flags,
     save_path,
     show,
 ):
@@ -209,8 +245,6 @@ def draw_three_way_feature_comparison_figure(
     feature_label_width = 4.4
     cell_size = 1.0
     panel_gap = 0.9
-    count_gap = 1.8
-    count_width = 1.2
     right_margin = 0.8
     header_height = 1.85
     legend_height = 1.5
@@ -228,13 +262,7 @@ def draw_three_way_feature_comparison_figure(
         panel_x_positions.append(current_x)
         current_x += cv_count * cell_size + panel_gap
 
-    count_x_positions = []
-    current_x += count_gap - panel_gap
-    for _ in mode_order:
-        count_x_positions.append(current_x)
-        current_x += count_width + 0.9
-
-    total_width = current_x + right_margin - 0.9
+    total_width = current_x + right_margin - panel_gap
     total_height = header_height + (nrows * row_height) + (max(len(section_rows) - 1, 0) * section_gap) + legend_height
 
     fig_width = max(15, total_width * 0.47)
@@ -273,29 +301,31 @@ def draw_three_way_feature_comparison_figure(
         )
 
     cv_label_y = 1.18
-    for panel_x in panel_x_positions:
+    for mode_name, panel_x in zip(mode_order, panel_x_positions):
         for cv_index, cv_label in enumerate(cv_labels):
+            x_center = panel_x + (cv_index + 0.5) * cell_size
+            if adjusted_hr_below_one_flags.get(mode_name, {}).get(cv_label, False):
+                ax.add_patch(
+                    mpatches.FancyBboxPatch(
+                        (x_center - 0.34, cv_label_y - 0.17),
+                        0.68,
+                        0.28,
+                        boxstyle="round,pad=0.02,rounding_size=0.08",
+                        facecolor=CV_HIGHLIGHT_FILL,
+                        edgecolor=CV_HIGHLIGHT_EDGE,
+                        linewidth=1.0,
+                    )
+                )
             ax.text(
-                panel_x + (cv_index + 0.5) * cell_size,
+                x_center,
                 cv_label_y,
                 f"CV{cv_label}",
                 ha="center",
                 va="center",
                 fontsize=cv_font_size,
-                color="#6C7280",
+                color=CV_HIGHLIGHT_TEXT if adjusted_hr_below_one_flags.get(mode_name, {}).get(cv_label, False) else "#6C7280",
+                fontweight="bold" if adjusted_hr_below_one_flags.get(mode_name, {}).get(cv_label, False) else None,
             )
-
-    for mode_name, count_x in zip(mode_order, count_x_positions):
-        ax.text(
-            count_x + count_width / 2.0,
-            header_y + header_box_height / 2.0,
-            short_mode_label(mode_name),
-            ha="center",
-            va="center",
-            color=TEXT_COLOR,
-            fontsize=15,
-            fontweight="bold",
-        )
 
     row_y_start = header_height
     row_cursor = 0.0
@@ -330,15 +360,6 @@ def draw_three_way_feature_comparison_figure(
                             linewidth=1.0,
                         )
                     )
-
-            for mode_name, count_x in zip(mode_order, count_x_positions):
-                draw_count_badge(
-                    ax,
-                    count_x + count_width / 2.0,
-                    y + (row_height * 0.42),
-                    counts_by_mode[mode_name].get(feature_name, 0),
-                    MODE_HEADER_COLORS.get(mode_name, "#5477A8"),
-                )
 
             row_cursor += row_height
 
@@ -421,6 +442,11 @@ def main():
         args.top_bin_count,
         args.cv_order,
     )
+    adjusted_hr_below_one_flags = load_adjusted_hr_below_one_flags(
+        args.output_root,
+        mode_order,
+        cv_labels,
+    )
 
     section_rows, categorized_rows = categorize_three_mode_features(
         counts_by_mode,
@@ -428,10 +454,11 @@ def main():
         args.core_shared_min,
         args.min_feature_count,
     )
+    focus_mode = resolve_focus_mode(args.focus_mode, mode_order)
     section_rows, categorized_rows = reorder_sections_for_focus(
         section_rows,
         categorized_rows,
-        args.focus_mode,
+        focus_mode,
     )
 
     if len(section_rows) == 0:
@@ -454,8 +481,7 @@ def main():
         cv_labels,
         mode_order,
         presence_by_mode,
-        counts_by_mode,
-        args.min_feature_count,
+        adjusted_hr_below_one_flags,
         figure_path,
         args.show,
     )

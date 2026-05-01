@@ -5,3 +5,5 @@ python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/harsh_new_imp
 python plot_mode_feature_comparison.py --output-root /project/kamoun_shared/output_shared/bandheyh/ashi_abstract_2026/output/Fibers2.0_org_hla_7locus_cv_ra0p1_g0p1 --compare-modes protective,high_risk,permissive --top-bin-count 1 --core-shared-min 4
 
 python plot_three_way_mode_feature_comparison.py --output-root /project/kamoun_shared/output_shared/bandheyh/ashi_abstract_2026/output/Fibers2.0_org_hla_7locus_cv_ra0p1_g0p1 --mode-order default,high_risk,protective --top-bin-count 1 --core-shared-min 4
+
+python run_export_rare_filter_audit.py --cv-datafolder /project/kamoun_shared/data_shared/harsh_new_imp_1_CV_10 --noncv-datafile /project/kamoun_shared/data_shared/harsh_new_imp/NewImp_1.csv --save-dir /project/kamoun_shared/output_shared/bandheyh/ashi_abstract_2026/output/rare_filter_audit --ra 0.1 --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --rc LSF --rm 64 --q i2c2_normal
