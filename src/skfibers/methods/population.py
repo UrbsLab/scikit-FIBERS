@@ -229,10 +229,17 @@ class BIN_SET:
             cluster_dictionary_list.append(dict(sorted(cluster_dictionary.items(),key=lambda item: item[1], reverse=True)))
         
         # Calculate number of elites for each cluster (proportional to cluster top bin fitness.)
+        top_cluster_fitness = [
+            fitness if fitness != None and np.isfinite(fitness) and fitness > 0 else 0.0
+            for fitness in top_cluster_fitness
+        ]
         fitness_sum = sum(top_cluster_fitness)
         cluster_elite_counts = []
         for cluster in range(0,diversity_pressure):
-            cluster_elite_count = int(elite_count * (top_cluster_fitness[cluster] / float(fitness_sum)))
+            if fitness_sum <= 0.0:
+                cluster_elite_count = 1
+            else:
+                cluster_elite_count = int(elite_count * (top_cluster_fitness[cluster] / float(fitness_sum)))
             if cluster_elite_count < 1: #ensure a minimum of one elite per cluster
                 cluster_elite_count = 1
             cluster_elite_counts.append(cluster_elite_count)

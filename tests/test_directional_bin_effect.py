@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import random
 from lifelines import KaplanMeierFitter
 from lifelines.utils import restricted_mean_survival_time as lifelines_restricted_mean_survival_time
 
@@ -776,3 +777,25 @@ def test_pop_clean_group_thresh_keeps_best_fallback_bin_when_no_bins_meet_min():
     assert len(population.bin_pop) == 1
     assert population.bin_pop[0].feature_list == ["C"]
     assert population.bin_pop[0].group_strata_prop == 0.12
+
+
+def test_similarity_bin_deletion_handles_zero_cluster_fitness_sum():
+    population = BIN_SET.__new__(BIN_SET)
+    population.offspring_pop = []
+    population.feature_tracking = []
+
+    bins = []
+    for feature_name, threshold in [("A", 0), ("B", 0), ("C", 1), ("D", 1)]:
+        bin_obj = BIN()
+        bin_obj.feature_list = [feature_name]
+        bin_obj.group_threshold = threshold
+        bin_obj.fitness = 0.0
+        bin_obj.pre_fitness = 0.0
+        bin_obj.group_strata_prop = 0.0
+        bins.append(bin_obj)
+
+    population.bin_pop = bins
+    population.similarity_bin_deletion(pop_size=4, diversity_pressure=2, elitism=0.1, random=random.Random(7))
+
+    assert len(population.bin_pop) == 4
+    assert all(bin_obj.deletion_prop is not None for bin_obj in population.bin_pop)
