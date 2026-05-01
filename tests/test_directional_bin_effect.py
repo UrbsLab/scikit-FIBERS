@@ -799,3 +799,47 @@ def test_similarity_bin_deletion_handles_zero_cluster_fitness_sum():
 
     assert len(population.bin_pop) == 4
     assert all(bin_obj.deletion_prop is not None for bin_obj in population.bin_pop)
+
+
+def test_mutation_handles_add_swap_after_deletion_without_empty_choice_crash():
+    class ControlledRandom:
+        def __init__(self):
+            self.random_values = iter([0.0] * 10)
+            self.choice_values = iter(["D", "A", "A", "A", "A"])
+
+        def random(self):
+            return next(self.random_values, 0.0)
+
+        def choice(self, seq):
+            candidate = next(self.choice_values, seq[0])
+            if candidate in seq:
+                return candidate
+            return seq[0]
+
+        def randint(self, a, b):
+            return a
+
+        def sample(self, population, k):
+            return population[:k]
+
+    bin_obj = BIN()
+    bin_obj.feature_list = ["A", "B"]
+    bin_obj.group_threshold = 0
+
+    # The first feature is deleted, and the second feature then tries to add/swap.
+    # This used to crash because mutation looked at the stale original feature list
+    # and found no available replacement features.
+    bin_obj.mutation(
+        mutation_prob=1.0,
+        feature_names=["A", "B"],
+        min_bin_size=1,
+        max_bin_size=2,
+        max_bin_init_size=2,
+        threshold_evolving=False,
+        min_thresh=0,
+        max_thresh=1,
+        random=ControlledRandom(),
+    )
+
+    assert len(bin_obj.feature_list) >= 1
+    assert set(bin_obj.feature_list).issubset({"A", "B"})

@@ -374,6 +374,8 @@ class BIN:
             for feature in self.feature_list:
                 if random.random() < mutation_prob:
                     other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                    if len(other_features) == 0:
+                        continue
                     random_feature = random.choice(other_features)
                     if random.random() < 0.5: # Swap
                         self.feature_list.remove(feature)
@@ -384,6 +386,8 @@ class BIN:
             # Enforce minimum bin size
             while len(self.feature_list) < min_bin_size: 
                 other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                if len(other_features) == 0:
+                    break
                 self.feature_list.append(random.choice(other_features))
 
         else: # Addition, Deletion, or Swap 
@@ -395,7 +399,11 @@ class BIN:
                     if mutate_type == 'D' or len(feature_names) == len(self.feature_list): # Deletion - also if bin (i.e. feature_list) is at the maximum possible size
                         self.feature_list.remove(feature)
                     else:
-                        other_features = [value for value in feature_names if value not in original_feature_list] #pick a feature not already in the bin
+                        # Use the current evolving bin state here so features deleted earlier in this
+                        # same mutation pass become available for later add/swap operations.
+                        other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                        if len(other_features) == 0:
+                            continue
                         random_feature = random.choice(other_features)
                         if mutate_type == 'S': # Swap
                             self.feature_list.remove(feature)
@@ -407,6 +415,8 @@ class BIN:
             # Enforce minimum bin size
             while len(self.feature_list) < min_bin_size: 
                 other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                if len(other_features) == 0:
+                    break
                 self.feature_list.append(random.choice(other_features))
             # Enforce maximum bin size
             while len(self.feature_list) > max_bin_size: 
