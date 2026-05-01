@@ -602,6 +602,96 @@ def test_protective_adaptive_threshold_heavily_penalizes_bin_when_only_direction
     assert protective_bin.used_group_strata_fallback is True
 
 
+def test_protective_directional_fallback_prefers_more_supported_threshold_when_all_directional_options_fail_group_strata_min():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 200) + ([1] * 100) + ([2] * 20),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [1.0 + (i * 0.01) for i in range(200)]
+                + [1.5 + (i * 0.01) for i in range(100)]
+                + [7.0 + (i * 0.01) for i in range(20)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    bin_df = pd.concat([pd.DataFrame({"feature_sum": feature_df["F"]}), outcome_df, censor_df], axis=1)
+    helper_bin = BIN()
+
+    threshold_0_result = helper_bin.evaluate_for_threshold(
+        0,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "protective",
+    )
+    threshold_1_result = helper_bin.evaluate_for_threshold(
+        1,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "protective",
+    )
+
+    threshold_0_score = helper_bin.get_threshold_score("log_rank", threshold_0_result[0], threshold_0_result[2])
+    threshold_1_score = helper_bin.get_threshold_score("log_rank", threshold_1_result[0], threshold_1_result[2])
+    threshold_0_fallback_score = helper_bin.get_directional_fallback_score(
+        threshold_0_score, threshold_0_result[4], threshold_0_result[5], 0.4
+    )
+    threshold_1_fallback_score = helper_bin.get_directional_fallback_score(
+        threshold_1_score, threshold_1_result[4], threshold_1_result[5], 0.4
+    )
+
+    assert threshold_0_result[6] is True
+    assert threshold_1_result[6] is True
+    assert helper_bin.meets_group_strata_min(threshold_0_result[4], threshold_0_result[5], 0.4) is False
+    assert helper_bin.meets_group_strata_min(threshold_1_result[4], threshold_1_result[5], 0.4) is False
+    assert threshold_1_score > threshold_0_score
+    assert threshold_0_fallback_score > threshold_1_fallback_score
+
+    protective_bin = BIN()
+    protective_bin.feature_list = ["F"]
+    protective_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "protective",
+        0.4,
+    )
+
+    assert protective_bin.group_threshold == 0
+    assert protective_bin.used_group_strata_fallback is True
+
+
 def test_protective_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
     feature_df = pd.DataFrame(
         {

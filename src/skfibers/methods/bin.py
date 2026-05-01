@@ -139,8 +139,18 @@ class BIN:
                         fallback_result = directional_result
                         fallback_threshold = threshold
 
-                    if threshold_matches_effect and (directional_fallback_score == None or raw_thresh_score > directional_fallback_score):
-                        directional_fallback_score = raw_thresh_score
+                    if threshold_matches_effect:
+                        fallback_score = self.get_directional_fallback_score(
+                            raw_thresh_score,
+                            directional_result[4],
+                            directional_result[5],
+                            group_strata_min,
+                        )
+                    else:
+                        fallback_score = None
+
+                    if threshold_matches_effect and (directional_fallback_score == None or fallback_score > directional_fallback_score):
+                        directional_fallback_score = fallback_score
                         directional_fallback_result = directional_result
                         directional_fallback_threshold = threshold
 
@@ -297,12 +307,27 @@ class BIN:
         return 0
 
 
-    def meets_group_strata_min(self,count_bt,count_at,group_strata_min):
+    def get_group_strata_prop(self,count_bt,count_at):
         total_count = count_bt + count_at
         if total_count == 0:
-            return False
-        group_strata_prop = min(count_bt / total_count, count_at / total_count)
-        return group_strata_prop >= group_strata_min
+            return 0.0
+        return min(count_bt / total_count, count_at / total_count)
+
+
+    def get_directional_fallback_score(self,raw_score,count_bt,count_at,group_strata_min):
+        group_strata_prop = self.get_group_strata_prop(count_bt, count_at)
+        if group_strata_min == None or group_strata_min <= 0:
+            return raw_score
+
+        # When no threshold satisfies group_strata_min, prefer direction-correct thresholds
+        # that still retain reasonable support. Squaring the support ratio heavily discounts
+        # tiny extreme groups without forcing the fallback to the most balanced weak signal.
+        support_ratio = min(group_strata_prop / group_strata_min, 1.0)
+        return raw_score * (support_ratio ** 2)
+
+
+    def meets_group_strata_min(self,count_bt,count_at,group_strata_min):
+        return self.get_group_strata_prop(count_bt, count_at) >= group_strata_min
 
 
     def assign_eval_result(self,threshold,result):
