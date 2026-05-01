@@ -54,7 +54,6 @@ def main(argv):
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--de', dest='desired_bin_effect', help='desired bin effect mode', type=str, default='default')
-    parser.add_argument('--protective-fixed-threshold', dest='protective_fixed_threshold', help='optional fixed threshold applied only to protective mode', type=int, default=None)
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
 
@@ -111,7 +110,6 @@ def main(argv):
     desired_bin_effect = options.desired_bin_effect
     if desired_bin_effect == "highrisk":
         desired_bin_effect = "high_risk"
-    protective_fixed_threshold = options.protective_fixed_threshold
     covariates = None #Manually included in script
     if options.pop_clean == 'None':
         pop_clean = None
@@ -121,13 +119,6 @@ def main(argv):
 
     if desired_bin_effect not in ["default", "protective", "high_risk", "permissive"]:
         raise Exception("'desired_bin_effect' must be one of: 'default', 'protective', 'high_risk', 'permissive'")
-
-    if desired_bin_effect == "protective" and protective_fixed_threshold != None:
-        group_thresh = protective_fixed_threshold
-        if min_thresh > protective_fixed_threshold:
-            min_thresh = protective_fixed_threshold
-        if max_thresh <= protective_fixed_threshold:
-            max_thresh = protective_fixed_threshold + 1
 
     #Hard Coded Covariate Information
     #If there is a colinearity issue with calculating residuals, Keith indicated that we can remove dcadcodoth and/or PKPRA_MS from covariate list

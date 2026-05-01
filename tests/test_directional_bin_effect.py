@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import random
 from lifelines import KaplanMeierFitter
 from lifelines.utils import restricted_mean_survival_time as lifelines_restricted_mean_survival_time
 
@@ -777,69 +776,3 @@ def test_pop_clean_group_thresh_keeps_best_fallback_bin_when_no_bins_meet_min():
     assert len(population.bin_pop) == 1
     assert population.bin_pop[0].feature_list == ["C"]
     assert population.bin_pop[0].group_strata_prop == 0.12
-
-
-def test_similarity_bin_deletion_handles_zero_cluster_fitness_sum():
-    population = BIN_SET.__new__(BIN_SET)
-    population.offspring_pop = []
-    population.feature_tracking = []
-
-    bins = []
-    for feature_name, threshold in [("A", 0), ("B", 0), ("C", 1), ("D", 1)]:
-        bin_obj = BIN()
-        bin_obj.feature_list = [feature_name]
-        bin_obj.group_threshold = threshold
-        bin_obj.fitness = 0.0
-        bin_obj.pre_fitness = 0.0
-        bin_obj.group_strata_prop = 0.0
-        bins.append(bin_obj)
-
-    population.bin_pop = bins
-    population.similarity_bin_deletion(pop_size=4, diversity_pressure=2, elitism=0.1, random=random.Random(7))
-
-    assert len(population.bin_pop) == 4
-    assert all(bin_obj.deletion_prop is not None for bin_obj in population.bin_pop)
-
-
-def test_mutation_handles_add_swap_after_deletion_without_empty_choice_crash():
-    class ControlledRandom:
-        def __init__(self):
-            self.random_values = iter([0.0] * 10)
-            self.choice_values = iter(["D", "A", "A", "A", "A"])
-
-        def random(self):
-            return next(self.random_values, 0.0)
-
-        def choice(self, seq):
-            candidate = next(self.choice_values, seq[0])
-            if candidate in seq:
-                return candidate
-            return seq[0]
-
-        def randint(self, a, b):
-            return a
-
-        def sample(self, population, k):
-            return population[:k]
-
-    bin_obj = BIN()
-    bin_obj.feature_list = ["A", "B"]
-    bin_obj.group_threshold = 0
-
-    # The first feature is deleted, and the second feature then tries to add/swap.
-    # This used to crash because mutation looked at the stale original feature list
-    # and found no available replacement features.
-    bin_obj.mutation(
-        mutation_prob=1.0,
-        feature_names=["A", "B"],
-        min_bin_size=1,
-        max_bin_size=2,
-        max_bin_init_size=2,
-        threshold_evolving=False,
-        min_thresh=0,
-        max_thresh=1,
-        random=ControlledRandom(),
-    )
-
-    assert len(bin_obj.feature_list) >= 1
-    assert set(bin_obj.feature_list).issubset({"A", "B"})

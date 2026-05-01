@@ -46,7 +46,6 @@ def main(argv):
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
     parser.add_argument('--de-list', dest='desired_bin_effects', help='comma separated desired bin effect modes', type=str, default='default,protective,high_risk,permissive')
-    parser.add_argument('--protective-fixed-threshold', dest='protective_fixed_threshold', help='optional fixed threshold applied only to protective mode', type=int, default=None)
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=str, default='None')
 
@@ -92,7 +91,6 @@ def main(argv):
     thresh_evolve_prob = options.thresh_evolve_prob
     desired_bin_effects = [effect.strip() for effect in options.desired_bin_effects.split(',') if effect.strip() != '']
     desired_bin_effects = ['high_risk' if effect == 'highrisk' else effect for effect in desired_bin_effects]
-    protective_fixed_threshold = options.protective_fixed_threshold
     #covariates = None #Manually included in script
     pop_clean = options.pop_clean
     random_seed = options.random_seed
@@ -150,14 +148,14 @@ def main(argv):
                                         iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                         diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
                                         group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,
-                                        loci_list,cov_list,rare_filter,random_seed,protective_fixed_threshold)
+                                        loci_list,cov_list,rare_filter,random_seed)
                 jobCount +=1
             elif run_cluster == 'SLURM':
                 submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                         iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                         diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
                                         group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,
-                                        loci_list,cov_list,rare_filter,random_seed,protective_fixed_threshold)
+                                        loci_list,cov_list,rare_filter,random_seed)
                 jobCount +=1
             else:
                 print('ERROR: Cluster type not found')
@@ -168,7 +166,7 @@ def submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manu
                                     iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                     diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
                                     group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,
-                                    loci_list,cov_list,rare_filter,random_seed,protective_fixed_threshold): 
+                                    loci_list,cov_list,rare_filter,random_seed): 
     job_ref = str(time.time())
     job_name = 'FIBERS_'+desired_bin_effect+'_'+str(part)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -186,10 +184,7 @@ def submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manu
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter))
-    if protective_fixed_threshold != None:
-        sh_file.write(' --protective-fixed-threshold '+str(protective_fixed_threshold))
-    sh_file.write('\n')
+        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n')
     sh_file.close()
     os.system('sbatch ' + job_path)
 
@@ -199,7 +194,7 @@ def submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual
                                     iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                     diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
                                     group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,
-                                    loci_list,cov_list,rare_filter,random_seed,protective_fixed_threshold): 
+                                    loci_list,cov_list,rare_filter,random_seed): 
     job_ref = str(time.time())
     job_name = 'FIBERS_'+desired_bin_effect+'_'+str(part)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -217,10 +212,7 @@ def submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter))
-    if protective_fixed_threshold != None:
-        sh_file.write(' --protective-fixed-threshold '+str(protective_fixed_threshold))
-    sh_file.write('\n')
+        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n')
     sh_file.close()
     os.system('bsub < ' + job_path)
 
