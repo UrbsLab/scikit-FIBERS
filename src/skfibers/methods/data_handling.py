@@ -1,28 +1,28 @@
 import logging
 from lifelines import CoxPHFitter
 
-def prepare_data(df,outcome_label,censor_label,covariates):
+def prepare_data(df, outcome_label, censor_label, covariates):
     # Make list of feature names (i.e. columns that are not outcome, censor, or covariates)
     feature_names = list(df.columns)
-    if censor_label != None:
+    if covariates != None:
         exclude = covariates + [outcome_label,censor_label]
     else:
         exclude = [outcome_label,censor_label]
     feature_names = [item for item in feature_names if item not in exclude]
 
-    # Remove invariant feature columns (data cleaning)
-    cols_to_drop = []
-    for col in feature_names:
-        if len(df[col].unique()) == 1:
-            cols_to_drop.append(col)
-    df.drop(columns=cols_to_drop, inplace=True)
-    feature_names = [item for item in feature_names if item not in cols_to_drop]
-    print("Dropped "+str(len(cols_to_drop))+" invariant feature columns.")
+    # Remove invariant feature columns (data cleaning) - removed from code base to allow for testing evaluations with invariant columns.  Data should be filtered of invariant features before applying FIBERS
+    #cols_to_drop = []
+    #for col in feature_names:
+    #    if len(df[col].unique()) == 1:
+    #        cols_to_drop.append(col)
+    #df.drop(columns=cols_to_drop, inplace=True)
+    #feature_names = [item for item in feature_names if item not in cols_to_drop]
+    #print("Dropped "+str(len(cols_to_drop))+" invariant feature columns.")
 
     return df, feature_names
 
 
-def calculate_residuals(df,covariates,feature_names,outcome_label,censor_label): #Ryan - do we need to handle categorical variables like when calculating Cox PH??
+def calculate_residuals(df,covariates, feature_names, outcome_label,censor_label):
     # Fit a Cox proportional hazards model to the DataFrame
     var_list = covariates+[outcome_label,censor_label]
     logging.info("Fitting COX Model")

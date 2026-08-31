@@ -39,10 +39,9 @@ target/
 data/
 src/Data1.csv
 sampledata.csv
-src/
 output/
-output_cov/
-output_cov_new/
+src/skfibersv2
+src/skfibers_no_ryan_fixes
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
@@ -50,3 +49,5 @@ __pypackages__/
 # Pickle
 *.pickle
 
+#VSCode
+.vscode/
