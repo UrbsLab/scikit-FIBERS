@@ -63,7 +63,7 @@ class BIN_SET:
         
 
     def global_fitness_update(self,penalty):
-        self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key) #DOES THIS NEED TO BE HERE?
+        self.bin_pop = sorted(self.bin_pop, key=self.custom_sort_key)
         # Sort bin population first by pre-fitness, then by group_theshold, then by bin_size, then by group_strata_prop (to form a global bin ranking)
         # Sort DataFrame by maximizing column A (descending) and minimizing column B (ascending) for ties
         decay = 0.2
@@ -86,13 +86,24 @@ class BIN_SET:
 
     def select_parent_pair(self,tournament_prop,random):
         #Tournament Selection
+        #parent_list = [None, None]
         tSize = int(len(self.bin_pop) * tournament_prop) #Tournament Size
+        #currentCount = 0
+        #while currentCount < 2:
+        #    random.shuffle(self.bin_pop)
+        #    parent_list[currentCount] = max(self.bin_pop[:tSize], key=lambda x: x.fitness)
+        #    currentCount += 1
+        #return parent_list
         parent_1 = self.tournament_selection(tSize,random)
         parent_2 = self.tournament_selection(tSize,random)
+
         while parent_1 == parent_2:
             parent_2 = self.tournament_selection(tSize,random)
+
         return [parent_1,parent_2]
 
+
+    
 
     def tournament_selection(self,tSize,random):
         random.shuffle(self.bin_pop)
@@ -103,36 +114,53 @@ class BIN_SET:
     def generate_offspring(self,crossover_prob,mutation_prob,merge_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,max_bin_size,
                            max_bin_init_size,min_thresh,max_thresh,df,outcome_type,fitness_metric,log_rank_weighting,
                            outcome_label,censor_label,int_thresh,group_thresh,group_strata_min,penalty,residuals,covariates,random):
+        #print("Random Seed Check - genoff: "+ str(random.random()))
         # Clone Parents
         offspring_1 = BIN()
         offspring_2 = BIN()
         offspring_1.copy_parent(parent_list[0],iteration)
         offspring_2.copy_parent(parent_list[1],iteration)
+        #if iteration == 49:
+        #    print('Parent1:'+str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
+        #    print('Parent2:'+str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
 
         if random.random() < merge_prob: #Generate a single novel bin that is the combination of the two parent bins (yielding 3 total bins created during this mating)
             offspring_3 = BIN()
             offspring_3.copy_parent(parent_list[0],iteration)
             offspring_3.merge(parent_list[1],max_bin_size,threshold_evolving,max_thresh,random)
             # Check for duplicate rules based on feature list and threshold
+            #if iteration == 49:
+            #    print('merge')
             while self.equivalent_bin_in_pop(offspring_3,iteration): # May slow down evolutionary cycles if new bins arent' found right away
                 offspring_3.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+                #if iteration == 49:
+                #    print(str(offspring_3.feature_list)+'_'+str(offspring_3.group_threshold))
             offspring_3.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                                 int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
             offspring_3.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
+            #if iteration == 49:
+            #    print(str(offspring_3.feature_list)+'_'+str(offspring_3.group_threshold))
             if not self.equivalent_bin_in_pop(offspring_3,iteration):
                 self.offspring_pop.append(offspring_3)
 
         # Crossover
-        if random.random() < crossover_prob:
-            offspring_1.uniform_crossover(offspring_2,threshold_evolving,random)
+        offspring_1.uniform_crossover(offspring_2,crossover_prob,threshold_evolving,random)
 
         # Mutation - check for duplicate rules
         offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
         offspring_2.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random)
 
+        #if iteration == 49:
+        #    print('Offspring1:'+str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
+        #    print('Offspring2:'+str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
+
         # Check for duplicate bins based on feature list and threshold
+        #if iteration == 49:
+        #    print('off1')
         while self.equivalent_bin_in_pop(offspring_1,iteration): # May slow down evolutionary cycles if new bins arent' found right away
             offspring_1.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+            #if iteration == 49:
+            #    print(str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
 
         # Offspring 1 Evalution 
         offspring_1.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
@@ -140,12 +168,18 @@ class BIN_SET:
         offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
         #Add New Offspring 1 to the Population
+        #if iteration == 49:
+        #    print(str(offspring_1.feature_list)+'_'+str(offspring_1.group_threshold))
         if not self.equivalent_bin_in_pop(offspring_1,iteration):
             self.offspring_pop.append(offspring_1)
 
+        #if iteration == 49:
+        #    print('off2')
         # Check for duplicate bins based on feature list and threshold
         while self.equivalent_bin_in_pop(offspring_2,iteration): # May slow down evolutionary cycles if new bins arent' found right away
             offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+            #if iteration == 49:
+            #    print(str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
 
         # Offspring 2 Evalution 
         offspring_2.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
@@ -153,6 +187,8 @@ class BIN_SET:
         offspring_2.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
         #Add New Offspring 2 to the Population
+        #if iteration == 49:
+        #    print(str(offspring_2.feature_list)+'_'+str(offspring_2.group_threshold))
         if not self.equivalent_bin_in_pop(offspring_2,iteration):
             self.offspring_pop.append(offspring_2)
 
@@ -160,21 +196,24 @@ class BIN_SET:
     def equivalent_bin_in_pop(self,new_bin,iteration):
         for existing_bin in self.offspring_pop:
             if new_bin.is_equivalent(existing_bin):
+                #if iteration == 49:
+                #    print('duplicate in offpop')
+                #    print(str(new_bin.feature_list)+'_'+str(new_bin.group_threshold))
+                #    print(str(existing_bin.feature_list)+'_'+str(new_bin.group_threshold))
                 return True
             
         for existing_bin in self.bin_pop:
             if new_bin.is_equivalent(existing_bin):
+                #if iteration == 49:
+                #    print('duplicate in pop')
+                #    print(str(new_bin.feature_list)+'_'+str(new_bin.group_threshold))
+                #    print(str(existing_bin.feature_list)+'_'+str(new_bin.group_threshold))
                 return True
 
         return False
         
 
-    def similarity_bin_deletion(self,pop_size,diversity_pressure,elitism,random): #new version
-        # Elitism Preparation
-        elite_count = int(pop_size*(elitism))
-        # Ensure that each similarity cluster will protect at least the top fitness bin
-        if diversity_pressure > elite_count:
-            elite_count = diversity_pressure
+    def similarity_bin_deletion(self,pop_size,diversity_pressure,random):
         # Automatically delete bins with a fitness of 0
         delete_indexes = []
         i = 0
@@ -207,83 +246,34 @@ class BIN_SET:
             kmeans = KMeans(n_clusters=diversity_pressure, n_init='auto',random_state=seed).fit(cos_sim)
             group_labels = kmeans.labels_
 
-        # Make dictionaries of the bins in each cluster and identify the top fitness bin in each cluster.
-        top_cluster_fitness = []
-        cluster_dictionary_list = []
+        #For each group find elites (to preserve) i.e. assign 0 deletion probability othewise assign deletion probability
         for cluster in range(0,diversity_pressure):
-            cluster_dictionary = {}
             # Get bin indexes and respective fitness scores for bins in this cluster
             bin_indexs = [i for i, x in enumerate(group_labels) if x == cluster]
             bin_fitness_list = []
             for bin_index in bin_indexs: # for each bin in this cluster
-                bin_fitness = self.bin_pop[bin_index].fitness
-                bin_fitness_list.append(bin_fitness) #get the fitness
-                cluster_dictionary[bin_index] = bin_fitness
+                bin_fitness_list.append(self.bin_pop[bin_index].fitness) #get the fitness
             # Find the best bin in this cluster
             max_fitness = max(bin_fitness_list)
-            top_cluster_fitness.append(max_fitness)
-            cluster_dictionary_list.append(dict(sorted(cluster_dictionary.items(),key=lambda item: item[1], reverse=True)))
-        
-        # Calculate number of elites for each cluster (proportional to cluster top bin fitness.)
-        fitness_sum = sum(top_cluster_fitness)
-        cluster_elite_counts = []
-        for cluster in range(0,diversity_pressure):
-            cluster_elite_count = int(elite_count * (top_cluster_fitness[cluster] / float(fitness_sum)))
-            if cluster_elite_count < 1: #ensure a minimum of one elite per cluster
-                cluster_elite_count = 1
-            cluster_elite_counts.append(cluster_elite_count)
-
-        # Assign deletion probabilities to all bins
-        delete_indexes = []
-        for cluster in range(0,diversity_pressure):
-            elite_counter = 0
-            for bin_index in cluster_dictionary_list[cluster]: #Already sorted by descending fitness
-                if elite_counter == 0:
-                    top_bin_index = bin_index
+            max_index = bin_indexs[bin_fitness_list.index(max_fitness)] #index of bin from bin_indexs
+            for bin_index in bin_indexs: #original bin indexes limited to bins in cluster
+                if bin_index == max_index or self.bin_pop[max_index].fitness == self.bin_pop[bin_index].fitness: # Top bin in cluster and any other bins with same highest fitness
                     self.bin_pop[bin_index].update_deletion_prop(0.0, cluster) #Top bin s have zero chance of deletion
-                    elite_counter += 1
-                elif self.is_over_general(top_bin_index,bin_index):
-                    delete_indexes.append(bin_index)
-                elif elite_counter < cluster_elite_counts[cluster]:
-                    self.bin_pop[bin_index].update_deletion_prop(0.0, cluster) #Top bin s have zero chance of deletion
-                    elite_counter += 1
                 else:
                     # Get similarity score to top bin in cluster
-                    try:
-                        self.bin_pop[bin_index].update_deletion_prop((1/float(self.bin_pop[bin_index].fitness)), cluster) # Assign deletion probability as the inverse of fitness * similarity
-                    except ZeroDivisionError:
-                        self.bin_pop[bin_index].update_deletion_prop((1/1e-6), cluster)
+                    similarity = cos_sim[bin_index][max_index] #compare the current bin to the top bin in this cluster
+                    self.bin_pop[bin_index].update_deletion_prop((1/bin.fitness)*similarity+(1/bin.fitness), cluster) # Assign deletion probability as the inverse of fitness * similarity
 
-        # Delete overgenerals (until max pop size reached)
-        delete_indexes.sort(reverse=True) #sort in descending order so deletion does not affect subsequent indexes
-        i = 0
-        while len(self.bin_pop) > pop_size and i < len(delete_indexes):
-            del self.bin_pop[delete_indexes[i]]
-            i += 1
-        # Continue deleting bins until max pop size is reached using roulette wheel selection.
         # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
         # Delete remaining bins required (from non-elite set) based on bin selection that is inversely proportional to bin fitness
         while len(self.bin_pop) > pop_size:
             #Calculate total fitness across all bins
             total_fitness = sum(bin.deletion_prop for bin in self.bin_pop)
-            if total_fitness == 0.0:
-                index = random.choices(range(len(self.bin_pop)))[0]
-            else:
-                # Calculate deletion probabilities for each object
-                deletion_probabilities = [bin.deletion_prop / total_fitness for bin in self.bin_pop]
-                index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
+            # Calculate deletion probabilities for each object
+            deletion_probabilities = [bin.deletion_prop / total_fitness for bin in self.bin_pop]
+            index = random.choices(range(len(self.bin_pop)), weights=deletion_probabilities)[0]
             del self.bin_pop[index]
 
-
-    def is_over_general(self,top_bin_index,bin_index):
-        """ Checks if a given bin is an overly generlized bin compared to the top bin in a given bin cluster. 
-        The bin must have the same threshold, and a subset of the features in the top bin."""
-        if self.bin_pop[top_bin_index].group_threshold != self.bin_pop[bin_index].group_threshold:
-            return False
-        elif set(self.bin_pop[bin_index].feature_list).issubset(set(self.bin_pop[top_bin_index].feature_list)):
-            return True
-        else:
-            return False
 
     def probabilistic_bin_deletion(self,pop_size,elitism,random):
         # Automatically delete bins with a fitness of 0
@@ -298,7 +288,13 @@ class BIN_SET:
             del self.bin_pop[index]
 
         # Preseve any proportion of elite bins specified
+        x = 0
+        while self.bin_pop[x].fitness == 1:
+            x+=1 #gets the bin index where fitness begins to drop
         elite_count = int(pop_size*(elitism))
+        if elite_count < x+1: #
+            elite_count = x #count is -1 for indexing below
+
         elite_bins = self.bin_pop[:elite_count]
         remaining_bins = self.bin_pop[elite_count:]
 
@@ -308,18 +304,15 @@ class BIN_SET:
         # ROULETTE WHEEL SELECTION - deletion selection probability inversely related to bin fitness
         # Delete remaining bins required (from non-elite set) based on bin selection that is inversely proportional to bin fitness
         while len(remaining_bins)+len(elite_bins) > pop_size:
-            try:
-                #Calculate total fitness across all bins
-                total_fitness = sum(1/bin.fitness for bin in remaining_bins)
-                # Calculate deletion probabilities for each object
-                deletion_probabilities = [(1/bin.fitness) / total_fitness for bin in remaining_bins]
-                remaining_index = 0
-                for bin in remaining_bins:
-                    bin.update_deletion_prop(deletion_probabilities[remaining_index],None)
-                    remaining_index += 1
-                index = random.choices(range(len(remaining_bins)), weights=deletion_probabilities)[0]
-            except:
-                index = random.choices(range(len(remaining_bins)))[0]
+            #Calculate total fitness across all bins
+            total_fitness = sum(1/bin.fitness for bin in remaining_bins)
+            # Calculate deletion probabilities for each object
+            deletion_probabilities = [(1/bin.fitness) / total_fitness for bin in remaining_bins]
+            remaining_index = 0
+            for bin in remaining_bins:
+                bin.update_deletion_prop(deletion_probabilities[remaining_index],None)
+                remaining_index += 1
+            index = random.choices(range(len(remaining_bins)), weights=deletion_probabilities)[0]
             del remaining_bins[index]
 
         self.bin_pop = elite_bins + remaining_bins
@@ -342,6 +335,11 @@ class BIN_SET:
 
 
     def add_offspring_into_pop(self,iteration):
+        #if iteration == 49:
+        #    print("---------------------------------------------------------")
+        #    for each in self.offspring_pop:
+        #        print(str(each.feature_list)+'_'+str(each.group_threshold))
+        #    print("---------------------------------------------------------")
         self.bin_pop = self.bin_pop + self.offspring_pop
         self.offspring_pop = []
 
