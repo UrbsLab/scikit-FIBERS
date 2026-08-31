@@ -49,3 +49,5 @@ __pypackages__/
 # Pickle
 *.pickle
 
+#VSCode
+.vscode/
