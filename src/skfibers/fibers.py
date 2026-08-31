@@ -26,8 +26,8 @@ from tqdm import tqdm
 
 class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=100,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
-                 max_mutation_prob=0.3,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=3,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
-                 log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=None,min_thresh=0,max_thresh=5, 
+                 max_mutation_prob=0.5,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=0,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
+                 log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=0,min_thresh=0,max_thresh=5, 
                  int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False):
 
         """
@@ -278,7 +278,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             else:
                 df = x
 
-        # Check if original_feature_matrix and y are numeric 
+        # Check if original_feature_matrix and y are numeric (Ryan - extend to check if all values > 0)
         try:
             df.copy() \
                 .apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
@@ -355,7 +355,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             else:
                 threshold_evolving = False
 
-            #Variable Mutation Rate
+            #Occelating Mutation Rate
             mutation_prob =  (transform_value(iteration-1,cycle_length)*(self.max_mutation_prob-self.min_mutation_prob)/cycle_length)+self.min_mutation_prob
 
             # GENETIC ALGORITHM 
@@ -382,7 +382,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 else:
                     self.set.probabilistic_bin_deletion(self.pop_size,self.elitism,random)
             else:
-                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,self.elitism,random)
+                self.set.similarity_bin_deletion(self.pop_size,self.diversity_pressure,random)
 
             # Update feature tracking
             self.set.update_feature_tracking(self.feature_names)
@@ -619,10 +619,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
         return low_outcome, high_outcome, low_censor, high_censor
     
 
-    def get_cox_prop_hazard_unadjust(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False):
+    def get_cox_prop_hazard(self,x, y=None, bin_index=0, use_bin_sums=False):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
-        
+
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
         df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
@@ -635,57 +635,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
             # Transform bin feature values according to respective bin threshold
             bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
 
-        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
-        summary = None
+        # Create evaluation dataframe including bin sum feature with any covariates present
+        bin_df = pd.concat([bin_df,df.loc[:,self.covariates],df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
 
-        try:
-            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label,show_progress)
-            self.set.bin_pop[bin_index].HR = summary['exp(coef)'].iloc[0]
-            self.set.bin_pop[bin_index].HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
-            self.set.bin_pop[bin_index].HR_p_value = summary['p'].iloc[0]
-        except:
-            self.set.bin_pop[bin_index].HR = 0
-            self.set.bin_pop[bin_index].HR_CI = None
-            self.set.bin_pop[bin_index].HR_p_value = None
-
-        df = None
-        return summary
-
-
-    def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False, new_covariates=None):
-        if not self.hasTrained:
-            raise Exception("FIBERS must be fit first")
-
-        # PREPARE DATA ---------------------------------------
-        df = self.check_x_y(x, y)
-        if new_covariates != None:
-            used_covariates = new_covariates
-        else:
-            used_covariates = self.covariates
-
-        df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,used_covariates)
-
-        # Sum instance values across features specified in the bin
-        feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)
-        bin_df = pd.DataFrame({'Bin_'+str(bin_index):feature_sums})
-
-        if not use_bin_sums:
-            # Transform bin feature values according to respective bin threshold
-            bin_df['Bin_'+str(bin_index)] = bin_df['Bin_'+str(bin_index)].apply(lambda x: 0 if x <= self.set.bin_pop[bin_index].group_threshold else 1)
-
-        bin_df = pd.concat([bin_df,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
-        summary = None
-        try:
-            bin_df = pd.concat([bin_df,df.loc[:,used_covariates]],axis=1)
-            summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label,show_progress)
-            self.set.bin_pop[bin_index].adj_HR = summary['exp(coef)'].iloc[0]
-            self.set.bin_pop[bin_index].adj_HR_CI = str(summary['exp(coef) lower 95%'].iloc[0])+'-'+str(summary['exp(coef) upper 95%'].iloc[0])
-            self.set.bin_pop[bin_index].adj_HR_p_value = summary['p'].iloc[0]
-        except:
-            self.set.bin_pop[bin_index].adj_HR = 0
-            self.set.bin_pop[bin_index].adj_HR_CI = None
-            self.set.bin_pop[bin_index].adj_HR_p_value = None
-
+        summary = cox_prop_hazard(bin_df,self.outcome_label,self.censor_label)
         df = None
         return summary
 
@@ -800,42 +753,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def get_adj_HR_metric_product_plot(self,show=True,save=False,output_folder=None,data_name=None):
         plot_adj_HR_metric_product(self.residuals,self.set.bin_pop,show=show,save=save,output_folder=output_folder,data_name=data_name)
 
-    def get_bin_population_heatmap_plot(self,filtering=None,show=True,save=False,output_folder=None,data_name=None):
-        plot_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, filtering=filtering, show=show,save=save,output_folder=output_folder,data_name=data_name)
+    def get_bin_population_heatmap_plot(self,show=True,save=False,output_folder=None,data_name=None):
+        plot_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, show=show,save=save,output_folder=output_folder,data_name=data_name)
 
-    def get_custom_bin_population_heatmap_plot(self,group_names,legend_group_info,colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
-        plot_custom_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, group_names,legend_group_info,colors,max_bins,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
-
-    def save_run_params(self,filename):
-        with open(filename, 'w') as file:
-            file.write(f"outcome_label: {self.outcome_label}\n")
-            file.write(f"outcome_type: {self.outcome_type}\n")
-            file.write(f"iterations: {self.iterations}\n")
-            file.write(f"pop_size: {self.pop_size}\n")
-            file.write(f"tournament_prop: {self.tournament_prop}\n")
-            file.write(f"crossover_prob: {self.crossover_prob}\n")
-            file.write(f"min_mutation_prob: {self.min_mutation_prob}\n")
-            file.write(f"max_mutation_prob: {self.max_mutation_prob}\n")
-            file.write(f"merge_prob: {self.merge_prob}\n")
-            file.write(f"new_gen: {self.new_gen}\n")
-            file.write(f"elitism: {self.elitism}\n")
-            file.write(f"diversity_pressure: {self.diversity_pressure}\n")
-            file.write(f"min_bin_size: {self.min_bin_size}\n")
-            file.write(f"max_bin_size: {self.max_bin_size}\n")
-            file.write(f"max_bin_init_size: {self.max_bin_init_size}\n")
-            file.write(f"fitness_metric: {self.fitness_metric}\n")
-            file.write(f"log_rank_weighting: {self.log_rank_weighting}\n")
-            file.write(f"censor_label: {self.censor_label}\n")
-            file.write(f"group_strata_min: {self.group_strata_min}\n")
-            file.write(f"penalty: {self.penalty}\n")
-            file.write(f"group_thresh: {self.group_thresh}\n")
-            file.write(f"min_thresh: {self.min_thresh}\n")
-            file.write(f"max_thresh: {self.max_thresh}\n")
-            file.write(f"int_thresh: {self.int_thresh}\n")
-            file.write(f"thresh_evolve_prob: {self.thresh_evolve_prob}\n")
-            file.write(f"manual_bin_init: {self.manual_bin_init}\n")
-            file.write(f"covariates: {self.covariates}\n")
-            file.write(f"pop_clean: {self.pop_clean}\n")
-            file.write(f"report: {self.report}\n")
-            file.write(f"random_seed: {self.random_seed}\n")
-            file.write(f"verbose: {self.verbose}\n")
+    def get_custom_bin_population_heatmap_plot(self,group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=True,save=False,output_folder=None,data_name=None):
+        plot_custom_bin_population_heatmap(list(self.get_pop()['feature_list']), self.feature_names, group_names,legend_group_info,color_features,colors,default_colors,max_bins,max_features,show=show,save=save,output_folder=output_folder,data_name=data_name)
