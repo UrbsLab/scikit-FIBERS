@@ -186,7 +186,7 @@ Presently the manuscript for scikit_FIBERS v2.1.0 is in preparation. In the mean
 
 ### scikit-FIBERS Publications
 #### 2024
-Harsh Bandhey, Sphia Sadek, Malek Kamoun, Ryan J. Urbanowicz (2024). [Evolutionary Feature-Binning with Adaptive Burden Thresholding for Biomedical Risk Stratification](https://link.springer.com/chapter/10.1007/978-3-031-56855-8_14).
+* [Evolutionary Feature-Binning with Adaptive Burden Thresholding for Biomedical Risk Stratification](https://link.springer.com/chapter/10.1007/978-3-031-56855-8_14). Harsh Bandhey, Sphia Sadek, Malek Kamoun, Ryan J. Urbanowicz (2024). 
 
 BibTeX entry:
 ```bibtex
@@ -201,7 +201,7 @@ BibTeX entry:
 ```
 
 #### 2023
-Satvik Dasariraju, Loren Gragert, Grace Wager, Nicholas Brown, Malek Kamoun, Ryan J. Urbanowicz (2023). [HLA amino acid Mismatch-Based risk stratification of kidney allograft failure using a novel Machine learning algorithm](https://www.sciencedirect.com/science/article/pii/S1532046423000953).
+* [HLA amino acid Mismatch-Based risk stratification of kidney allograft failure using a novel Machine learning algorithm](https://www.sciencedirect.com/science/article/pii/S1532046423000953). Satvik Dasariraju, Loren Gragert, Grace Wager, Nicholas Brown, Malek Kamoun, Ryan J. Urbanowicz (2023). 
 BibTeX entry:
 ```bibtex
 @article{dasariraju2023hla,
@@ -215,7 +215,7 @@ BibTeX entry:
 }
 ```
 
-Harsh Bandhey, Nolan Fogarty, Yi-An Hsieh, Malek Kamoun, Ryan J. Urbanowicz (2023). [Scikit-FIBERS: An 'OR'-Rule Discovery Evolutionary Algorithm for Risk Stratification in Right-Censored Survival Analyses](https://dl.acm.org/doi/abs/10.1145/3583133.3596393).
+* [Scikit-FIBERS: An 'OR'-Rule Discovery Evolutionary Algorithm for Risk Stratification in Right-Censored Survival Analyses](https://dl.acm.org/doi/abs/10.1145/3583133.3596393). Harsh Bandhey, Nolan Fogarty, Yi-An Hsieh, Malek Kamoun, Ryan J. Urbanowicz (2023).
 
 BibTeX entry:
 ```bibtex
