@@ -1,7 +1,7 @@
 scikit-FIBERS
 ======================================
 
-Feature Inclusion Bin Evolver for Risk Stratification (FIBERS) is an evolutionary algorithm for automatically 
+Scikit-compatible Feature Inclusion Bin Evolver for Risk Stratification (scikit-FIBERS) is an evolutionary algorithm for automatically 
 binning features to stratify risk in right-censored survival data. In particular it was designed for features 
 that correspond to mismatches between donor and recipients for transplantation. This repository focuses on a 
 scikit-learn compatible implementation and ongoing improvement/expansion of the of the original 
@@ -9,6 +9,7 @@ scikit-learn compatible implementation and ongoing improvement/expansion of the 
 Further development of the FIBERS algorithm will take place via this repository. 
 The schematic below outlines how this algorithm works.
 
+.. image:: pictures/FIBERS2.0_paper_vertical_color.png
 
 Installation
 -----------------------------
@@ -67,5 +68,7 @@ inquiries related to scikit-FIBERS.
 
 
    self
+   citation
    modules
+
 
