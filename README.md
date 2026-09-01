@@ -180,9 +180,9 @@ The repository contains high-performance-cluster running scripts to compare prev
 ***
 <a id="item-seven"></a>
 ## Citing scikit-FIBERS
-If you use scikit-FIBERS in a scientific publication, please consider citing one of the following papers and indicating the release (e.g. v2.1.0) of scikit-FIBERS utilized:
+If you use scikit-FIBERS in a scientific publication, please consider citing one of the following papers and indicating the release of scikit-FIBERS utilized (e.g. v2.1.0):
 
-Presently the manuscript for scikit_FIBERS v2.1.0 is in preparation. In the meantime please consider citing one of the more recent publications and indicate that release v2.1.0 was utilized. 
+Presently, the manuscript for scikit-FIBERS v2.1.0 is in preparation. In the meantime please consider citing one of the more recent publications and indicate that release scikit-FIBERS v2.1.0 was utilized. 
 
 ### scikit-FIBERS Publications
 #### 2024
