@@ -1,4 +1,4 @@
-# scikit-FIBERS 2.0
+# scikit-FIBERS
 
 **Table of contents:**
  - [Introduction](#item-one)
@@ -15,17 +15,17 @@
 <!-- headings -->
 <a id="item-one"></a>
 ## Introduction
-**FIBERS (Feature Inclusion Bin Evolver for Risk Stratification)** is an evolutionary machine learning algorithm designed for modeling or feature learning in survival analyses. It can be applied to survival datasets (1) with or without right-censoring, and (2) with or without target covariate features that need to be adjusted for. This algorithm is designed for target problems where the 'burden' (i.e. sum) of specific feature values in the dataset may be predictive of a time-to-event outcome (e.g. the burden of certain HLA amino-acid mismatches (between kidney donor and recipient pairs) can be predictive of kidney graft failure time).
+**FIBERS (Feature Inclusion Bin Evolver for Risk Stratification)** is an evolutionary machine learning algorithm designed for modeling and/or feature learning in survival data where the 'burden' (i.e. sum) of specific feature values in the dataset may be predictive of a time-to-event outcome (e.g. the burden of specific HLA amino-acid mismatches, between kidney donor and recipient pairs, being predictive of kidney graft failure time). FIBERS can be applied to survival datasets (1) with or without right-censoring, and (2) with or without target covariate features that need to be adjusted for.
 
 FIBERS can be used directly as a **modeling strategy**, by training a bin population and using the predict() function to apply the discovered bin with the highest fitness as a predictive model of risk group assigment. It can also be used as a **feature learning algorithm**, by training a bin population and using the transform() function to convert each discovered bin in the population into corresponding dataset features for additional downstream machine learning modeling. 
 
-The FIBERS algorithm seeks to automatically identify and optimize a population of 'candidate bins' that maximize time-to-event differences between high and low risk groups. A 'bin' is a subset of features and an associated 'burden threshold' that together define high vs. low risk instance groups, where instances that have a bin sum (of feature values) greater than the threshold are assigend to the high-risk group, and all others to the low-risk group. The fitness (i.e. quality) of bins in the candidate bin population drives evolutionary algorithm learning. 
+The FIBERS algorithm seeks to automatically identify and optimize a population of 'candidate bins' that maximize time-to-event differences between high and low risk groups. A 'bin' is a subset of features and an associated 'burden threshold' that together differentiate instances into high vs. low risk instance groups. Instances that have a bin sum (of feature values) greater than the threshold are assigend to the high-risk group, and all others to the low-risk group. The fitness (i.e. quality) of bins in the candidate bin population drives evolutionary algorithm learning. 
 
 A schematic detailing how the FIBERS algorithm works is given below:
 
 ![alttext](https://github.com/UrbsLab/scikit-FIBERS/blob/main/Pictures/FIBERS2.0_paper_vertical_color.png?raw=true)
 
-FIBERS currently offers three fitness function options: (1) log-rank fitness, for data without covariates, seeks to maximize the separation between high and low-risk survival curves (2) residuals fitness, for data with covariates, seeks to maximize the difference between deviance residuals between high and low-risk instance groups, and (3) product fitness, for data with covariates, calculates both log-rank and residuals metrics and assignes fitness as the product of both scores. 
+FIBERS currently offers three fitness function options: (1) 'log-rank fitness', for data without covariates, seeks to maximize the separation between high and low-risk survival curves (2) 'residuals fitness', for data with covariates, seeks to maximize the difference between deviance residuals between high and low-risk instance groups, and (3) 'product fitness', for data with covariates, calculates both log-rank and residuals metrics and assignes fitness as the product of both scores. 
 
 ***
 <a id="item-two"></a>
@@ -52,7 +52,7 @@ scikit-FIBERS takes a pandas dataframe of the target dataset as input (including
 
 Note that bins sum the feature values of potentially predictive features to determine risk group assignment, so all potentially predictive features should either (1) have the same value range (2) be scaled/normalized ahead of time, and or (3) should have value magnitudes that reflect their weight of importance with respect to other features. All values in the dataset should be numeric.
 
-scikit-FIBERS can also take in a previously trained or manually generated bin population to partially or fully initialize the bin population for training. This bin population is passed as a dataframe of a FIBERS-formatted bin population using the 'manual_bin_init' hyperparameter. This allows users to continue evolving a previously trained bin population for futher iterations, or to use domain/expert knowledge to initialize the evolutionary algorithm with candidate bins. 
+scikit-FIBERS can also take in a previously trained or manually generated bin population to partially or fully initialize the bin population for training. This bin population is passed as a dataframe of a FIBERS-formatted bin population using the *manual_bin_init* hyperparameter. This allows users to continue evolving a previously trained bin population for futher iterations, or to use domain/expert knowledge to initialize the evolutionary algorithm with candidate bins. 
 
 ***
 <a id="item-four"></a>
@@ -60,13 +60,14 @@ scikit-FIBERS can also take in a previously trained or manually generated bin po
 
 ### Demonstration Notebooks
 Two Jupyter Notebooks have been included to demonstrate how scikit-FIBERS (and it's functions) can be applied to data with or without covariates. These demonstrations utilize two survival data simulators that are also included in the scikit-FIBERS repository (i.e. SIM1 and SIM2, for simulating right-censored survival data without or with covariates, respectively). 
-* [DEMO Notebook 1 (no covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/dev/FIBERS_Survival_Demo_SIM1.ipynb)
-* [DEMO Notebook 2 (with covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/dev/FIBERS_Survival_Demo_SIM2.ipynb)
+* [DEMO Notebook 1 (no covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/main/FIBERS_Survival_Demo_SIM1.ipynb)
+* [DEMO Notebook 2 (with covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/main/FIBERS_Survival_Demo_SIM2.ipynb)
 
 These notebooks are currently set up to run by downloading this repository and running the included notebook. 
 
 ### Basic Run Command Walk-Through
-As a simple example of FIBERS training, the following code first loads a hypothetical survival dataset including potentially predictive features, a time-to-event (outcome) column labeled as "Duration", and a censoring indicator column, labeled as "Censoring". Next the FIBERS algorithm is initialized with some basic hyperparameters settings, followed by algorithm training.
+#### Training
+As a simple example of FIBERS training, the following code first loads a hypothetical survival dataset (without covariates) including potentially predictive features, a time-to-event (outcome) column labeled as "Duration", and a censoring indicator column, labeled as "Censoring". Next the FIBERS algorithm is initialized with some basic hyperparameters settings, followed by algorithm training.
 
 ```
 train_data = pd.read_csv('my_survival_training_data.csv')
@@ -74,15 +75,16 @@ fibers = FIBERS(outcome_label="Duration", iterations=100, pop_size=50, fitness_m
 fibers = fibers.fit(train_data)
 ```
 
-Once trained, FIBERS can be applied to make risk group predictions on a testing dataset including only potentially predictive feature columns (i.e. no time-to-event, censoring, or covariate columns). First the feature columns alone are loaded as a dataframe. Next, FIBERS's predict() function is called with the 'bin_number' parameter set to the bin index in the bin population to be used as a predictive model. Index '0' is the bin with the highest fitness by default. Lastly, assuming we have the true risk groups of each testing instance (saved as a single-column dataframe) we can generate a classification report comparing risk group predictions to true risk group values. 
+#### Testing Evaluation
+Once trained, FIBERS can be applied to make risk group predictions on a testing dataset that only includes potentially predictive feature columns (i.e. no time-to-event, censoring, or covariate columns). First, the feature columns alone are loaded as a dataframe. Next, FIBERS's predict() function is called with the *bin_number* parameter set to the bin 'index' in the bin population to be used as a predictive model. Index '0' is the bin with the highest fitness by default. Lastly, assuming we have the true risk groups of each testing instance (saved as a single-column dataframe) we can optionally generate a classification report comparing risk group predictions to true risk group values. 
 
 ```
 test_data = pd.read_csv('my_survival_testing_data.csv')
 predictions = fibers.predict(test_data,bin_number=0)
 print(classification_report(predictions, true_risk_group, digits=3))
 ```
-
-Lastly, a trained FIBERS bin population can also be converted to learned features in a newly generated dataset using FIBERS transform() function. This feature learning can convert each bin to a new feature by encoding instances as either (1) the sum of bin feature values or (2) the binary risk strata assignment (0=low, 1=high). In the first example below, we transform bins into new features that represent the sum of bin feature values and save this new dataset as a .csv file. 
+#### Feature Learning
+Lastly, a trained FIBERS bin population can also be converted to learned features in a newly generated dataset using FIBERS transform() function. This feature learning can convert each bin to a new feature by encoding instances as either (1) the sum of bin feature values or (2) the binary risk strata assignment (0=low, 1=high). In the first example below, we transform bins into new features that represent the sum of bin feature values (i.e. *full_sums=True*) and save this new dataset as a .csv file. 
 
 ```
 tdf = fibers.transform(train_data,full_sums=True)
@@ -102,7 +104,10 @@ tdf.to_csv('my_transformed_dataset_strata.csv', index=False)
 While scikit_FIBERS has a number of available hyperparameters only a few are considered to be essential or useful to check or set. 
 
 * Essential hyperparameters are given in the first table. 
-* For survival data without covariate columns, the *fitness_metric* should be set to 'log_rank' and *covariates* should be set to None. For survival data with covariate colums (that need to be adjusted for), the *fitness_metric* should be set to either 'residuals' or to 'log_rank_residuals' (otherwise referred to as the 'product' fitness metric), and *covariates* should be set to a list of all covariate column lables in the dataset. For survival data without censoring, *censor_label* should be set to None, otherwise it should be set the censoring column lable. While *outcome_type* is also an important hyperparameter to check, currently only the 'survival' option (for survial data analysis) has been fully implemented and tested.
+  * For survival data without covariate columns, the *fitness_metric* should be set to 'log_rank' and *covariates* should be set to None. 
+  * For survival data with covariate colums (that need to be adjusted for), the *fitness_metric* should be set to either 'residuals' or to 'log_rank_residuals' (otherwise referred to as the 'product' fitness metric), and *covariates* should be set to a list of all covariate column lables in the dataset. 
+  * For survival data without censoring, *censor_label* should be set to None, otherwise it should be set the censoring column lable. 
+  * While *outcome_type* is also an important hyperparameter to check, currently only the 'survival' option (for survial data analysis) has been fully implemented and tested.
 
 | Hyperparameter | Description | Type/Options | Default Value |
 | -------------- | ----------- | ------------- | ------------- |

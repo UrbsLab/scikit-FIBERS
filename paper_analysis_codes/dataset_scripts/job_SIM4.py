@@ -2,8 +2,8 @@ import os
 import sys
 import argparse
 sys.path.append('/project/kamoun_shared/code_shared/sim-study-harsh/')
-from src.skfibers.experiments.SIM3 import survival_data_simulation_categorical_covariates #SOURCE CODE RUN
-#from skfibers.experiments.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
+from src.skfibers.simulators.SIM3 import survival_data_simulation_categorical_covariates #SOURCE CODE RUN
+#from skfibers.simulators.survival_sim_simple import survival_data_simulation #PIP INSTALL CODE RUN
 
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
