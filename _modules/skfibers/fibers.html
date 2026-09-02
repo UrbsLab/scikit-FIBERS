@@ -1,0 +1,942 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>skfibers.fibers &mdash; FIBERS 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=af2ce170"></script>
+      <script src="../../_static/doctools.js?v=888ff710"></script>
+      <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FIBERS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data.html">Input Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">Running scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameters.html">Hyperparameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">Algorithm History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../citation.html">Citing scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FIBERS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">skfibers.fibers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for skfibers.fibers</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.data_handling</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.data_handling</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_residuals</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.population</span><span class="w"> </span><span class="kn">import</span> <span class="n">BIN_SET</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_pareto</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_feature_tracking</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_kaplan_meir</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_fitness_progress</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_threshold_progress</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_perform_progress</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_misc_progress</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_residuals_histogram</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_log_rank_residuals</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_adj_HR_residuals</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_log_rank_adj_HR</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_adj_HR_metric_product</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">cox_prop_hazard</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">transform_value</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_bin_population_heatmap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.methods.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_custom_bin_population_heatmap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<div class="viewcode-block" id="FIBERS"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FIBERS</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcome_label</span><span class="o">=</span><span class="s2">&quot;Duration&quot;</span><span class="p">,</span><span class="n">outcome_type</span><span class="o">=</span><span class="s2">&quot;survival&quot;</span><span class="p">,</span><span class="n">iterations</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">pop_size</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">tournament_prop</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span><span class="n">crossover_prob</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">min_mutation_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> 
+                 <span class="n">max_mutation_prob</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span><span class="n">merge_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span><span class="n">new_gen</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span><span class="n">elitism</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span><span class="n">diversity_pressure</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="n">min_bin_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">max_bin_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">max_bin_init_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">fitness_metric</span><span class="o">=</span><span class="s2">&quot;log_rank&quot;</span><span class="p">,</span> 
+                 <span class="n">log_rank_weighting</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">censor_label</span><span class="o">=</span><span class="s2">&quot;Censoring&quot;</span><span class="p">,</span><span class="n">group_strata_min</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span><span class="n">penalty</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">group_thresh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">min_thresh</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">max_thresh</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+                 <span class="n">int_thresh</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">thresh_evolve_prob</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">manual_bin_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">covariates</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">pop_clean</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">report</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A Scikit-Learn compatible implementation of the FIBERS Algorithm.</span>
+
+<span class="sd">        ..</span>
+<span class="sd">            General Parameters</span>
+
+<span class="sd">        :param outcome_label: label indicating the outcome column in the dataset (e.g. &#39;SurvivalTime&#39;, &#39;Class&#39;)</span>
+<span class="sd">        :param outcome_type: defines the type of outcome in the dataset [&#39;survival&#39;,&#39;class&#39;]</span>
+<span class="sd">        :param iterations: the number of evolutionary cycles FIBERS will run</span>
+<span class="sd">        :param pop_size: the maximum bin population size</span>
+<span class="sd">        :param tournament_prop: the proportion of the popultion randomly selected for each parent pair selection</span>
+<span class="sd">        :param crossover_prob: the probability of each specified feature in a pair of offspring bins to swap between bins</span>
+<span class="sd">        :param min_mutation_prob: the minimum probability of further offspring bin modification (i.e. feature addition, removal or swap)</span>
+<span class="sd">        :param max_mutation_prob: the maximum probability of further offspring bin modification (i.e. feature addition, removal or swap)</span>
+<span class="sd">        :param merge_prob: the probability of two parent bins merging to create a single novel offspring, separate from mutation and crossover</span>
+<span class="sd">        :param new_gen: proportion that determines the number of offspring generated each iteration based new_gen*pop_size</span>
+<span class="sd">        :param elitism: proportion of pop_size that is protected from deletion each generation</span>
+<span class="sd">        :param diversity_pressure: number of bin similarity clusters used to drive bin deletion by maintaining bin diversity</span>
+<span class="sd">        :param min_bin_size: minimum number of features to be specified within a bin</span>
+<span class="sd">        :param max_bin_size: maximum number of features to be specified within a bin</span>
+<span class="sd">        :param max_bin_init_size: maximum number of features within initialized bins</span>
+<span class="sd">        :param fitness_metric: the pre-fitness metric used by FIBERS to evaluate candidate bins [&#39;log_rank&#39;,&#39;residuals&#39;,&#39;log_rank_residuals&#39;]</span>
+<span class="sd">        :param log_rank_weighting: an optional weighting of the log-rank test [&#39;wilcoxon&#39;,&#39;tarone-ware&#39;,&#39;peto&#39;,&#39;fleming-harrington&#39;] </span>
+
+<span class="sd">        ..</span>
+<span class="sd">            Survival Analysis Parameters</span>
+
+<span class="sd">        :param censor_label: label indicating the censoring column in the datasets (e.g. &#39;Censoring&#39;)</span>
+<span class="sd">        :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have pre-fitness penalizaiton applied</span>
+<span class="sd">        :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min</span>
+<span class="sd">        :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group</span>
+
+<span class="sd">        ..</span>
+<span class="sd">            Adaptive Bin Threshold Parameters</span>
+
+<span class="sd">        :param min_thresh: for adaptive bin thresholding - the minimum group_thresh allowed</span>
+<span class="sd">        :param max_thresh: for adaptive bin thresholding - the maximum group_thresh allowed</span>
+<span class="sd">        :param int_thresh: boolean indicating that adaptive bin thresholds are limited to positive intergers</span>
+<span class="sd">        :param thresh_evolve_prob: probability that adaptive bin thresholding will evolve vs. be selected for the bin deterministically</span>
+
+<span class="sd">        ..</span>
+<span class="sd">            Manual Bin Initialization Parameters</span>
+
+<span class="sd">        :param manual_bin_init: a dataframe object including a FIBERS formatted bin population for bin initialization</span>
+
+<span class="sd">        .. </span>
+<span class="sd">            Covariate Adjustment Parameters</span>
+
+<span class="sd">        :param covariates: list of feature names in the data to be treated as covariates (not included in binning)</span>
+
+<span class="sd">        .. </span>
+<span class="sd">            Other Parameters</span>
+
+<span class="sd">        :param pop_clean: optional bin population cleanup phase</span>
+<span class="sd">        :param report: list of integers, indicating iterations where the population will be printed out for viewing</span>
+<span class="sd">        :param random_seed: the seed value needed to generate a random number</span>
+<span class="sd">        :param verbose: Boolean flag to run in &#39;verbose&#39; mode - display run details</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Basic run parameter checks</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outcome_label</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;outcome_label&#39; param must be a str&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">outcome_type</span><span class="o">!=</span><span class="s2">&quot;survival&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">outcome_type</span><span class="o">!=</span><span class="s2">&quot;class&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;outcome_type&#39; param can only have values of &#39;survival&#39; or &#39;class&#39;&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">iterations</span><span class="p">)</span> <span class="ow">or</span> <span class="n">iterations</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;iterations&#39; param must be a non-negative integer&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">pop_size</span><span class="p">)</span> <span class="ow">or</span> <span class="n">pop_size</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;pop_size&#39; param must be non-negative integer larger than 10&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">tournament_prop</span><span class="p">)</span> <span class="ow">or</span> <span class="n">tournament_prop</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">tournament_prop</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;tournament_prop&#39; param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">crossover_prob</span><span class="p">)</span> <span class="ow">or</span> <span class="n">crossover_prob</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">crossover_prob</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;crossover_prob&#39; param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">min_mutation_prob</span><span class="p">)</span> <span class="ow">or</span> <span class="n">min_mutation_prob</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">min_mutation_prob</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;min_mutation_prob&#39; param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">max_mutation_prob</span><span class="p">)</span> <span class="ow">or</span> <span class="n">max_mutation_prob</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">max_mutation_prob</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">min_mutation_prob</span> <span class="o">&gt;</span> <span class="n">max_mutation_prob</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;max_mutation_prob&#39; param must be float from 0 - 1 that is greater than or equal to min_mutation_prob&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span> <span class="p">(</span><span class="n">merge_prob</span><span class="p">)</span> <span class="ow">or</span> <span class="n">merge_prob</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">merge_prob</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;merge_prob&#39; param must be float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">new_gen</span><span class="p">)</span> <span class="ow">or</span> <span class="n">new_gen</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">new_gen</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;new_gen&#39; param must be float from 0 - 1&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">elitism</span><span class="p">)</span> <span class="ow">or</span> <span class="n">elitism</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">elitism</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;elitism&#39; param must be float from 0 - 1&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">diversity_pressure</span><span class="p">)</span> <span class="ow">or</span> <span class="n">diversity_pressure</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;diversity_pressure&#39; param must be a non-negative integer&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">min_bin_size</span><span class="p">)</span> <span class="ow">or</span> <span class="n">min_bin_size</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;min_bin_size&#39; param must be non-negative integer (and no larger then the number of features in the dataset and &lt;= than max_bin_size)&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">max_bin_size</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">max_bin_size</span><span class="p">)</span> <span class="ow">or</span> <span class="n">max_bin_size</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">min_bin_size</span> <span class="o">&gt;</span> <span class="n">max_bin_size</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;max_bin_size&#39; param must &#39;None&#39; or a non-negative integer (and no larger then the number of features in the dataset and &gt;= than min_bin_size)&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">max_bin_init_size</span><span class="p">)</span> <span class="ow">or</span> <span class="n">max_bin_init_size</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;max_bin_init_size&#39; param must be non-negative integer (and no larger then the number of features in the dataset)&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fitness_metric</span><span class="o">!=</span><span class="s2">&quot;log_rank&quot;</span> <span class="ow">and</span> <span class="n">fitness_metric</span><span class="o">!=</span><span class="s2">&quot;residuals&quot;</span> <span class="ow">and</span> <span class="n">fitness_metric</span><span class="o">!=</span><span class="s2">&quot;log_rank_residuals&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;fitness_metric&#39; param can only have values of &#39;log_rank&#39;, &#39;residuals&#39;, or &#39;log_rank_residuals&#39;&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">log_rank_weighting</span><span class="o">!=</span><span class="s2">&quot;wilcoxon&quot;</span> <span class="ow">and</span> <span class="n">log_rank_weighting</span><span class="o">!=</span><span class="s2">&quot;tarone-ware&quot;</span> <span class="ow">and</span> <span class="n">log_rank_weighting</span><span class="o">!=</span><span class="s2">&quot;peto&quot;</span> <span class="ow">and</span> <span class="n">log_rank_weighting</span><span class="o">!=</span><span class="s1">&#39;fleming-harrington&#39;</span><span class="ow">and</span> <span class="n">log_rank_weighting</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;log_rank_weighting&#39; param can only have values of &#39;wilcoxon&#39;, &#39;tarone-wares&#39;, &#39;peto&#39; or &#39;fleming-harrington&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fitness_metric</span> <span class="o">==</span> <span class="s2">&quot;residuals&quot;</span> <span class="ow">or</span> <span class="n">fitness_metric</span> <span class="o">==</span> <span class="s2">&quot;log_rank_residuals&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">covariates</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;list of covariates must be specified when fitness_metric is &#39;residuals&#39; or &#39;log_rank_residuals&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">censor_label</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">censor_label</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;censor_label&#39; param must be a str or None&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">group_strata_min</span><span class="p">)</span> <span class="ow">or</span> <span class="n">group_strata_min</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">group_strata_min</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;group_strata_min&#39; param must be float from 0 - 0.5&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">penalty</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">penalty</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;penalty&#39; param must be an int or float from 0 - 1&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">penalty</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">penalty</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;penalty&#39; param must be an int or float from 0 - 1&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">group_thresh</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">group_thresh</span><span class="p">)</span> <span class="ow">and</span> <span class="n">group_thresh</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;group_thresh&#39; param must be a non-negative int or float, or None, for adaptive thresholding&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">group_thresh</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">group_thresh</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span> 
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;group_thresh&#39; param must be a non-negative int or float, or None, for adaptive thresholding&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">min_thresh</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">min_thresh</span><span class="p">)</span> <span class="ow">or</span> <span class="n">min_thresh</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;min_thresh&#39; param must be a non-negative int or float&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">max_thresh</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">max_thresh</span><span class="p">)</span> <span class="ow">or</span> <span class="n">max_thresh</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">max_thresh</span> <span class="o">&lt;=</span> <span class="n">min_thresh</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;max_thresh&#39; param must be a non-negative int or float&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">max_thresh</span> <span class="o">&lt;=</span> <span class="n">min_thresh</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;max_thresh&#39; param must be larger than min_thresh param&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">int_thresh</span> <span class="o">==</span> <span class="kc">True</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">int_thresh</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">int_thresh</span> <span class="o">==</span> <span class="s1">&#39;True&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">int_thresh</span> <span class="o">==</span> <span class="s1">&#39;False&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;int_thresh&#39; param must be a boolean, i.e. True or False&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_float</span><span class="p">(</span><span class="n">thresh_evolve_prob</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">thresh_evolve_prob</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;thresh_evolve_prob&#39; param must be an int or float from 0 - 1&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">thresh_evolve_prob</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">thresh_evolve_prob</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;thresh_evolve_prob&#39; param must be an int or float from 0 - 1&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">manual_bin_init</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">manual_bin_init</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;manual_bin_init&#39; param must be either None or DataFame that includes columns for &#39;feature_list&#39; and &#39;group_threshold&#39; &quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_list</span><span class="p">(</span><span class="n">covariates</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">covariates</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;covariates&#39; param must be either None or a list of feature names&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pop_clean</span><span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pop_clean</span> <span class="o">!=</span><span class="s2">&quot;group_strata&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;pop_clean&#39; param can only have values of None or &#39;group_strata&#39;&quot;</span><span class="p">)</span>
+    
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_list</span><span class="p">(</span><span class="n">report</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">report</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;report&#39; param must be an list of positive integers or None&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">random_seed</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;random_seed&#39; param must be an int or None&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">verbose</span> <span class="o">==</span> <span class="kc">True</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">verbose</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">verbose</span> <span class="o">==</span> <span class="s1">&#39;True&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">verbose</span> <span class="o">==</span> <span class="s1">&#39;False&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;verbose&#39; param must be a boolean, i.e. True or False&quot;</span><span class="p">)</span>
+        
+        <span class="c1">#Initialize global variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span> <span class="o">=</span> <span class="n">outcome_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outcome_type</span> <span class="o">=</span> <span class="n">outcome_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">iterations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pop_size</span> <span class="o">=</span> <span class="n">pop_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tournament_prop</span> <span class="o">=</span> <span class="n">tournament_prop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crossover_prob</span> <span class="o">=</span> <span class="n">crossover_prob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_mutation_prob</span> <span class="o">=</span> <span class="n">min_mutation_prob</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_mutation_prob</span> <span class="o">=</span> <span class="n">max_mutation_prob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">merge_prob</span> <span class="o">=</span> <span class="n">merge_prob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_gen</span> <span class="o">=</span> <span class="n">new_gen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elitism</span> <span class="o">=</span> <span class="n">elitism</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">diversity_pressure</span> <span class="o">=</span> <span class="n">diversity_pressure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_bin_size</span> <span class="o">=</span> <span class="n">min_bin_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_bin_size</span> <span class="o">=</span> <span class="n">max_bin_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_bin_init_size</span> <span class="o">=</span> <span class="n">max_bin_init_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitness_metric</span> <span class="o">=</span> <span class="n">fitness_metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_rank_weighting</span> <span class="o">=</span> <span class="n">log_rank_weighting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span> <span class="o">=</span> <span class="n">censor_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_strata_min</span> <span class="o">=</span> <span class="n">group_strata_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">penalty</span> <span class="o">=</span> <span class="n">penalty</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_thresh</span> <span class="o">=</span> <span class="n">group_thresh</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_thresh</span> <span class="o">=</span> <span class="n">min_thresh</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_thresh</span> <span class="o">=</span> <span class="n">max_thresh</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">int_thresh</span> <span class="o">=</span> <span class="n">int_thresh</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thresh_evolve_prob</span> <span class="o">=</span> <span class="n">thresh_evolve_prob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manual_bin_init</span> <span class="o">=</span> <span class="n">manual_bin_init</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span> <span class="o">=</span> <span class="n">covariates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pop_clean</span> <span class="o">=</span> <span class="n">pop_clean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">report</span> <span class="o">=</span> <span class="n">report</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">random_seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_is_int</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :meta private:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_is_float</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :meta private:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_is_list</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :meta private:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+ 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_x_y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function to check if x and y input to fit are valid.</span>
+<span class="sd">        Functionality to support input as both just X as a dataframe</span>
+<span class="sd">        similar to lifelines package</span>
+<span class="sd">        x and y similar to scikit survival.</span>
+
+<span class="sd">        :meta private:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;x must be pandas dataframe&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">columns</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;x must have column labels as specified&quot;</span><span class="p">)</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;x must be pandas dataframe&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">columns</span><span class="p">)):</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">])</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">labels</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="c1"># Check if original_feature_matrix and y are numeric </span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> \
+                <span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;coerce&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">notnull</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;X must be fully numeric&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;label_name param must be a column in the dataset&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;duration_name param must be a column in the dataset&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">df</span>
+    
+
+<div class="viewcode-block" id="FIBERS.fit"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.fit">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scikit-learn required function for supervised training of FIBERS</span>
+
+<span class="sd">        :param x: array-like {n_samples, n_features} training instances.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE &gt;0 NUMERIC NOT NAN OR OTHER TYPE, and can include &#39;covariates&#39;</span>
+<span class="sd">                OR array-like dataframe {n_samples, n_features} training instances that can include &#39;covariates&#39;</span>
+<span class="sd">                and with column name as given by outcome_label and censor_label when y=None.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE &gt;0 NUMERIC NOT NAN OR OTHER TYPE </span>
+
+<span class="sd">        :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.</span>
+<span class="sd">                ALL INSTANCE OUTCOMES MUST BE NUMERIC NOT NAN OR OTHER TYPE</span>
+
+<span class="sd">        :return: self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="c1"># Record the start time</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span> <span class="c1"># Set random seed</span>
+
+        <span class="c1"># PREPARE DATA ---------------------------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_x_y</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bin_size</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_bin_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)</span>
+
+        <span class="c1"># Calculate residuals for covariate adjustment</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitness_metric</span> <span class="o">==</span> <span class="s2">&quot;residuals&quot;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitness_metric</span> <span class="o">==</span> <span class="s2">&quot;log_rank_residuals&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residuals</span> <span class="o">=</span> <span class="n">calculate_residuals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residuals</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># print(&quot;Beginning FIBERS Fit:&quot;)</span>
+        <span class="c1">#Initialize bin population</span>
+        <span class="n">threshold_evolving</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1">#Adaptive thresholding - evolving thresholds is off by default for bin initialization </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span> <span class="o">=</span> <span class="n">BIN_SET</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manual_bin_init</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">pop_size</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">min_bin_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bin_init_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">group_thresh</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">min_thresh</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">max_thresh</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">int_thresh</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_type</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">fitness_metric</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">log_rank_weighting</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">group_strata_min</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="n">threshold_evolving</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">,</span><span class="n">random</span><span class="p">)</span>
+        <span class="c1">#Global fitness update</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">global_fitness_update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="p">)</span> <span class="c1">#Exerimental</span>
+
+        <span class="c1"># Update feature tracking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">update_feature_tracking</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)</span>
+
+        <span class="c1"># Initialize training performance tracking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">performance_tracking</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Report initial population</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">report</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mi">0</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">report</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">report_pop</span><span class="p">()</span>
+
+        <span class="n">cycle_length</span> <span class="o">=</span> <span class="mi">9</span> <span class="c1">#Hard coded mutation occellation length (i.e. mutation climbs for 10 iterations then drops for 10 iterations)</span>
+        <span class="c1">#EVOLUTIONARY LEARNING ITERATIONS</span>
+        <span class="k">for</span> <span class="n">iteration</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="o">+</span> <span class="mi">1</span><span class="p">)):</span>
+            <span class="c1"># print(&#39;Iteration: &#39;+str(iteration))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_thresh</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">evolve</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresh_evolve_prob</span> <span class="o">&gt;</span> <span class="n">evolve</span><span class="p">:</span>
+                    <span class="n">threshold_evolving</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">threshold_evolving</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1">#Variable Mutation Rate</span>
+            <span class="n">mutation_prob</span> <span class="o">=</span>  <span class="p">(</span><span class="n">transform_value</span><span class="p">(</span><span class="n">iteration</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">cycle_length</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_mutation_prob</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">min_mutation_prob</span><span class="p">)</span><span class="o">/</span><span class="n">cycle_length</span><span class="p">)</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">min_mutation_prob</span>
+
+            <span class="c1"># GENETIC ALGORITHM </span>
+            <span class="n">target_offspring_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pop_size</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">new_gen</span><span class="p">)</span> <span class="c1">#Determine number of offspring to generate</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">offspring_pop</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">target_offspring_count</span><span class="p">:</span> <span class="c1">#Generate offspring until we hit the target number</span>
+                <span class="c1"># Parent Selection</span>
+                <span class="n">parent_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">select_parent_pair</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tournament_prop</span><span class="p">,</span><span class="n">random</span><span class="p">)</span>
+
+                <span class="c1"># Generate Offspring - clone, crossover, mutation, evaluation, add to population</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">generate_offspring</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crossover_prob</span><span class="p">,</span><span class="n">mutation_prob</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">merge_prob</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">,</span><span class="n">iteration</span><span class="p">,</span><span class="n">parent_list</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">,</span>
+                                            <span class="n">threshold_evolving</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">min_bin_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bin_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bin_init_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">min_thresh</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">max_thresh</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_type</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">fitness_metric</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">log_rank_weighting</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">int_thresh</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">group_thresh</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">group_strata_min</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">,</span><span class="n">random</span><span class="p">)</span>
+            <span class="c1"># Add Offspring to Population</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">add_offspring_into_pop</span><span class="p">(</span><span class="n">iteration</span><span class="p">)</span>
+
+            <span class="c1">#Global fitness update</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">global_fitness_update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="p">)</span> <span class="c1">#Exerimental</span>
+
+            <span class="c1">#Bin Deletion</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diversity_pressure</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">iteration</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">:</span> <span class="c1">#Last iteration</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">deterministic_bin_deletion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pop_size</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">probabilistic_bin_deletion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pop_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">elitism</span><span class="p">,</span><span class="n">random</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">similarity_bin_deletion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pop_size</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">diversity_pressure</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">elitism</span><span class="p">,</span><span class="n">random</span><span class="p">)</span>
+
+            <span class="c1"># Update feature tracking</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">update_feature_tracking</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)</span>
+            
+            <span class="c1"># Training performance tracking</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">performance_tracking</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span><span class="n">iteration</span><span class="p">)</span>
+
+            <span class="c1"># DEBUGGING FUNCTION - view the population at specified iterations during training</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">report</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">report</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ITERATION: &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">iteration</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">report_pop</span><span class="p">()</span>    
+
+        <span class="c1">#Optional bin population cleaning phase</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pop_clean</span> <span class="o">==</span> <span class="s1">&#39;group_strata&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">pop_clean_group_thresh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">group_strata_min</span><span class="p">)</span>
+
+
+        <span class="c1">#Output a final population report</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">report</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">report_pop</span><span class="p">()</span>
+
+        <span class="c1"># Time keeping</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">end_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Random Seed Check - End: &quot;</span><span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;FIBERS Run Complete!&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Elapsed Time (sec): &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">elapsed_time</span><span class="p">,</span> <span class="s2">&quot;seconds&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Memory Cleanup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.transform"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.transform">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">full_sums</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scikit-learn required function for Supervised training of FIBERS</span>
+
+<span class="sd">        :param x: array-like {n_samples, n_features} training instances.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE &gt;0 NUMERIC NOT NAN OR OTHER TYPE, and can include &#39;covariates&#39;</span>
+<span class="sd">                OR array-like dataframe {n_samples, n_features} training instances that can include &#39;covariates&#39;</span>
+<span class="sd">                and with column name as given by outcome_label and censor_label when y=None.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE &gt;0 NUMERIC NOT NAN OR OTHER TYPE </span>
+
+<span class="sd">        :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.</span>
+<span class="sd">                ALL INSTANCE OUTCOMES MUST BE NUMERIC NOT NAN OR OTHER TYPE</span>
+<span class="sd">        :return: Dataset transformed instances into bin-defined features (i.e. value sums of bin-specified features) as a pd.DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;FIBERS must be fit first&quot;</span><span class="p">)</span>
+
+        <span class="c1"># PREPARE DATA ---------------------------------------</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_x_y</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">(</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">)</span>
+
+        <span class="n">tdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+        <span class="c1">#Create transformed dataset</span>
+        <span class="n">bin_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="nb">bin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">:</span> <span class="c1">#for each bin in the population - apply it to creating a bin &#39;feature&#39; in the dataset for each instance</span>
+            <span class="c1"># Sum instance values across features specified in the bin</span>
+            <span class="n">feature_sums</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="nb">bin</span><span class="o">.</span><span class="n">feature_list</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">tdf</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_count</span><span class="p">)]</span> <span class="o">=</span> <span class="n">feature_sums</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">full_sums</span><span class="p">:</span>
+                <span class="n">tdf</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_count</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tdf</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_count</span><span class="p">)]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="nb">bin</span><span class="o">.</span><span class="n">group_threshold</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">bin_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">tdf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tdf</span><span class="p">,</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">],</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">tdf</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.predict"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.predict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">bin_number</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function to predict strata on the basis of top OR bin.</span>
+
+<span class="sd">        :param x: array-like {n_samples, n_features} training instances.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE &gt;0 NUMERIC NOT NAN OR OTHER TYPE, and can include &#39;covariates&#39;</span>
+<span class="sd">                OR array-like dataframe {n_samples, n_features} training instances that can include &#39;covariates&#39;</span>
+<span class="sd">                and with column name as given by outcome_label and censor_label when y=None.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE &gt;0 NUMERIC NOT NAN OR OTHER TYPE </span>
+
+<span class="sd">        :param bin_number: the top nth bin (0 is bin with highest fitness) to consider as the predictor, </span>
+<span class="sd">                or if [None] uses a bin-population weighted voting scheme as the predictor</span>
+
+<span class="sd">        :return: y: prediction of group (0 or 1), e.g. strata group --&gt; low vs. high</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;FIBERS must be trained first&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_is_int</span><span class="p">(</span><span class="n">bin_number</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">bin_number</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&#39;random_seed&#39; param must be an int&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># PREPARE DATA ---------------------------------------</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_x_y</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        
+        <span class="c1"># Make Predition</span>
+        <span class="k">if</span> <span class="n">bin_number</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span> <span class="c1">#Make prediction with single selected bin</span>
+            <span class="c1"># Sum instance values across features specified in the bin</span>
+            <span class="n">feature_sums</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_number</span><span class="p">]</span><span class="o">.</span><span class="n">feature_list</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">prediction_list</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_number</span><span class="p">]</span><span class="o">.</span><span class="n">feature_list</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_number</span><span class="p">]</span><span class="o">.</span><span class="n">group_threshold</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">prediction_list</span><span class="p">)</span> 
+        
+        <span class="k">else</span><span class="p">:</span> <span class="c1">#Make prediction using entire bin population (weighted voting scheme)</span>
+            <span class="n">temp_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="n">bin_count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="nb">bin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">:</span> <span class="c1">#for each bin in the population </span>
+                <span class="c1"># Sum instance values across features specified in the bin</span>
+                <span class="n">feature_sums</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="nb">bin</span><span class="o">.</span><span class="n">feature_list</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">temp_df</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_count</span><span class="p">)]</span> <span class="o">=</span> <span class="n">feature_sums</span>
+                <span class="n">bin_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># Count</span>
+            <span class="n">bt_vote</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">temp_df</span><span class="p">)</span> <span class="c1">#votesum stored for each instance</span>
+            <span class="n">at_vote</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">temp_df</span><span class="p">)</span> <span class="c1">#votesum stored for each instance</span>
+
+            <span class="c1"># Iterate through each row of the DataFrame</span>
+            <span class="n">row_count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">temp_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                <span class="n">bin_count</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="c1"># Iterate through each value in the row</span>
+                <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_count</span><span class="p">]</span><span class="o">.</span><span class="n">group_threshold</span><span class="p">:</span>
+                        <span class="n">bt_vote</span><span class="p">[</span><span class="n">row_count</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_count</span><span class="p">]</span><span class="o">.</span><span class="n">pre_fitness</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">at_vote</span><span class="p">[</span><span class="n">row_count</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_count</span><span class="p">]</span><span class="o">.</span><span class="n">pre_fitness</span>
+                    <span class="n">bin_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">row_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># Convert votes into predictions</span>
+            <span class="n">prediction_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">bt_vote</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">bt_vote</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">at_vote</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                    <span class="n">prediction_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">prediction_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">temp_df</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">prediction_list</span><span class="p">)</span> </div>
+
+
+<div class="viewcode-block" id="FIBERS.performance_tracking"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.performance_tracking">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">performance_tracking</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">initialize</span><span class="p">,</span><span class="n">iteration</span><span class="p">):</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span>
+
+        <span class="n">top_bin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">initialize</span><span class="p">:</span>
+            <span class="n">col_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Iteration&#39;</span><span class="p">,</span><span class="s1">&#39;Top Bin&#39;</span><span class="p">,</span> <span class="s1">&#39;Threshold&#39;</span><span class="p">,</span> <span class="s1">&#39;Fitness&#39;</span><span class="p">,</span> <span class="s1">&#39;Pre-Fitness&#39;</span><span class="p">,</span> <span class="s1">&#39;Log-Rank Score&#39;</span><span class="p">,</span> <span class="s1">&#39;Log-Rank p-value&#39;</span><span class="p">,</span> <span class="s1">&#39;Bin Size&#39;</span><span class="p">,</span> <span class="s1">&#39;Group Ratio&#39;</span><span class="p">,</span> <span class="s1">&#39;Count At/Below Threshold&#39;</span><span class="p">,</span> 
+                        <span class="s1">&#39;Count Below Threshold&#39;</span><span class="p">,</span><span class="s1">&#39;Birth Iteration&#39;</span><span class="p">,</span><span class="s1">&#39;Residuals Score&#39;</span><span class="p">,</span><span class="s1">&#39;Residuals p-value&#39;</span><span class="p">,</span><span class="s1">&#39;Elapsed Time&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">perform_track_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">col_list</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">col_list</span><span class="p">)</span>
+
+        <span class="n">tracking_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">iteration</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">feature_list</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">group_threshold</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">fitness</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">pre_fitness</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">log_rank_score</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">log_rank_p_value</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">bin_size</span><span class="p">,</span>
+                        <span class="n">top_bin</span><span class="o">.</span><span class="n">group_strata_prop</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">count_bt</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">count_at</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">birth_iteration</span><span class="p">,</span><span class="n">top_bin</span><span class="o">.</span><span class="n">residuals_score</span><span class="p">,</span>
+                        <span class="n">top_bin</span><span class="o">.</span><span class="n">residuals_p_value</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">elapsed_time</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">tracking_values</span><span class="p">)</span>
+        <span class="c1"># Add the row to the DataFrame</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perform_track_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">perform_track_df</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tracking_values</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_performance_tracking"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_performance_tracking">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_performance_tracking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">perform_track_df</span></div>
+    
+
+<div class="viewcode-block" id="FIBERS.get_top_bins"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_top_bins">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_top_bins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">get_all_top_bins</span><span class="p">()</span></div>
+    
+
+<div class="viewcode-block" id="FIBERS.report_ties"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.report_ties">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">report_ties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">top_bin_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_top_bins</span><span class="p">()</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">top_bin_list</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">top_bin_list</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot; bins were tied for best fitness&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="nb">bin</span> <span class="ow">in</span> <span class="n">top_bin_list</span><span class="p">:</span>
+                <span class="c1">#print(&quot;Features in Bin: &quot;+str(bin.feature_list))</span>
+                <span class="n">report</span> <span class="o">=</span> <span class="nb">bin</span><span class="o">.</span><span class="n">bin_short_report</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Only one top performing bin found&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_bin_groups"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_bin_groups">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bin_index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function for FIBERS that returns the variables needed to construct survival curves for the two instance </span>
+<span class="sd">        groups defined by a given bin (low_outcome, high_outcome, low_censor, high_censor)</span>
+
+<span class="sd">        :param x: array-like {n_samples, n_features} training instances.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE &gt;0 NUMERIC NOT NAN OR OTHER TYPE, and can include &#39;covariates&#39;</span>
+<span class="sd">                OR array-like dataframe {n_samples, n_features} training instances that can include &#39;covariates&#39;</span>
+<span class="sd">                and with column name as given by outcome_label and censor_label when y=None.</span>
+<span class="sd">                ALL INSTANCE ATTRIBUTES MUST BE &gt;0 NUMERIC NOT NAN OR OTHER TYPE </span>
+
+<span class="sd">        :param y: None or list of list/tuples with (censoring, duration) {n_samples, 2} labels.</span>
+<span class="sd">                ALL INSTANCE OUTCOMES MUST BE NUMERIC NOT NAN OR OTHER TYPE</span>
+
+<span class="sd">        :param bin_index: population index of the bin to return group information for</span>
+
+<span class="sd">        :return: low_outcome, high_outcome, low_censor, and high_censor</span>
+<span class="sd">        &quot;&quot;&quot;</span>   
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;FIBERS must be fit first&quot;</span><span class="p">)</span>
+
+        <span class="c1"># PREPARE DATA ---------------------------------------</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_x_y</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">(</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">)</span>
+
+        <span class="c1"># Sum instance values across features specified in the bin</span>
+        <span class="n">feature_sums</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">feature_list</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">):</span><span class="n">feature_sums</span><span class="p">})</span>
+
+        <span class="c1"># Create evaluation dataframe including bin sum feature with </span>
+        <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bin_df</span><span class="p">,</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">],</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">low_df</span> <span class="o">=</span> <span class="n">bin_df</span><span class="p">[</span><span class="n">bin_df</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">)]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">group_threshold</span><span class="p">]</span>
+        <span class="n">high_df</span> <span class="o">=</span> <span class="n">bin_df</span><span class="p">[</span><span class="n">bin_df</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">)]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">group_threshold</span><span class="p">]</span>
+
+        <span class="n">low_outcome</span> <span class="o">=</span> <span class="n">low_df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+        <span class="n">high_outcome</span> <span class="o">=</span> <span class="n">high_df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+        <span class="n">low_censor</span> <span class="o">=</span> <span class="n">low_df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+        <span class="n">high_censor</span> <span class="o">=</span><span class="n">high_df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">low_outcome</span><span class="p">,</span> <span class="n">high_outcome</span><span class="p">,</span> <span class="n">low_censor</span><span class="p">,</span> <span class="n">high_censor</span></div>
+    
+
+<div class="viewcode-block" id="FIBERS.get_cox_prop_hazard_unadjust"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_cox_prop_hazard_unadjust">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_cox_prop_hazard_unadjust</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bin_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">use_bin_sums</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;FIBERS must be fit first&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># PREPARE DATA ---------------------------------------</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_x_y</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">(</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">)</span>
+
+        <span class="c1"># Sum instance values across features specified in the bin</span>
+        <span class="n">feature_sums</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">feature_list</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">):</span><span class="n">feature_sums</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">use_bin_sums</span><span class="p">:</span>
+            <span class="c1"># Transform bin feature values according to respective bin threshold</span>
+            <span class="n">bin_df</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">)]</span> <span class="o">=</span> <span class="n">bin_df</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">)]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">group_threshold</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bin_df</span><span class="p">,</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">],</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="n">cox_prop_hazard</span><span class="p">(</span><span class="n">bin_df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="n">show_progress</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">HR</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef)&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">HR_CI</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef) lower 95%&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef) upper 95%&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">HR_p_value</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">HR</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">HR_CI</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">HR_p_value</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">summary</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_cox_prop_hazard_adjusted"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_cox_prop_hazard_adjusted">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_cox_prop_hazard_adjusted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bin_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">use_bin_sums</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">new_covariates</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;FIBERS must be fit first&quot;</span><span class="p">)</span>
+
+        <span class="c1"># PREPARE DATA ---------------------------------------</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_x_y</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">new_covariates</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">used_covariates</span> <span class="o">=</span> <span class="n">new_covariates</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">used_covariates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span>
+
+        <span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">(</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="n">used_covariates</span><span class="p">)</span>
+
+        <span class="c1"># Sum instance values across features specified in the bin</span>
+        <span class="n">feature_sums</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">feature_list</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">):</span><span class="n">feature_sums</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">use_bin_sums</span><span class="p">:</span>
+            <span class="c1"># Transform bin feature values according to respective bin threshold</span>
+            <span class="n">bin_df</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">)]</span> <span class="o">=</span> <span class="n">bin_df</span><span class="p">[</span><span class="s1">&#39;Bin_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">bin_index</span><span class="p">)]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">group_threshold</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bin_df</span><span class="p">,</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">],</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bin_df</span><span class="p">,</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">used_covariates</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="n">cox_prop_hazard</span><span class="p">(</span><span class="n">bin_df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="n">show_progress</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">adj_HR</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef)&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">adj_HR_CI</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef) lower 95%&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef) upper 95%&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">adj_HR_p_value</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">adj_HR</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">adj_HR_CI</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">adj_HR_p_value</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">summary</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.calculate_cox_prop_hazards"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.calculate_cox_prop_hazards">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_cox_prop_hazards</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_bin_sums</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasTrained</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;FIBERS must be fit first&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># PREPARE DATA ---------------------------------------</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_x_y</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">(</span><span class="n">df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">)</span>
+        <span class="n">bin_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="nb">bin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">:</span> <span class="c1">#For each bin in population</span>
+
+            <span class="c1"># Sum instance values across features specified in the bin</span>
+            <span class="n">feature_sums</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">][</span><span class="nb">bin</span><span class="o">.</span><span class="n">feature_list</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;Bin&#39;</span><span class="p">:</span><span class="n">feature_sums</span><span class="p">})</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">use_bin_sums</span><span class="p">:</span>
+                <span class="c1"># Transform bin feature values according to respective bin threshold</span>
+                <span class="n">bin_df</span><span class="p">[</span><span class="s1">&#39;Bin&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bin_df</span><span class="p">[</span><span class="s1">&#39;Bin&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="nb">bin</span><span class="o">.</span><span class="n">group_threshold</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Create evaluation dataframe including bin sum feature, outcome, and censoring alone</span>
+            <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bin_df</span><span class="p">,</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">],</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">summary</span> <span class="o">=</span> <span class="n">cox_prop_hazard</span><span class="p">(</span><span class="n">bin_df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">)</span>
+                <span class="nb">bin</span><span class="o">.</span><span class="n">HR</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef)&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="nb">bin</span><span class="o">.</span><span class="n">HR_CI</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef) lower 95%&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef) upper 95%&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="nb">bin</span><span class="o">.</span><span class="n">HR_p_value</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">bin</span><span class="o">.</span><span class="n">HR</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="nb">bin</span><span class="o">.</span><span class="n">HR_CI</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="nb">bin</span><span class="o">.</span><span class="n">HR_p_value</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># Create evaluation dataframe including bin sum feature with covariates</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariates</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>                 
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">bin_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bin_df</span><span class="p">,</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">summary</span> <span class="o">=</span> <span class="n">cox_prop_hazard</span><span class="p">(</span><span class="n">bin_df</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="p">)</span>
+                    <span class="nb">bin</span><span class="o">.</span><span class="n">adj_HR</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef)&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="nb">bin</span><span class="o">.</span><span class="n">adj_HR_CI</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef) lower 95%&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;exp(coef) upper 95%&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="nb">bin</span><span class="o">.</span><span class="n">adj_HR_p_value</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;p&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="nb">bin</span><span class="o">.</span><span class="n">adj_HR</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="nb">bin</span><span class="o">.</span><span class="n">adj_HR_CI</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="nb">bin</span><span class="o">.</span><span class="n">adj_HR_p_value</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># print(&#39;Evaluating Bin &#39;+str(bin_index))</span>
+            <span class="n">bin_index</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">bin_df</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="FIBERS.get_bin_report"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_bin_report">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_index</span><span class="p">):</span>
+        <span class="c1"># Generates a bin summary report as a transposed dataframe</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">[</span><span class="n">bin_index</span><span class="p">]</span><span class="o">.</span><span class="n">bin_report</span><span class="p">()</span><span class="o">.</span><span class="n">T</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_feature_tracking"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_feature_tracking">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_feature_tracking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">feature_tracking</span></div>
+    
+
+<div class="viewcode-block" id="FIBERS.get_pop"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_pop">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_pop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">sort_feature_lists</span><span class="p">()</span>
+        <span class="n">pop_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="nb">vars</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span> <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">pop_df</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_pareto_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_pareto_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_pareto_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_pareto</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_feature_tracking_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_feature_tracking_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_feature_tracking_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">max_features</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">feature_names</span><span class="p">,</span> <span class="n">feature_tracking</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_feature_tracking</span><span class="p">()</span>
+        <span class="n">plot_feature_tracking</span><span class="p">(</span><span class="n">feature_names</span><span class="p">,</span><span class="n">feature_tracking</span><span class="p">,</span><span class="n">max_features</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_kaplan_meir"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_kaplan_meir">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_kaplan_meir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">bin_index</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">low_outcome</span><span class="p">,</span> <span class="n">high_outcome</span><span class="p">,</span> <span class="n">low_censor</span><span class="p">,</span> <span class="n">high_censor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bin_groups</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bin_index</span><span class="p">)</span>
+        <span class="n">plot_kaplan_meir</span><span class="p">(</span><span class="n">low_outcome</span><span class="p">,</span><span class="n">low_censor</span><span class="p">,</span><span class="n">high_outcome</span><span class="p">,</span> <span class="n">high_censor</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_fitness_progress_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_fitness_progress_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_fitness_progress_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_fitness_progress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">perform_track_df</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_threshold_progress_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_threshold_progress_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_threshold_progress_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_threshold_progress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">perform_track_df</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_perform_progress_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_perform_progress_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_perform_progress_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_perform_progress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">perform_track_df</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_misc_progress_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_misc_progress_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_misc_progress_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_misc_progress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">perform_track_df</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_residuals_histogram"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_residuals_histogram">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_residuals_histogram</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_residuals_histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_log_rank_residuals_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_log_rank_residuals_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_log_rank_residuals_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_log_rank_residuals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_adj_HR_residuals_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_adj_HR_residuals_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_adj_HR_residuals_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_adj_HR_residuals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FIBERS.get_log_rank_adj_HR_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_log_rank_adj_HR_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_log_rank_adj_HR_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_log_rank_adj_HR</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FIBERS.get_adj_HR_metric_product_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_adj_HR_metric_product_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_adj_HR_metric_product_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_adj_HR_metric_product</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="o">.</span><span class="n">bin_pop</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FIBERS.get_bin_population_heatmap_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_bin_population_heatmap_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_population_heatmap_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filtering</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_bin_population_heatmap</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_pop</span><span class="p">()[</span><span class="s1">&#39;feature_list&#39;</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">,</span> <span class="n">filtering</span><span class="o">=</span><span class="n">filtering</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FIBERS.get_custom_bin_population_heatmap_plot"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.get_custom_bin_population_heatmap_plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_custom_bin_population_heatmap_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">group_names</span><span class="p">,</span><span class="n">legend_group_info</span><span class="p">,</span><span class="n">colors</span><span class="p">,</span><span class="n">max_bins</span><span class="p">,</span><span class="n">max_features</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">plot_custom_bin_population_heatmap</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_pop</span><span class="p">()[</span><span class="s1">&#39;feature_list&#39;</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">,</span> <span class="n">group_names</span><span class="p">,</span><span class="n">legend_group_info</span><span class="p">,</span><span class="n">colors</span><span class="p">,</span><span class="n">max_bins</span><span class="p">,</span><span class="n">max_features</span><span class="p">,</span><span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span><span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span><span class="n">output_folder</span><span class="o">=</span><span class="n">output_folder</span><span class="p">,</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FIBERS.save_run_params"><a class="viewcode-back" href="../../skfibers.html#skfibers.fibers.FIBERS.save_run_params">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_run_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;outcome_label: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_label</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;outcome_type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">outcome_type</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;iterations: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pop_size: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pop_size</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;tournament_prop: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tournament_prop</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;crossover_prob: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">crossover_prob</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;min_mutation_prob: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">min_mutation_prob</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;max_mutation_prob: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_mutation_prob</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;merge_prob: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">merge_prob</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;new_gen: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">new_gen</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;elitism: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">elitism</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;diversity_pressure: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">diversity_pressure</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;min_bin_size: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">min_bin_size</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;max_bin_size: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bin_size</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;max_bin_init_size: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bin_init_size</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;fitness_metric: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">fitness_metric</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;log_rank_weighting: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">log_rank_weighting</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;censor_label: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">censor_label</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;group_strata_min: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group_strata_min</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;penalty: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">penalty</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;group_thresh: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group_thresh</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;min_thresh: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">min_thresh</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;max_thresh: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_thresh</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;int_thresh: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">int_thresh</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;thresh_evolve_prob: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">thresh_evolve_prob</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;manual_bin_init: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">manual_bin_init</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;covariates: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">covariates</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pop_clean: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pop_clean</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;report: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">report</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;random_seed: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;verbose: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Ryan Urbanowicz, Harsh Bandhey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
