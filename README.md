@@ -1,3 +1,8 @@
+Package information: ![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)
+![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg) ![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg) ![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
+![License](https://img.shields.io/badge/MIT-blue)
+[![PyPI version](https://img.shields.io/pypi/v/scikit-fibers.svg)](https://pypi.org/project/scikit-fibers/)
+
 ![alttext](https://github.com/UrbsLab/scikit-FIBERS/blob/main/docs/source/pictures/FIBERS_Logo.png?raw=true)
 # scikit-FIBERS
 

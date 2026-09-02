@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scikit-fibers"
+version = "2.1.2"
+description = "scikit-FIBERS (Feature Inclusion Bin Evolver for Risk Stratification) is a scikit-learn compatible machine learning algorithm for modeling or feature learning in survival analyses where feature 'burden' may be predictive of risk strata."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE" }
+keywords = ["machine learning","modeling", "feature learning", "survival data","scikit-learn", "interpretable", "covariates", "censoring", "supervised learning", "evolutionary computation"]
+authors = [{name = "Ryan Urbanowicz", email = "ryanurbanowicz@gmail.com"}]
+
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent" 
+]
+
+dependencies = [
+"numpy",
+"pandas",
+"scikit-learn",
+"matplotlib",
+"seaborn",
+"scipy",
+"paretoset",
+"lifelines",
+"tqdm"]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=7.0",
+  "pytest-cov",
+  "pytest-mock",
+  "flake8",
+  "mypy",
+]
+
+[project.urls]
+"Source Code" = "https://github.com/UrbsLab/scikit-FIBERS"
+
+#[tool.setuptools]
+#package-dir = {"" = "src"}
+#packages = ["skfibers"]      # Explicitly includes your package
+
+[tool.setuptools.packages.find]
+where = ["src"]
+#include = ["scikit-FIBERS*"]
+#exclude = ["tests*"]
