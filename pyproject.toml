@@ -32,7 +32,7 @@ dependencies = [
 "seaborn",
 "scipy",
 "paretoset",
-"lifelines
+"lifelines",
 "tqdm"]
 
 [project.optional-dependencies]
