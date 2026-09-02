@@ -7,7 +7,7 @@ setuptools.setup(
     name="scikit-fibers",
     version="2.1.1",
     author="Harsh Bandhey, Ryan Urbanowicz",
-    author_email="harsh.bandhey@cshs.org",
+    author_email="ryan.urbanowicz@cshs.org",
     description="A Scikit Learn compatible implementation of FIBERS Algorithm",
     long_description=long_description,
     long_description_content_type="text/markdown",
