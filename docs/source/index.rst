@@ -1,59 +1,45 @@
 scikit-FIBERS
 ======================================
 
-Scikit-compatible Feature Inclusion Bin Evolver for Risk Stratification (scikit-FIBERS) is an evolutionary algorithm for automatically 
-binning features to stratify risk in right-censored survival data. In particular it was designed for features 
-that correspond to mismatches between donor and recipients for transplantation. This repository focuses on a 
-scikit-learn compatible implementation and ongoing improvement/expansion of the of the original 
-`(FIBERS) <https://doi.org/10.1016/j.jbi.2023.104374>`_ algorithm. 
-Further development of the FIBERS algorithm will take place via this repository. 
-The schematic below outlines how this algorithm works.
+.. image:: pictures/FIBERS_Logo.png
+
+Overview
+--------------------------------------
+FIBERS (Feature Inclusion Bin Evolver for Risk Stratification) is an evolutionary machine learning algorithm designed for modeling and/or feature learning in survival data where the 'burden' (i.e. sum) of specific feature values in the dataset may be predictive of a time-to-event outcome (e.g. the burden of specific HLA amino-acid mismatches, between kidney donor and recipient pairs, being predictive of kidney graft failure time). FIBERS can be applied to survival datasets (1) with or without right-censoring, and (2) with or without target covariate features that need to be adjusted for. This implementation is scikit-learn compatible, thus we largely refer to it as scikit-FIBERS.
+
+scikit-FIBERS can be used directly as a 'modeling strategy', by training a bin population and using the predict() function to apply the discovered bin with the highest fitness as a predictive model of risk group assigment. It can also be used as a 'feature learning algorithm', by training a bin population and using the transform() function to convert each discovered bin in the population into corresponding dataset features for additional downstream machine learning modeling. 
+
+The scikit-FIBERS algorithm seeks to automatically identify and optimize a population of 'candidate bins' that maximize time-to-event differences between high and low risk groups. A 'bin' is a subset of features and an associated 'burden threshold' that together differentiate instances into high vs. low risk instance groups. Instances that have a bin sum (of feature values) greater than the threshold are assigend to the high-risk group, and all others to the low-risk group. The fitness (i.e. quality) of bins in the candidate bin population drives evolutionary algorithm learning. 
+
+A schematic detailing how the scikit-FIBERS algorithm works is given below:
 
 .. image:: pictures/FIBERS2.0_paper_vertical_color.png
 
-Installation
------------------------------
+scikit-FIBERS currently offers three fitness function options: (1) 'log-rank fitness', for data without covariates, seeks to maximize the separation between high and low-risk survival curves (2) 'residuals fitness', for data with covariates, seeks to maximize the difference between deviance residuals between high and low-risk instance groups, and (3) 'product fitness', for data with covariates, calculates both log-rank and residuals metrics and assignes fitness as the product of both scores. 
 
-We can easily install scikit-fibers using the following command:
+Demonstration Jupyter Notebooks
+--------------------------------------
 
-.. code-block:: bash
+Two Jupyter Notebooks have been included to demonstrate how scikit-FIBERS (and it's functions) can be applied to data with or without covariates. These demonstrations utilize two survival data simulators that are also included in the scikit-FIBERS repository (i.e. SIM1 and SIM2, for simulating right-censored survival data without or with covariates, respectively). 
+* `FIBERS_Survival_Demo_SIM1 (no covariates)<https://github.com/UrbsLab/scikit-FIBERS/blob/main/FIBERS_Survival_Demo_SIM1.ipynb>`_
+* `FIBERS_Survival_Demo_SIM2 (with covariates)<https://github.com/UrbsLab/scikit-FIBERS/blob/main/FIBERS_Survival_Demo_SIM2.ipynb>`_`
 
-    pip install scikit-fibers
-
-
-How to Use:
------------------------------
-An `Example Notebook <FIBERS_Survival_Demo.ipynb>`_ is given with sample code that shows what functions are available
-in scikit-FIBERS and how to use them by utilizing a built in survival data simulator. This notebook is currently set up to run by downloading this repository and running the included notebook, however you can also set up scikit-fibers to be installed and applied using pip install (above).
-
-Read About and Cite FIBERS and scikit-FIBERS
------------------------------------------------
-FIBERS was originally based on the `RARE <https://github.com/UrbsLab/RARE>`_ algorithm, an evolutionary algorithm for rare variant binning.
-
-Dasariraju, S. and Urbanowicz, R.J., 2021, July. `RARE: evolutionary feature engineering for rare-variant bin discovery. <https://dl.acm.org/doi/abs/10.1145/3449726.3463174?casa_token=0MRY0eLfZW0AAAAA:PD75rM0SB_V37prY2Ey1CPCu5twUrWMoPn5C6tD9sBRuQy5TJ_TeqhzWwmvp41gbrsPtQerZpPI56A>`_ In Proceedings of the Genetic and Evolutionary Computation Conference Companion (pp. 1335-1343).
-
-The first implementation of `FIBERS <https://github.com/UrbsLab/FIBERS>` was developed within it's own GitHub repository, and was applied to an investigation of graft failure in kidney transplantation. 
-
-Dasariraju, S., Gragert, L., Wager, G.L., McCullough, K., Brown, N.K., Kamoun, M. and Urbanowicz, R.J., 2023. `HLA amino acid Mismatch-Based risk stratification of kidney allograft failure using a novel Machine learning algorithm. <https://www.sciencedirect.com/science/article/pii/S1532046423000953?casa_token=HP4rI5N9iFkAAAAA:-NgwMAlLUWlvLzzBHU9qz08mv-evC19YxIsFH5RTiGpSiXEd-uBuOkfZbuBShTwstT50vDnIsrM>`_ Journal of Biomedical Informatics, 142, p.104374.
-
-The first publication detailing scikit-FIBERS (release 0.9.3) was applied and evaluated on simulated right-censored survival data with amino acid mismatch features.
-
-Urbanowicz, R., Bandhey, H., Kamoun, M., Fogarty, N. and Hsieh, Y.A., 2023, July. `Scikit-FIBERS: An'OR'-Rule Discovery Evolutionary Algorithm for Risk Stratification in Right-Censored Survival Analyses. <https://dl.acm.org/doi/abs/10.1145/3583133.3596393?casa_token=jZEPXXznvuUAAAAA:IdV4u-Q07p8_AEfvnTtLpBJePZzmdR2DsImvtpN0z2mge0tgLwqutEF18q74afpj9pOnQ8OnlxPKjw>`_ In Proceedings of the Companion Conference on Genetic and Evolutionary Computation (pp. 1846-1854).
-
-FIBERS was extended with a prototype `adaptive burden thresholding <https://github.com/UrbsLab/scikit-FIBERS/tree/evostar_24>`_ approach to allow bins to simulaneously identify the best bin threshold to apply.
-
-Bandhey, H., Sadek, S., Kamoun, M. and Urbanowicz, R., 2024, March. `Evolutionary Feature-Binning with Adaptive Burden Thresholding for Biomedical Risk Stratification. <https://link.springer.com/chapter/10.1007/978-3-031-56855-8_14>`_ In International Conference on the Applications of Evolutionary Computation (Part of EvoStar) (pp. 225-239). Cham: Springer Nature Switzerland.
-
-Most recently FIBERS 2.0 was released, as a completely redesigned, refactored and expanded implementation. Expansions include (1) a merge operator, (2) variable mutation rate, (3) improved adaptive burden thresholding, (4) a bin diversity pressure mechanism, (5) a fitness option based on deviance residuals to estimate covariate adjustments throught algorithm training, and (6) a bin population cleanup option. This paper is currently submitted (under review).
-
-Urbanowicz, R., Bandhey, H., McCullough, K., Chang, A., Gragert, L., Brown, N., Kamoun, M., 2024, April. FIBERS 2.0: Evolutionary Feature Binning For Biomedical Risk Stratification in Right-Censored Survival Analyses With Covariates.
-
+These notebooks are currently set up to run by downloading this repository and running the respective notebook. 
 
 
 Documentation for FIBERS Class:
 --------------------------------
 
 Extensive code documentation about the scikit-FIBERS API can be found `here <skfibers.html#module-skfibers.fibers>`_.
+
+
+Acknowledgements:
+--------------------------------
+The development of FIBERS benefited from feedback across multiple biomedical research collaborators at the University of Pennsylvania, Tulane University, and the Arbor Research Collaborative for Health. 
+
+The bulk of the coding for the current version of FIBERS was completed by Ryan Urbanowicz and Harsh Bandhey, with credit to Satvik Dasariraju for his implementation of the original FIBERS 1.0 algorithm. Other algorithm/coding contributions have also made by Nolan Fogarty, Yi-An Hsieh, Sphia Sadek, Brian Ling, Gabe Lipschutz-Villa, and Praneel Vashney.
+
+Funding supporting this work comes from NIH grant: R01 AI173095
 
 Contact
 -------------------------------
@@ -68,6 +54,11 @@ inquiries related to scikit-FIBERS.
 
 
    self
+   install
+   data
+   running
+   parameters
+   history
    citation
    modules
 

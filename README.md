@@ -28,6 +28,8 @@ A schematic detailing how the scikit-FIBERS algorithm works is given below:
 
 scikit-FIBERS currently offers three fitness function options: (1) 'log-rank fitness', for data without covariates, seeks to maximize the separation between high and low-risk survival curves (2) 'residuals fitness', for data with covariates, seeks to maximize the difference between deviance residuals between high and low-risk instance groups, and (3) 'product fitness', for data with covariates, calculates both log-rank and residuals metrics and assignes fitness as the product of both scores. 
 
+Further documentation of scikit-FIBERS can be found [HERE](https://urbslab.github.io/scikit-FIBERS/).
+
 ***
 <a id="item-two"></a>
 ## Installation
@@ -64,7 +66,7 @@ Two Jupyter Notebooks have been included to demonstrate how scikit-FIBERS (and i
 * [FIBERS_Survival_Demo_SIM1 (no covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/main/FIBERS_Survival_Demo_SIM1.ipynb)
 * [FIBERS_Survival_Demo_SIM2 (with covariates)](https://github.com/UrbsLab/scikit-FIBERS/blob/main/FIBERS_Survival_Demo_SIM2.ipynb)
 
-These notebooks are currently set up to run by downloading this repository and running the included notebook. 
+These notebooks are currently set up to run by downloading this repository and running the respective notebook. 
 
 ### Basic Run Command Walk-Through
 #### Training
