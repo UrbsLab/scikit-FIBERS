@@ -143,8 +143,8 @@ class BIN:
                     p_value = None
 
             if fitness_metric == 'residuals' or fitness_metric == 'log_rank_residuals': # In addition to log_rank, calculate residuals differences between groups
-                low_residuals_df = residuals.loc[bin_df['feature_sum'] <= threshold] #Does the threshold work the same way since these are residual? Transformed?
-                high_residuals_df = residuals.loc[bin_df['feature_sum'] > threshold] # or is the residuals data the same and only the duration changed?
+                low_residuals_df = residuals.loc[bin_df['feature_sum'] <= threshold] 
+                high_residuals_df = residuals.loc[bin_df['feature_sum'] > threshold] 
                 low_residuals_df = low_residuals_df["deviance"]
                 high_residuals_df = high_residuals_df["deviance"]
                 count_bt = len(low_residuals_df)

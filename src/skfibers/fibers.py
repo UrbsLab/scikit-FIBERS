@@ -480,12 +480,6 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # PREPARE DATA ---------------------------------------
         y = None
         df = self.check_x_y(x, y)
-        #if self.covariates:
-        #    try:
-        #        for covariate in self.covariates:
-        #            feature_df = feature_df.drop(columns=covariate)
-        #    except:
-        #        pass
         
         # Make Predition
         if bin_number != None: #Make prediction with single selected bin
@@ -536,7 +530,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def performance_tracking(self,initialize,iteration):
         current_time = time.time()
         self.elapsed_time = current_time - self.start_time
-        #self.set.bin_pop = sorted(self.set.bin_pop, key=lambda x: x.fitness,reverse=True)
+
         top_bin = self.set.bin_pop[0]
         if initialize:
             col_list = ['Iteration','Top Bin', 'Threshold', 'Fitness', 'Pre-Fitness', 'Log-Rank Score', 'Log-Rank p-value', 'Bin Size', 'Group Ratio', 'Count At/Below Threshold', 
@@ -599,7 +593,6 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
         df,self.feature_names = prepare_data(df,self.outcome_label,self.censor_label,self.covariates)
-        # print(df.shape)
 
         # Sum instance values across features specified in the bin
         feature_sums = df.loc[:,self.feature_names][self.set.bin_pop[bin_index].feature_list].sum(axis=1)

@@ -9,16 +9,6 @@ def prepare_data(df, outcome_label, censor_label, covariates):
     else:
         exclude = [outcome_label,censor_label]
     feature_names = [item for item in feature_names if item not in exclude]
-
-    # Remove invariant feature columns (data cleaning) - removed from code base to allow for testing evaluations with invariant columns.  Data should be filtered of invariant features before applying FIBERS
-    #cols_to_drop = []
-    #for col in feature_names:
-    #    if len(df[col].unique()) == 1:
-    #        cols_to_drop.append(col)
-    #df.drop(columns=cols_to_drop, inplace=True)
-    #feature_names = [item for item in feature_names if item not in cols_to_drop]
-    #print("Dropped "+str(len(cols_to_drop))+" invariant feature columns.")
-
     return df, feature_names
 
 
