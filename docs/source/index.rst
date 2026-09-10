@@ -13,7 +13,7 @@ The scikit-FIBERS algorithm seeks to automatically identify and optimize a popul
 
 A schematic detailing how the scikit-FIBERS algorithm works is given below:
 
-.. image:: pictures/FIBERS2.0_paper_vertical_color.png
+.. image:: pictures/FIBERS2.0_paper_vertical_color_white_back.png
 
 scikit-FIBERS currently offers three fitness function options: (1) 'log-rank fitness', for data without covariates, seeks to maximize the separation between high and low-risk survival curves (2) 'residuals fitness', for data with covariates, seeks to maximize the difference between deviance residuals between high and low-risk instance groups, and (3) 'product fitness', for data with covariates, calculates both log-rank and residuals metrics and assignes fitness as the product of both scores. 
 
