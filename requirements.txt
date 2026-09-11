@@ -7,5 +7,8 @@ pytest
 setuptools
 tqdm
 seaborn
-paretoset
+paretoset==1.2.5
+# macOS CPython 3.12 wheels; keep Numba and llvmlite on a tested compatible pair.
+numba==0.62.1; python_version == "3.12" and sys_platform == "darwin"
+llvmlite==0.45.1; python_version == "3.12" and sys_platform == "darwin"
 scipy
