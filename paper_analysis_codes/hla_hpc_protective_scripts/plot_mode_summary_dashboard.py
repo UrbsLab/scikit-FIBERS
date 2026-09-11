@@ -22,7 +22,6 @@ except ImportError:
 
 MODE_COLORS = {
     "default": "#5B7DB1",
-    "permissive": "#6E88B7",
     "protective": "#4D9960",
     "high_risk": "#C6544D",
 }
@@ -241,12 +240,6 @@ def write_summary_outputs(summary_df, feature_count_df, jaccard_modes, jaccard_m
         ]
     )
 
-    if "default" in jaccard_modes and "permissive" in jaccard_modes:
-        i = jaccard_modes.index("default")
-        j = jaccard_modes.index("permissive")
-        report_lines.append(
-            f"- Default vs permissive top-feature Jaccard overlap: {jaccard_matrix[i, j]:.3f}."
-        )
     if "default" in jaccard_modes and "high_risk" in jaccard_modes:
         i = jaccard_modes.index("default")
         j = jaccard_modes.index("high_risk")
@@ -437,6 +430,17 @@ def main():
     args = parse_args()
     output_root = Path(args.output_root).resolve()
     modes = [mode.strip() for mode in args.modes.split(",") if mode.strip()]
+    invalid_modes = sorted(set(modes) - set(MODE_COLORS))
+    if invalid_modes:
+        raise ValueError(
+            f"Unsupported mode(s): {', '.join(invalid_modes)}. "
+            f"Choose from {', '.join(MODE_COLORS)}."
+        )
+    if len(modes) != len(MODE_COLORS) or len(set(modes)) != len(MODE_COLORS):
+        raise ValueError(
+            "--modes must include each supported mode exactly once: "
+            + ", ".join(MODE_COLORS)
+        )
     figure_dir = Path(args.figure_dir).resolve() if args.figure_dir else output_root / "comparison_figures"
     figure_dir.mkdir(parents=True, exist_ok=True)
 

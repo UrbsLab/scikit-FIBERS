@@ -153,8 +153,8 @@ def main(argv):
         pop_clean = str(options.pop_clean)
     random_seed = options.random_seed
 
-    if desired_bin_effect not in ["default", "protective", "high_risk", "permissive"]:
-        raise Exception("'desired_bin_effect' must be one of: 'default', 'protective', 'high_risk', 'permissive'")
+    if desired_bin_effect not in ["default", "protective", "high_risk"]:
+        raise Exception("'desired_bin_effect' must be one of: 'default', 'protective', 'high_risk'")
 
     valid_loci = {'A', 'B', 'C', 'DRB1', 'DRB345', 'DQA1', 'DQB1', 'DPA1', 'DPB1'}
     invalid_loci = sorted(set(loci_list) - valid_loci)

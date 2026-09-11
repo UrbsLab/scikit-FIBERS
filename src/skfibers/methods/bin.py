@@ -246,12 +246,8 @@ class BIN:
 
             if fitness_metric == 'residuals' or fitness_metric == 'log_rank_residuals': # In addition to log_rank, calculate residuals differences between groups
                 mask = bin_df['feature_sum'] <= threshold
-                if desired_bin_effect == "permissive":
-                    high_residuals_df = residuals.loc[mask, "deviance"]
-                    low_residuals_df = residuals.loc[~mask, "deviance"]
-                else:
-                    low_residuals_df = residuals.loc[mask, "deviance"]
-                    high_residuals_df = residuals.loc[~mask, "deviance"]
+                low_residuals_df = residuals.loc[mask, "deviance"]
+                high_residuals_df = residuals.loc[~mask, "deviance"]
                 count_bt = len(low_residuals_df)
                 count_at = len(high_residuals_df)
                 if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not directionally_valid_bin:

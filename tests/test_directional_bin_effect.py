@@ -196,64 +196,7 @@ def test_high_risk_mode_filters_wrong_direction_bins_and_preserves_default_encod
     )
 
 
-def test_permissive_mode_preserves_default_thresholding_flips_binary_encoding_and_keeps_cox_coding():
-    data = make_directional_dataset()
-    manual_bin_init = make_manual_population()
-
-    default_model = FIBERS(
-        **make_base_fibers_kwargs(manual_bin_init),
-        desired_bin_effect="default",
-    ).fit(data)
-    permissive_model = FIBERS(
-        **make_base_fibers_kwargs(manual_bin_init),
-        desired_bin_effect="permissive",
-    ).fit(data)
-
-    compared_columns = [
-        "feature_list",
-        "group_threshold",
-        "pre_fitness",
-        "fitness",
-        "log_rank_score",
-        "count_bt",
-        "count_at",
-    ]
-    pd.testing.assert_frame_equal(
-        default_model.get_pop()[compared_columns].reset_index(drop=True),
-        permissive_model.get_pop()[compared_columns].reset_index(drop=True),
-    )
-
-    top_bin = permissive_model.set.bin_pop[0]
-    feature_sums = data[top_bin.feature_list].sum(axis=1)
-    expected_default = (feature_sums > top_bin.group_threshold).astype(int)
-    expected_permissive = (feature_sums <= top_bin.group_threshold).astype(int)
-
-    np.testing.assert_array_equal(default_model.predict(data, bin_number=0), expected_default.to_numpy())
-    np.testing.assert_array_equal(permissive_model.predict(data, bin_number=0), expected_permissive.to_numpy())
-    pd.testing.assert_series_equal(
-        default_model.transform(data, full_sums=False)["Bin_0"],
-        expected_default,
-        check_names=False,
-    )
-    pd.testing.assert_series_equal(
-        permissive_model.transform(data, full_sums=False)["Bin_0"],
-        expected_permissive,
-        check_names=False,
-    )
-    assert not np.array_equal(
-        default_model.predict(data, bin_number=0),
-        permissive_model.predict(data, bin_number=0),
-    )
-
-    default_hr_summary = default_model.get_cox_prop_hazard_unadjust(data, bin_index=0)
-    permissive_hr_summary = permissive_model.get_cox_prop_hazard_unadjust(data, bin_index=0)
-    assert np.isclose(
-        default_hr_summary["exp(coef)"].iloc[0],
-        permissive_hr_summary["exp(coef)"].iloc[0],
-    )
-
-
-def test_adaptive_thresholding_respects_default_protective_high_risk_and_permissive_modes():
+def test_adaptive_thresholding_respects_default_protective_and_high_risk_modes():
     feature_df = pd.DataFrame(
         {
             "F": ([0] * 200) + ([1] * 300) + ([2] * 20),
@@ -348,34 +291,7 @@ def test_adaptive_thresholding_respects_default_protective_high_risk_and_permiss
         covariate_df,
         "high_risk",
     )[0]
-    permissive_score_threshold_0 = BIN().evaluate_for_threshold(
-        0,
-        bin_df,
-        "Duration",
-        "Censoring",
-        "survival",
-        "log_rank",
-        None,
-        None,
-        covariate_df,
-        "permissive",
-    )[0]
-    permissive_score_threshold_1 = BIN().evaluate_for_threshold(
-        1,
-        bin_df,
-        "Duration",
-        "Censoring",
-        "survival",
-        "log_rank",
-        None,
-        None,
-        covariate_df,
-        "permissive",
-    )[0]
-
     assert default_score_threshold_1 > default_score_threshold_0
-    assert permissive_score_threshold_1 == default_score_threshold_1
-    assert permissive_score_threshold_0 == default_score_threshold_0
     assert protective_score_threshold_0 > 0
     assert protective_score_threshold_1 == 0
     assert high_risk_score_threshold_0 == 0
@@ -405,31 +321,6 @@ def test_adaptive_thresholding_respects_default_protective_high_risk_and_permiss
         0.2,
     )
     assert default_bin.group_threshold == 1
-
-    permissive_bin = BIN()
-    permissive_bin.feature_list = ["F"]
-    permissive_bin.evaluate(
-        feature_df,
-        outcome_df,
-        censor_df,
-        "survival",
-        "log_rank",
-        None,
-        "Duration",
-        "Censoring",
-        0,
-        1,
-        True,
-        None,
-        False,
-        1,
-        0,
-        None,
-        covariate_df,
-        "permissive",
-        0.2,
-    )
-    assert permissive_bin.group_threshold == 1
 
     protective_bin = BIN()
     protective_bin.feature_list = ["F"]

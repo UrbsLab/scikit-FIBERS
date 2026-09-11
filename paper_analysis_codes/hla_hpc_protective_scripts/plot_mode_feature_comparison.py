@@ -28,14 +28,12 @@ MODE_HEADER_COLORS = {
     "default": "#5477A8",
     "protective": "#4C8F5A",
     "high_risk": "#B45A4A",
-    "permissive": "#8A6BBE",
 }
 
 COUNT_LABELS = {
     "default": "D",
     "protective": "P",
     "high_risk": "HR",
-    "permissive": "Pm",
 }
 
 BACKGROUND_COLOR = "#F5F1E8"
@@ -54,13 +52,13 @@ def parse_args():
         dest="output_root",
         type=str,
         required=True,
-        help="Folder containing mode subfolders such as default/, protective/, high_risk/, permissive/.",
+        help="Folder containing mode subfolders such as default/, protective/, and high_risk/.",
     )
     parser.add_argument(
         "--compare-modes",
         dest="compare_modes",
         type=str,
-        default="protective,high_risk,permissive",
+        default="protective,high_risk",
         help="Comma-separated modes to compare against default.",
     )
     parser.add_argument(
@@ -597,6 +595,15 @@ def main():
     compare_modes = [mode.strip() for mode in args.compare_modes.split(",") if mode.strip() != ""]
     if len(compare_modes) == 0:
         raise ValueError("At least one compare mode must be specified.")
+    requested_modes = {args.reference_mode, *compare_modes}
+    invalid_modes = sorted(requested_modes - set(MODE_HEADER_COLORS))
+    if invalid_modes:
+        raise ValueError(
+            f"Unsupported mode(s): {', '.join(invalid_modes)}. "
+            f"Choose from {', '.join(MODE_HEADER_COLORS)}."
+        )
+    if args.reference_mode in compare_modes:
+        raise ValueError("The reference mode cannot also be a compare mode.")
 
     save_dir = args.save_dir
     if save_dir is None:

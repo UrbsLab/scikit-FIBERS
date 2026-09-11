@@ -444,8 +444,11 @@ def main():
         raise ValueError("--top-bin-count must be >= 1")
 
     mode_order = [mode.strip() for mode in args.mode_order.split(",") if mode.strip() != ""]
-    if len(mode_order) != 3:
-        raise ValueError("--mode-order must include exactly 3 comma-separated modes.")
+    if len(mode_order) != len(MODE_HEADER_COLORS) or set(mode_order) != set(MODE_HEADER_COLORS):
+        raise ValueError(
+            "--mode-order must include each supported mode exactly once: "
+            + ", ".join(MODE_HEADER_COLORS)
+        )
 
     save_dir = args.save_dir
     if save_dir is None:

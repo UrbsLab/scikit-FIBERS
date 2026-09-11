@@ -63,7 +63,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have pre-fitness penalizaiton applied
         :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
         :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
-        :param desired_bin_effect: controls survival direction filtering ['default','protective','high_risk','permissive']
+        :param desired_bin_effect: controls survival direction filtering ['default','protective','high_risk']
 
         ..
             Adaptive Bin Threshold Parameters
@@ -146,8 +146,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if desired_bin_effect == "highrisk":
             desired_bin_effect = "high_risk"
 
-        if desired_bin_effect != "default" and desired_bin_effect != "protective" and desired_bin_effect != "high_risk" and desired_bin_effect != "permissive":
-            raise Exception("'desired_bin_effect' param can only have values of 'default', 'protective', 'high_risk', or 'permissive'")
+        if desired_bin_effect != "default" and desired_bin_effect != "protective" and desired_bin_effect != "high_risk":
+            raise Exception("'desired_bin_effect' param can only have values of 'default', 'protective', or 'high_risk'")
         
         if log_rank_weighting!="wilcoxon" and log_rank_weighting!="tarone-ware" and log_rank_weighting!="peto" and log_rank_weighting!='fleming-harrington'and log_rank_weighting != None:
             raise Exception("'log_rank_weighting' param can only have values of 'wilcoxon', 'tarone-wares', 'peto' or 'fleming-harrington'")
@@ -467,10 +467,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             feature_sums = df[bin.feature_list].sum(axis=1)
             tdf['Bin_'+str(bin_count)] = feature_sums
             if not full_sums:
-                if self.desired_bin_effect == "permissive":
-                    tdf['Bin_'+str(bin_count)] = tdf['Bin_'+str(bin_count)].apply(lambda x: 1 if x <= bin.group_threshold else 0)
-                else:
-                    tdf['Bin_'+str(bin_count)] = tdf['Bin_'+str(bin_count)].apply(lambda x: 0 if x <= bin.group_threshold else 1)
+                tdf['Bin_'+str(bin_count)] = tdf['Bin_'+str(bin_count)].apply(lambda x: 0 if x <= bin.group_threshold else 1)
             bin_count += 1
 
         tdf = pd.concat([tdf,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
@@ -507,10 +504,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if bin_number != None: #Make prediction with single selected bin
             # Sum instance values across features specified in the bin
             feature_sums = df[self.set.bin_pop[bin_number].feature_list].sum(axis=1)
-            if self.desired_bin_effect == "permissive":
-                prediction_list = (df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) <= self.set.bin_pop[bin_number].group_threshold).astype(int).values
-            else:
-                prediction_list = (df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) > self.set.bin_pop[bin_number].group_threshold).astype(int).values
+            prediction_list = (feature_sums > self.set.bin_pop[bin_number].group_threshold).astype(int).values
             df = None
             return np.array(prediction_list) 
         
@@ -533,16 +527,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 bin_count = 0
                 # Iterate through each value in the row
                 for value in row:
-                    if self.desired_bin_effect == "permissive":
-                        if value <= self.set.bin_pop[bin_count].group_threshold:
-                            at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
-                        else:
-                            bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                    if value <= self.set.bin_pop[bin_count].group_threshold:
+                        bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
                     else:
-                        if value <= self.set.bin_pop[bin_count].group_threshold:
-                            bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
-                        else:
-                            at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                        at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
                     bin_count += 1
                 row_count += 1
             # Convert votes into predictions

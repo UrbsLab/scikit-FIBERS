@@ -10,7 +10,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 WORKER_SCRIPT = SCRIPT_DIR / "job_fibers_hpc_cv.py"
-VALID_EFFECTS = ("default", "protective", "high_risk", "permissive")
+VALID_EFFECTS = ("default", "protective", "high_risk")
 
 
 def parse_args(argv):
