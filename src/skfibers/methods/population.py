@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import copy
+import ast
 from itertools import combinations
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -12,7 +13,8 @@ import warnings
 class BIN_SET:
     def __init__(self,manual_bin_init,df,feature_names,pop_size,min_bin_size,max_bin_init_size,
                  group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,log_rank_weighting,group_strata_min,
-                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariates,random):
+                 outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariates,random,
+                 desired_bin_effect=None):
         #Initialize bin population
         self.bin_pop = []
         self.offspring_pop = []
@@ -20,16 +22,17 @@ class BIN_SET:
 
         if isinstance(manual_bin_init, pd.DataFrame): # Load manually curated or previously trained bin population
             for index, row in manual_bin_init.iterrows():
-                feature_text = row[0]
-                feature_list = eval(feature_text)
-                loaded_bin = [item.strip("[]'") for item in feature_list]
-                loaded_thresh = row[1]
-                birth_iteration = row[10]
+                feature_value = row.iloc[0]
+                feature_list = ast.literal_eval(feature_value) if isinstance(feature_value, str) else feature_value
+                loaded_bin = [str(item).strip("[]'") for item in feature_list]
+                loaded_thresh = row.iloc[1]
+                birth_iteration = row.iloc[10]
                 new_bin = BIN()
                 new_bin.initialize_manual(feature_names,loaded_bin,loaded_thresh,group_thresh,min_thresh,max_thresh,birth_iteration)
                 # Bin metric score evaluation
                 new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
+                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],
+                                 desired_bin_effect,group_strata_min)
                 # Fitness metric calculation based on bin metric score
                 new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names) 
                 #Add new bin to population
@@ -44,7 +47,8 @@ class BIN_SET:
                 new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
             # Bin metric score evaluation
             new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                                censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
+                                censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],
+                                desired_bin_effect,group_strata_min)
             # Fitness metric calculation based on bin metric score
             new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names) 
             #Add new bin to population
@@ -102,7 +106,8 @@ class BIN_SET:
 
     def generate_offspring(self,crossover_prob,mutation_prob,merge_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,max_bin_size,
                            max_bin_init_size,min_thresh,max_thresh,df,outcome_type,fitness_metric,log_rank_weighting,
-                           outcome_label,censor_label,int_thresh,group_thresh,group_strata_min,penalty,residuals,covariates,random):
+                           outcome_label,censor_label,int_thresh,group_thresh,group_strata_min,penalty,residuals,covariates,random,
+                           desired_bin_effect):
         # Clone Parents
         offspring_1 = BIN()
         offspring_2 = BIN()
@@ -117,7 +122,7 @@ class BIN_SET:
             while self.equivalent_bin_in_pop(offspring_3,iteration): # May slow down evolutionary cycles if new bins arent' found right away
                 offspring_3.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
             offspring_3.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                                int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
+                                int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],desired_bin_effect,group_strata_min)
             offspring_3.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
             if not self.equivalent_bin_in_pop(offspring_3,iteration):
                 self.offspring_pop.append(offspring_3)
@@ -136,7 +141,7 @@ class BIN_SET:
 
         # Offspring 1 Evalution 
         offspring_1.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],desired_bin_effect,group_strata_min)
         offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
         #Add New Offspring 1 to the Population
@@ -149,7 +154,7 @@ class BIN_SET:
 
         # Offspring 2 Evalution 
         offspring_2.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
-                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates])
+                             int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],desired_bin_effect,group_strata_min)
         offspring_2.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
         #Add New Offspring 2 to the Population
@@ -225,10 +230,17 @@ class BIN_SET:
             cluster_dictionary_list.append(dict(sorted(cluster_dictionary.items(),key=lambda item: item[1], reverse=True)))
         
         # Calculate number of elites for each cluster (proportional to cluster top bin fitness.)
+        top_cluster_fitness = [
+            fitness if fitness is not None and np.isfinite(fitness) and fitness > 0 else 0.0
+            for fitness in top_cluster_fitness
+        ]
         fitness_sum = sum(top_cluster_fitness)
         cluster_elite_counts = []
         for cluster in range(0,diversity_pressure):
-            cluster_elite_count = int(elite_count * (top_cluster_fitness[cluster] / float(fitness_sum)))
+            if fitness_sum <= 0.0:
+                cluster_elite_count = 1
+            else:
+                cluster_elite_count = int(elite_count * (top_cluster_fitness[cluster] / float(fitness_sum)))
             if cluster_elite_count < 1: #ensure a minimum of one elite per cluster
                 cluster_elite_count = 1
             cluster_elite_counts.append(cluster_elite_count)
@@ -371,4 +383,12 @@ class BIN_SET:
         for bin in self.bin_pop:
             if bin.group_strata_prop >= group_strata_min:
                 temp_pop.append(bin)
-        self.bin_pop = temp_pop
+        if len(temp_pop) > 0 or len(self.bin_pop) == 0:
+            self.bin_pop = temp_pop
+            return
+
+        max_group_strata_prop = max(bin.group_strata_prop for bin in self.bin_pop)
+        fallback_pop = [bin for bin in self.bin_pop if bin.group_strata_prop == max_group_strata_prop]
+        max_pre_fitness = max(bin.pre_fitness for bin in fallback_pop)
+        fallback_pop = [bin for bin in fallback_pop if bin.pre_fitness == max_pre_fitness]
+        self.bin_pop = fallback_pop

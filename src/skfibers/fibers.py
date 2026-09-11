@@ -5,6 +5,7 @@ import time
 from sklearn.base import BaseEstimator, TransformerMixin
 from .methods.data_handling import prepare_data
 from .methods.data_handling import calculate_residuals
+from .methods.bin import BIN
 from .methods.population import BIN_SET
 from .methods.util import plot_pareto
 from .methods.util import plot_feature_tracking
@@ -28,7 +29,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def __init__(self, outcome_label="Duration",outcome_type="survival",iterations=100,pop_size=50,tournament_prop=0.2,crossover_prob=0.5,min_mutation_prob=0.1, 
                  max_mutation_prob=0.3,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=3,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
                  log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=None,min_thresh=0,max_thresh=5, 
-                 int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False):
+                 int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False,
+                 desired_bin_effect="default"):
 
         """
         A Scikit-Learn compatible implementation of the FIBERS Algorithm.
@@ -61,6 +63,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have pre-fitness penalizaiton applied
         :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
         :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
+        :param desired_bin_effect: controls survival direction filtering ['default','protective','high_risk','permissive']
 
         ..
             Adaptive Bin Threshold Parameters
@@ -134,8 +137,17 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if not self.check_is_int(max_bin_init_size) or max_bin_init_size < 0:
             raise Exception("'max_bin_init_size' param must be non-negative integer (and no larger then the number of features in the dataset)")
 
+        if max_bin_init_size < min_bin_size:
+            raise Exception("'max_bin_init_size' param must be greater than or equal to 'min_bin_size'")
+
         if fitness_metric!="log_rank" and fitness_metric!="residuals" and fitness_metric!="log_rank_residuals":
             raise Exception("'fitness_metric' param can only have values of 'log_rank', 'residuals', or 'log_rank_residuals'")
+
+        if desired_bin_effect == "highrisk":
+            desired_bin_effect = "high_risk"
+
+        if desired_bin_effect != "default" and desired_bin_effect != "protective" and desired_bin_effect != "high_risk" and desired_bin_effect != "permissive":
+            raise Exception("'desired_bin_effect' param can only have values of 'default', 'protective', 'high_risk', or 'permissive'")
         
         if log_rank_weighting!="wilcoxon" and log_rank_weighting!="tarone-ware" and log_rank_weighting!="peto" and log_rank_weighting!='fleming-harrington'and log_rank_weighting != None:
             raise Exception("'log_rank_weighting' param can only have values of 'wilcoxon', 'tarone-wares', 'peto' or 'fleming-harrington'")
@@ -226,6 +238,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.report = report
         self.random_seed = random_seed
         self.verbose = verbose
+        self.desired_bin_effect = desired_bin_effect
         if self.covariates is None:
             self.covariates = list()
 
@@ -315,6 +328,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
         # PREPARE DATA ---------------------------------------
         self.df = self.check_x_y(x, y)
         self.df,self.feature_names = prepare_data(self.df,self.outcome_label,self.censor_label,self.covariates)
+        if len(self.feature_names) == 0:
+            raise ValueError("FIBERS requires at least one non-outcome, non-censoring, non-covariate feature")
+        if self.min_bin_size > len(self.feature_names):
+            raise ValueError("min_bin_size cannot exceed the number of available features")
         if self.max_bin_size == None:
             self.max_bin_size = len(self.feature_names)
 
@@ -330,7 +347,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.set = BIN_SET(self.manual_bin_init,self.df,self.feature_names,self.pop_size,
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
-                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates,random)
+                           self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates,random,
+                           self.desired_bin_effect)
         #Global fitness update
         self.set.global_fitness_update(self.penalty) #Exerimental
 
@@ -368,7 +386,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 self.set.generate_offspring(self.crossover_prob,mutation_prob,self.merge_prob,self.iterations,iteration,parent_list,self.feature_names,
                                             threshold_evolving,self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
                                             self.df,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
-                                            self.group_thresh,self.group_strata_min,self.penalty,self.residuals,self.covariates,random)
+                                            self.group_thresh,self.group_strata_min,self.penalty,self.residuals,self.covariates,random,
+                                            self.desired_bin_effect)
             # Add Offspring to Population
             self.set.add_offspring_into_pop(iteration)
 
@@ -448,7 +467,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
             feature_sums = df[bin.feature_list].sum(axis=1)
             tdf['Bin_'+str(bin_count)] = feature_sums
             if not full_sums:
-                tdf['Bin_'+str(bin_count)] = tdf['Bin_'+str(bin_count)].apply(lambda x: 0 if x <= bin.group_threshold else 1)
+                if self.desired_bin_effect == "permissive":
+                    tdf['Bin_'+str(bin_count)] = tdf['Bin_'+str(bin_count)].apply(lambda x: 1 if x <= bin.group_threshold else 0)
+                else:
+                    tdf['Bin_'+str(bin_count)] = tdf['Bin_'+str(bin_count)].apply(lambda x: 0 if x <= bin.group_threshold else 1)
             bin_count += 1
 
         tdf = pd.concat([tdf,df.loc[:,self.outcome_label],df.loc[:,self.censor_label]],axis=1)
@@ -485,7 +507,10 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if bin_number != None: #Make prediction with single selected bin
             # Sum instance values across features specified in the bin
             feature_sums = df[self.set.bin_pop[bin_number].feature_list].sum(axis=1)
-            prediction_list = (df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) > self.set.bin_pop[bin_number].group_threshold).astype(int).values
+            if self.desired_bin_effect == "permissive":
+                prediction_list = (df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) <= self.set.bin_pop[bin_number].group_threshold).astype(int).values
+            else:
+                prediction_list = (df[self.set.bin_pop[bin_number].feature_list].sum(axis=1) > self.set.bin_pop[bin_number].group_threshold).astype(int).values
             df = None
             return np.array(prediction_list) 
         
@@ -508,10 +533,16 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 bin_count = 0
                 # Iterate through each value in the row
                 for value in row:
-                    if value <= self.set.bin_pop[bin_count].group_threshold:
-                        bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                    if self.desired_bin_effect == "permissive":
+                        if value <= self.set.bin_pop[bin_count].group_threshold:
+                            at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                        else:
+                            bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
                     else:
-                        at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                        if value <= self.set.bin_pop[bin_count].group_threshold:
+                            bt_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
+                        else:
+                            at_vote[row_count] += self.set.bin_pop[bin_count].pre_fitness
                     bin_count += 1
                 row_count += 1
             # Convert votes into predictions
@@ -589,6 +620,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         """   
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
+        self._validate_bin_index(bin_index)
 
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
@@ -615,6 +647,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def get_cox_prop_hazard_unadjust(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
+        self._validate_bin_index(bin_index)
         
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
@@ -648,6 +681,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
     def get_cox_prop_hazard_adjusted(self,x, y=None, bin_index=0, use_bin_sums=False, show_progress=False, new_covariates=None):
         if not self.hasTrained:
             raise Exception("FIBERS must be fit first")
+        self._validate_bin_index(bin_index)
 
         # PREPARE DATA ---------------------------------------
         df = self.check_x_y(x, y)
@@ -741,8 +775,17 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def get_pop(self):
         self.set.sort_feature_lists()
+        if len(self.set.bin_pop) == 0:
+            return pd.DataFrame(columns=list(vars(BIN()).keys()))
         pop_df = pd.DataFrame([vars(instance) for instance in self.set.bin_pop])
         return pop_df
+
+
+    def _validate_bin_index(self, bin_index):
+        if len(self.set.bin_pop) == 0:
+            raise Exception("FIBERS completed training but the final bin population is empty. This can happen when filtering or cleanup removes every candidate bin.")
+        if bin_index < 0 or bin_index >= len(self.set.bin_pop):
+            raise IndexError("Requested bin_index is outside the current bin population.")
 
 
     def get_pareto_plot(self,show=True,save=False,output_folder=None,data_name=None):
@@ -832,3 +875,4 @@ class FIBERS(BaseEstimator, TransformerMixin):
             file.write(f"report: {self.report}\n")
             file.write(f"random_seed: {self.random_seed}\n")
             file.write(f"verbose: {self.verbose}\n")
+            file.write(f"desired_bin_effect: {self.desired_bin_effect}\n")

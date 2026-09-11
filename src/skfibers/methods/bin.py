@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
 import copy
+from lifelines import KaplanMeierFitter
 from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
+from lifelines.utils import restricted_mean_survival_time as lifelines_restricted_mean_survival_time
 from scipy.stats import ranksums
 
 class BIN:
@@ -28,6 +30,7 @@ class BIN:
         self.adj_HR = None #The adjusted hazard ratio of the bin calculated with CoxPHFitter after algorithm training
         self.adj_HR_CI = None #The associated adjusted hazard ratio confidence interval calculated with CoxPHFitter after algorithm training
         self.adj_HR_p_value = None # The associated adjusted hazard ratio p-value calculated with CoxPHFitter after algorithm training
+        self.used_group_strata_fallback = False
 
 
     def update_deletion_prop(self,deletion_prop, cluster):
@@ -38,7 +41,10 @@ class BIN:
     def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random):
         self.birth_iteration = iteration
         # Initialize features in bin
-        feature_count = random.randint(min_bin_size,max_bin_init_size)
+        effective_max_bin_init_size = min(max_bin_init_size, len(feature_names))
+        if min_bin_size > effective_max_bin_init_size:
+            raise ValueError("min_bin_size cannot exceed the number of available features")
+        feature_count = random.randint(min_bin_size,effective_max_bin_init_size)
         self.feature_list = random.sample(feature_names,feature_count)
         self.bin_size = len(self.feature_list)
         if group_thresh != None: # Defined group threshold
@@ -68,7 +74,9 @@ class BIN:
 
 
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
-                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df):
+                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df,
+                 desired_bin_effect,group_strata_min):
+        self.used_group_strata_fallback = False
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
         bin_df = pd.DataFrame({'feature_sum':feature_sums})
@@ -79,32 +87,105 @@ class BIN:
         if (group_thresh == None and not threshold_evolving) or (group_thresh == None and iteration == iterations-1): #Adaptive thresholding activated (always applied on last iteration)
             # Select best threshold by evaluating all considered
             best_score = None
-            thresh_score = 0
+            raw_best_score = None
+            fallback_result = None
+            fallback_threshold = None
+            # Track the best threshold that matches direction, even if it misses group_strata_min.
+            directional_fallback_result = None
+            directional_fallback_threshold = None
+            directional_fallback_score = None
+            # Track the best threshold that matches group_strata_min, even if it misses direction.
+            strata_valid_fallback_result = None
+            strata_valid_fallback_threshold = None
+            strata_valid_fallback_score = None
+            found_valid_threshold = False
             for threshold in range(min_thresh, max_thresh + 1):
-                log_rank_score, p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,residuals,covariate_df)
-                if fitness_metric == 'log_rank':
-                    thresh_score = log_rank_score
+                if desired_bin_effect == "protective" or desired_bin_effect == "high_risk":
+                    # Score each threshold twice: once with raw/default behavior for ranking,
+                    # and once with directional gating for the actual stored threshold result.
+                    raw_result = self.evaluate_for_threshold(
+                        threshold,
+                        bin_df,
+                        outcome_label,
+                        censor_label,
+                        outcome_type,
+                        fitness_metric,
+                        log_rank_weighting,
+                        residuals,
+                        covariate_df,
+                        "default",
+                    )
+                    directional_result = self.evaluate_for_threshold(
+                        threshold,
+                        bin_df,
+                        outcome_label,
+                        censor_label,
+                        outcome_type,
+                        fitness_metric,
+                        log_rank_weighting,
+                        residuals,
+                        covariate_df,
+                        desired_bin_effect,
+                    )
 
-                elif fitness_metric == 'residuals': 
-                    thresh_score = residuals_score
+                    raw_thresh_score = self.get_threshold_score(fitness_metric, raw_result[0], raw_result[2])
+                    directional_thresh_score = self.get_threshold_score(fitness_metric, directional_result[0], directional_result[2])
+                    threshold_matches_effect = directional_result[6]
+                    threshold_matches_group_strata = self.meets_group_strata_min(
+                        directional_result[4],
+                        directional_result[5],
+                        group_strata_min,
+                    )
 
-                elif fitness_metric == 'log_rank_residuals':
-                    thresh_score = log_rank_score * residuals_score
+                    if raw_best_score == None or raw_thresh_score > raw_best_score:
+                        raw_best_score = raw_thresh_score
+                        fallback_result = directional_result
+                        fallback_threshold = threshold
 
-                if best_score == None or thresh_score > best_score:
-                    self.log_rank_score = log_rank_score
-                    self.log_rank_p_value = p_value
-                    self.residuals_score = residuals_score
-                    self.residuals_p_value = residuals_p_value
-                    self.group_threshold = threshold
-                    self.count_bt= count_bt
-                    self.count_at = count_at
-                    best_score = thresh_score
+                    if threshold_matches_effect and (directional_fallback_score == None or raw_thresh_score > directional_fallback_score):
+                        directional_fallback_score = raw_thresh_score
+                        directional_fallback_result = directional_result
+                        directional_fallback_threshold = threshold
+
+                    if threshold_matches_group_strata and (strata_valid_fallback_score == None or raw_thresh_score > strata_valid_fallback_score):
+                        strata_valid_fallback_score = raw_thresh_score
+                        strata_valid_fallback_result = directional_result
+                        strata_valid_fallback_threshold = threshold
+
+                    # Fully valid thresholds must satisfy both the requested direction and group_strata_min.
+                    if threshold_matches_effect and threshold_matches_group_strata and (best_score == None or directional_thresh_score > best_score):
+                        self.assign_eval_result(threshold, directional_result)
+                        best_score = directional_thresh_score
+                        found_valid_threshold = True
+                else:
+                    result = self.evaluate_for_threshold(threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+                            log_rank_weighting,residuals,covariate_df,desired_bin_effect)
+                    thresh_score = self.get_threshold_score(fitness_metric, result[0], result[2])
+
+                    if best_score == None or thresh_score > best_score:
+                        self.assign_eval_result(threshold, result)
+                        best_score = thresh_score
+
+            if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and strata_valid_fallback_result is not None:
+                # If nothing satisfies both direction and group_strata_min, prefer a direction-correct
+                # threshold and let pre-fitness apply an extra penalty for this fallback case.
+                if directional_fallback_result is not None:
+                    self.assign_eval_result(directional_fallback_threshold, directional_fallback_result)
+                    self.used_group_strata_fallback = True
+                else:
+                    self.assign_eval_result(strata_valid_fallback_threshold, strata_valid_fallback_result)
+            elif (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not found_valid_threshold and fallback_result is not None:
+                # Last resort: keep the best direction-correct threshold if one exists, otherwise keep
+                # the raw-best placeholder threshold. Wrong-direction fallbacks already carry zero score.
+                if directional_fallback_result is not None:
+                    self.assign_eval_result(directional_fallback_threshold, directional_fallback_result)
+                    self.used_group_strata_fallback = True
+                else:
+                    self.assign_eval_result(fallback_threshold, fallback_result)
 
         else: #Use the given group threshold to evaluate the bin
-            log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                        log_rank_weighting,residuals,covariate_df)
+            log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at,_ = self.evaluate_for_threshold(self.group_threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+                        log_rank_weighting,residuals,covariate_df,desired_bin_effect)
             self.log_rank_score = log_rank_score
             self.log_rank_p_value = p_value
             self.residuals_score = residuals_score
@@ -114,7 +195,8 @@ class BIN:
         self.bin_size = len(self.feature_list)
 
 
-    def evaluate_for_threshold(self,threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df):
+    def evaluate_for_threshold(self,threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df,
+                               desired_bin_effect):
         # Apply selected evaluation strategy/metric(s)
         if outcome_type == 'survival':
             residuals_score = None
@@ -124,32 +206,58 @@ class BIN:
             count_bt = None
             count_at = None
 
-            if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals':
-                #Create dataframes including instances from either strata-groups
-                low_df = bin_df[bin_df['feature_sum'] <= threshold]
-                high_df = bin_df[bin_df['feature_sum'] > threshold]
-                low_outcome = low_df[outcome_label].to_list()
-                high_outcome = high_df[outcome_label].to_list()
-                low_censor = low_df[censor_label].to_list()
-                high_censor = high_df[censor_label].to_list()
-                count_bt = len(low_outcome)
-                count_at = len(high_outcome)
+            low_df = bin_df[bin_df['feature_sum'] <= threshold]
+            high_df = bin_df[bin_df['feature_sum'] > threshold]
+            low_outcome = low_df[outcome_label].to_list()
+            high_outcome = high_df[outcome_label].to_list()
+            low_censor = low_df[censor_label].to_list()
+            high_censor = high_df[censor_label].to_list()
+            count_bt = len(low_outcome)
+            count_at = len(high_outcome)
+
+            directionally_valid_bin = True
+            if desired_bin_effect == "protective" or desired_bin_effect == "high_risk":
                 try:
-                    results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
-                    log_rank_score = results.test_statistic #test all thresholds by default in initial pop.
-                    p_value = results.p_value
+                    # Directional-only rule using censoring-aware RMST.
+                    time_point = min(max(low_outcome), max(high_outcome))
+                    low_rmst = self.restricted_mean_survival_time(low_outcome, low_censor, time_point)
+                    high_rmst = self.restricted_mean_survival_time(high_outcome, high_censor, time_point)
+                    if desired_bin_effect == "protective":
+                        if high_rmst <= low_rmst:
+                            directionally_valid_bin = False
+                    elif desired_bin_effect == "high_risk":
+                        if high_rmst >= low_rmst:
+                            directionally_valid_bin = False
                 except:
+                    directionally_valid_bin = False
+
+            if fitness_metric == 'log_rank' or fitness_metric == 'log_rank_residuals':
+                if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not directionally_valid_bin:
                     log_rank_score = 0
                     p_value = None
+                else:
+                    try:
+                        results = logrank_test(low_outcome, high_outcome, event_observed_A=low_censor,event_observed_B=high_censor,weightings=log_rank_weighting)
+                        log_rank_score = results.test_statistic #test all thresholds by default in initial pop.
+                        p_value = results.p_value
+                    except:
+                        log_rank_score = 0
+                        p_value = None
 
             if fitness_metric == 'residuals' or fitness_metric == 'log_rank_residuals': # In addition to log_rank, calculate residuals differences between groups
-                low_residuals_df = residuals.loc[bin_df['feature_sum'] <= threshold] 
-                high_residuals_df = residuals.loc[bin_df['feature_sum'] > threshold] 
-                low_residuals_df = low_residuals_df["deviance"]
-                high_residuals_df = high_residuals_df["deviance"]
+                mask = bin_df['feature_sum'] <= threshold
+                if desired_bin_effect == "permissive":
+                    high_residuals_df = residuals.loc[mask, "deviance"]
+                    low_residuals_df = residuals.loc[~mask, "deviance"]
+                else:
+                    low_residuals_df = residuals.loc[mask, "deviance"]
+                    high_residuals_df = residuals.loc[~mask, "deviance"]
                 count_bt = len(low_residuals_df)
                 count_at = len(high_residuals_df)
-                if len(low_residuals_df) == 0 or len(high_residuals_df) == 0:
+                if (desired_bin_effect == "protective" or desired_bin_effect == "high_risk") and not directionally_valid_bin:
+                    residuals_score = 0
+                    residuals_p_value = None
+                elif len(low_residuals_df) == 0 or len(high_residuals_df) == 0:
                     residuals_score = 0
                     residuals_p_value = None
                 else:
@@ -163,10 +271,52 @@ class BIN:
 
         elif outcome_type == 'class':
             print("Classification not yet implemented")
+            raise NotImplementedError
         else:
             print("Specified outcome_type not supported")
+            raise Exception("Specified outcome_type not supported")
 
-        return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at
+        return log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at,directionally_valid_bin
+
+
+    def get_threshold_score(self,fitness_metric,log_rank_score,residuals_score):
+        if fitness_metric == 'log_rank':
+            return log_rank_score
+        if fitness_metric == 'residuals':
+            return residuals_score
+        if fitness_metric == 'log_rank_residuals':
+            return log_rank_score * residuals_score
+        return 0
+
+
+    def meets_group_strata_min(self,count_bt,count_at,group_strata_min):
+        total_count = count_bt + count_at
+        if total_count == 0:
+            return False
+        group_strata_prop = min(count_bt / total_count, count_at / total_count)
+        return group_strata_prop >= group_strata_min
+
+
+    def assign_eval_result(self,threshold,result):
+        log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_at,_ = result
+        self.log_rank_score = log_rank_score
+        self.log_rank_p_value = p_value
+        self.residuals_score = residuals_score
+        self.residuals_p_value = residuals_p_value
+        self.group_threshold = threshold
+        self.count_bt = count_bt
+        self.count_at = count_at
+
+    def km_survival_at_time(self,outcome,censor,time_point):
+        kmf = KaplanMeierFitter()
+        kmf.fit(outcome,event_observed=censor)
+        return float(kmf.survival_function_at_times(time_point).iloc[0])
+
+
+    def restricted_mean_survival_time(self,outcome,censor,time_point):
+        kmf = KaplanMeierFitter()
+        kmf.fit(outcome,event_observed=censor)
+        return float(lifelines_restricted_mean_survival_time(kmf, t=time_point))
     
     
     def copy_parent(self,parent,iteration):
@@ -205,7 +355,10 @@ class BIN:
         self.feature_list = sorted(self.feature_list)
 
         if len(self.feature_list) == 0: #Initialize new bin if empty after crossover
-            feature_count = random.randint(min_bin_size,max_bin_init_size)
+            effective_max_bin_init_size = min(max_bin_init_size, len(feature_names))
+            if min_bin_size > effective_max_bin_init_size:
+                raise ValueError("min_bin_size cannot exceed the number of available features")
+            feature_count = random.randint(min_bin_size,effective_max_bin_init_size)
             self.feature_list = random.sample(feature_names,feature_count)
             
 
@@ -213,6 +366,8 @@ class BIN:
             for feature in self.feature_list:
                 if random.random() < mutation_prob:
                     other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                    if len(other_features) == 0:
+                        continue
                     random_feature = random.choice(other_features)
                     if random.random() < 0.5: # Swap
                         self.feature_list.remove(feature)
@@ -223,6 +378,8 @@ class BIN:
             # Enforce minimum bin size
             while len(self.feature_list) < min_bin_size: 
                 other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                if len(other_features) == 0:
+                    break
                 self.feature_list.append(random.choice(other_features))
 
         else: # Addition, Deletion, or Swap 
@@ -234,7 +391,10 @@ class BIN:
                     if mutate_type == 'D' or len(feature_names) == len(self.feature_list): # Deletion - also if bin (i.e. feature_list) is at the maximum possible size
                         self.feature_list.remove(feature)
                     else:
-                        other_features = [value for value in feature_names if value not in original_feature_list] #pick a feature not already in the bin
+                        # Features deleted earlier in this mutation pass can be selected again.
+                        other_features = [value for value in feature_names if value not in self.feature_list]
+                        if len(other_features) == 0:
+                            continue
                         random_feature = random.choice(other_features)
                         if mutate_type == 'S': # Swap
                             self.feature_list.remove(feature)
@@ -246,6 +406,8 @@ class BIN:
             # Enforce minimum bin size
             while len(self.feature_list) < min_bin_size: 
                 other_features = [value for value in feature_names if value not in self.feature_list] #pick a feature not already in the bin
+                if len(other_features) == 0:
+                    break
                 self.feature_list.append(random.choice(other_features))
             # Enforce maximum bin size
             while len(self.feature_list) > max_bin_size: 
@@ -307,11 +469,16 @@ class BIN:
                 else:
                     self.pre_fitness = self.log_rank_score * self.residuals_score
 
+        if self.used_group_strata_fallback and self.pre_fitness != None:
+            self.pre_fitness = (1-penalty) * self.pre_fitness
 
     def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):
         """Takes an previously generated offspring bin (that already existed in the pop) and generates an new feature_list """
         # Initialize features in bin
-        feature_count = random.randint(min_bin_size,max_bin_init_size)
+        effective_max_bin_init_size = min(max_bin_init_size, len(feature_names))
+        if min_bin_size > effective_max_bin_init_size:
+            raise ValueError("min_bin_size cannot exceed the number of available features")
+        feature_count = random.randint(min_bin_size,effective_max_bin_init_size)
         self.feature_list = random.sample(feature_names,feature_count)
         self.bin_size = len(self.feature_list)
 

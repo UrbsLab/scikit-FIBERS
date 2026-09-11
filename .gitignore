@@ -18,6 +18,7 @@ lib/
 lib64/
 parts/
 sdist/
+tmp/
 var/
 wheels/
 pip-wheel-metadata/
@@ -40,8 +41,11 @@ data/
 src/Data1.csv
 sampledata.csv
 output/
+output_new/
+output_*/
 src/skfibersv2
 src/skfibers_no_ryan_fixes
+output.zip
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
