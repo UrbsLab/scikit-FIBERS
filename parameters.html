@@ -1,0 +1,329 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hyperparameters &mdash; FIBERS 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=af2ce170"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Algorithm History" href="history.html" />
+    <link rel="prev" title="Running scikit-FIBERS" href="running.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FIBERS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Input Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running.html">Running scikit-FIBERS</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Hyperparameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">Algorithm History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FIBERS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Hyperparameters</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/parameters.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="hyperparameters">
+<h1>Hyperparameters<a class="headerlink" href="#hyperparameters" title="Permalink to this heading"></a></h1>
+<p>While scikit_FIBERS has a number of available hyperparameters only a few are considered to be essential or useful to check or set.</p>
+<ul class="simple">
+<li><p>Essential hyperparameters are given in the first table.</p>
+<ul>
+<li><p>For survival data without covariate columns, the <em>fitness_metric</em> should be set to ‘log_rank’ and <em>covariates</em> should be set to None.</p></li>
+<li><p>For survival data with covariate colums (that need to be adjusted for), the <em>fitness_metric</em> should be set to either ‘residuals’ or to ‘log_rank_residuals’ (otherwise referred to as the ‘product’ fitness metric), and <em>covariates</em> should be set to a list of all covariate column lables in the dataset.</p></li>
+<li><p>For survival data without censoring, <em>censor_label</em> should be set to None, otherwise it should be set the censoring column lable.</p></li>
+<li><p>While <em>outcome_type</em> is also an important hyperparameter to check, currently only the ‘survival’ option (for survial data analysis) has been fully implemented and tested.</p></li>
+</ul>
+</li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Hyperparameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type/Options</p></th>
+<th class="head"><p>Default Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><em>outcome_label</em></p></td>
+<td><p>Data column label for time-to-event (outcome)</p></td>
+<td><p>str</p></td>
+<td><p>‘Duration’</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>outcome_type</em></p></td>
+<td><p>Defines the type of outcome in the dataset</p></td>
+<td><p>‘survival’,’class’</p></td>
+<td><p>‘survival’</p></td>
+</tr>
+<tr class="row-even"><td><p><em>censor_label</em></p></td>
+<td><p>Data column label for censoring</p></td>
+<td><p>str/None</p></td>
+<td><p>‘Censoring’, None</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>fitness_metric</em></p></td>
+<td><p>Pre-fitness metric driving fitness ranking</p></td>
+<td><p>‘log_rank’,’residuals’,’log_rank_residuals’</p></td>
+<td><p>‘log_rank’</p></td>
+</tr>
+<tr class="row-even"><td><p><em>covariates</em></p></td>
+<td><p>List of data column labels to be treated as covariates (i.e. not considered for bin inclusion)</p></td>
+<td><p>list, None</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>This second table includes hyperparameters that are not essential but can have a significant impact on algorithm performance.</p>
+<ul>
+<li><p>In general, setting <em>iterations</em> and <em>pop_size</em> to larger integers is expected to improve training performance, but will require longer run times.</p></li>
+<li><p>The <em>group_thresh</em> hyperparameter controls the adaptive burden thresholding in FIBERS, where ‘None’ activates this mechanism, and an integer value (e.g. 0), will enforce a specific burden threshold for all discovered bins. Related to this, <em>max_thresh</em> controls the maximum burden threshold allowed in bins, assuming <em>group_thresh</em> = None. Also related to adaptive burden thresholding, the <em>thresh_evolve_prob</em> (set between 0.0 and 1.0) can lead to better performance when set closer to 1.0, but requires significantly more runtime.</p></li>
+<li><p>The <em>group_strata_min</em> hyperparameter (set as &gt; 0.0 and &lt; 0.5) enforces a minimum instance count balance between risk groups, where 0.5 describes two risk groups with the same instance count.</p></li>
+<li><p>The <em>manual_bin_init</em> hyperparameter allows users to load an existing set of candidate bins for FIBERS to start learning from, rather than starting from randomly initialized bins. The value of using this function depends on the quality of the loaded bins, however utilizing expert (i.e. domain) knowledge to design candidate bins before running FIBERS has the potential to dramatically improve or speed up learning in larger or more complex tasks.</p></li>
+<li><p>Lastly, <em>pop_clean</em> = ‘group_strata’ applies a post-hoc cleaning of the bin population, removing any remaining bins that have a risk group instance count ratio below the <em>group_strata_min</em>.</p></li>
+</ul>
+</li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Hyperparameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type/Options</p></th>
+<th class="head"><p>Default Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><em>iterations</em></p></td>
+<td><p>Number of training/optimization cycles</p></td>
+<td><p>int</p></td>
+<td><p>100</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>pop_size</em></p></td>
+<td><p>Maximum bin population size at end of each cycle</p></td>
+<td><p>int</p></td>
+<td><p>50</p></td>
+</tr>
+<tr class="row-even"><td><p><em>group_thresh</em></p></td>
+<td><p>Optionally specify a group threshold for bins to use</p></td>
+<td><p>int, None</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>max_thresh</em></p></td>
+<td><p>Maximum group threshold for adaptive thresholding</p></td>
+<td><p>int</p></td>
+<td><p>5</p></td>
+</tr>
+<tr class="row-even"><td><p><em>thresh_evolve_prob</em></p></td>
+<td><p>Probability that an optimization cycle will evolve vs. deterministically select a group threshold for new bin evaluation</p></td>
+<td><p>float</p></td>
+<td><p>0.5</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>group_strata_min</em></p></td>
+<td><p>Min. cutoff for group strata sizes below which a pre-fitness penalty is applied to bin</p></td>
+<td><p>float</p></td>
+<td><p>0.2</p></td>
+</tr>
+<tr class="row-even"><td><p><em>manual_bin_init</em></p></td>
+<td><p>Dataframe of FIBERS-formatted bin population used to initialize the bin population</p></td>
+<td><p>dataframe, None</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>pop_clean</em></p></td>
+<td><p>Optional bin population cleanup strategy</p></td>
+<td><p>‘group_strata’, None</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>The remaining hyperparameters in the table below can largely be left to their default values by most users.</p></li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Hyperparameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type/Options</p></th>
+<th class="head"><p>Default Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><em>tournament_prop</em></p></td>
+<td><p>Population proportion randomly selected for tournament</p></td>
+<td><p>float</p></td>
+<td><p>0.2</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>crossover_prob</em></p></td>
+<td><p>Uniform crossover operator probability</p></td>
+<td><p>float</p></td>
+<td><p>0.5</p></td>
+</tr>
+<tr class="row-even"><td><p><em>min_mutation_prob</em></p></td>
+<td><p>Minimum mutation operator probability</p></td>
+<td><p>float</p></td>
+<td><p>0.1</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>max_mutation_prob</em></p></td>
+<td><p>Maximum mutation operator probability</p></td>
+<td><p>float</p></td>
+<td><p>0.3</p></td>
+</tr>
+<tr class="row-even"><td><p><em>merge_prob</em></p></td>
+<td><p>Merge operator probability</p></td>
+<td><p>float</p></td>
+<td><p>0.1</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>new_gen</em></p></td>
+<td><p>Proportion of <em>pop_size</em>. Determines the number of offspring to generate each generation</p></td>
+<td><p>float</p></td>
+<td><p>1.0</p></td>
+</tr>
+<tr class="row-even"><td><p><em>elitism</em></p></td>
+<td><p>Proportion of <em>pop_size</em> protected from deletion</p></td>
+<td><p>float</p></td>
+<td><p>0.1</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>diversity_pressure</em></p></td>
+<td><p>Number of bin similarity clusters driving bin deletion to encourage bin diversity</p></td>
+<td><p>int</p></td>
+<td><p>3</p></td>
+</tr>
+<tr class="row-even"><td><p><em>min_bin_size</em></p></td>
+<td><p>Min. number of features to be specified in a bin</p></td>
+<td><p>int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>max_bin_size</em></p></td>
+<td><p>Max. number of features to be specified in a bin</p></td>
+<td><p>int/None</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p><em>max_bin_init_size</em></p></td>
+<td><p>Max. number of features in initialized bins</p></td>
+<td><p>int</p></td>
+<td><p>10</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>log_rank_weightning</em></p></td>
+<td><p>Optional weighting of log-rank test</p></td>
+<td><p>‘wilcoxon’, ‘tarone-ware’, ‘peto’, ‘fleming-harrington’, None</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p><em>penalty</em></p></td>
+<td><p>Penalty multiplier applied to pre-fitness when bin’s group strata ratio goes below the minimum</p></td>
+<td><p>float</p></td>
+<td><p>0.5</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>min_thresh</em></p></td>
+<td><p>Minimum group threshold for adaptive thresholding</p></td>
+<td><p>int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p><em>int_thresh</em></p></td>
+<td><p>Boolean indicating that adaptive bin thresholds are limited to positive intergers</p></td>
+<td><p>Boolean</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>random_seed</em></p></td>
+<td><p>Seed value used to generate random numbers or make random selections</p></td>
+<td><p>int, None</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p><em>report</em></p></td>
+<td><p>List of integers, indicating iterations where the population will be printed out for viewing</p></td>
+<td><p>list, None</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p><em>verbose</em></p></td>
+<td><p>Boolean flag to run in ‘verbose’ mode - display run details</p></td>
+<td><p>Boolean</p></td>
+<td><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="running.html" class="btn btn-neutral float-left" title="Running scikit-FIBERS" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="history.html" class="btn btn-neutral float-right" title="Algorithm History" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Ryan Urbanowicz, Harsh Bandhey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

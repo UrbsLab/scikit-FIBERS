@@ -1,0 +1,133 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Algorithm History &mdash; FIBERS 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=af2ce170"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Citing scikit-FIBERS" href="citation.html" />
+    <link rel="prev" title="Hyperparameters" href="parameters.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FIBERS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Input Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running.html">Running scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Hyperparameters</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Algorithm History</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#previous-version-comparison-benchmarking">Previous Version Comparison Benchmarking</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FIBERS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Algorithm History</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/history.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="algorithm-history">
+<h1>Algorithm History<a class="headerlink" href="#algorithm-history" title="Permalink to this heading"></a></h1>
+<p>FIBERS was originally based on the <a class="reference external" href="https://github.com/UrbsLab/RARE">RARE</a> algorithm, an evolutionary algorithm for rare variant binning. (Dasariraju, S. and Urbanowicz, R.J., 2021, July. <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3449726.3463174?casa_token=0MRY0eLfZW0AAAAA:PD75rM0SB_V37prY2Ey1CPCu5twUrWMoPn5C6tD9sBRuQy5TJ_TeqhzWwmvp41gbrsPtQerZpPI56A">RARE: evolutionary feature engineering for rare-variant bin discovery.</a> In Proceedings of the Genetic and Evolutionary Computation Conference Companion (pp. 1335-1343).)</p>
+<p>The first implementation of FIBERS was developed within it’s own <a class="reference external" href="https://github.com/UrbsLab/FIBERS">GitHub repository</a>, and was applied to an investigation of graft failure in kidney transplantation. (Dasariraju, S., Gragert, L., Wager, G.L., McCullough, K., Brown, N.K., Kamoun, M. and Urbanowicz, R.J., 2023. <a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S1532046423000953?casa_token=HP4rI5N9iFkAAAAA:-NgwMAlLUWlvLzzBHU9qz08mv-evC19YxIsFH5RTiGpSiXEd-uBuOkfZbuBShTwstT50vDnIsrM">HLA amino acid Mismatch-Based risk stratification of kidney allograft failure using a novel Machine learning algorithm.</a> Journal of Biomedical Informatics, 142, p.104374.)</p>
+<p>The first publication detailing scikit-FIBERS (release 0.9.3) was applied and evaluated on simulated right-censored survival data with amino acid mismatch features.
+The code for that is available <a class="reference external" href="https://github.com/UrbsLab/scikit-FIBERS/tree/gecco_dev">here</a>. (Urbanowicz, R., Bandhey, H., Kamoun, M., Fogarty, N. and Hsieh, Y.A., 2023, July. <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3583133.3596393?casa_token=jZEPXXznvuUAAAAA:IdV4u-Q07p8_AEfvnTtLpBJePZzmdR2DsImvtpN0z2mge0tgLwqutEF18q74afpj9pOnQ8OnlxPKjw">Scikit-FIBERS: An’OR’-Rule Discovery Evolutionary Algorithm for Risk Stratification in Right-Censored Survival Analyses.</a> In Proceedings of the Companion Conference on Genetic and Evolutionary Computation (pp. 1846-1854).) This is the synonmous to <a class="reference external" href="https://github.com/UrbsLab/scikit-FIBERS/releases/tag/v1.0-beta">FIBERS 1.0 Release</a>.</p>
+<p>scikit-FIBERS was extended with a prototype adaptive burden thresholding using ‘<a class="reference external" href="https://github.com/UrbsLab/scikit-FIBERS/tree/evostar_24">FIBERS-AT</a>’ approach to allow bins to simulaneously identify the best bin threshold to apply. (Bandhey, H., Sadek, S., Kamoun, M. and Urbanowicz, R., 2024, March. <a class="reference external" href="https://link.springer.com/chapter/10.1007/978-3-031-56855-8_14">Evolutionary Feature-Binning with Adaptive Burden Thresholding for Biomedical Risk Stratification.</a> In International Conference on the Applications of Evolutionary Computation (Part of EvoStar) (pp. 225-239). Cham: Springer Nature Switzerland.)</p>
+<p>Most recently scikit-FIBERS 2.1.0 was released, as a completely redesigned, refactored and expanded implementation. Expansions include (1) a merge operator, (2) variable mutation rate, (3) improved adaptive burden thresholding, (4) a bin diversity pressure deletion mechanism, (5) fitness options based on deviance residuals to estimate covariate adjustments throughout algorithm training, (6) a bin population cleanup option, and (7) a number of other helpful functions to report/save the underlying bin population and generate various visualizations. A publication on scikit-FIBERS 2.1.0 is in preparation.</p>
+<section id="previous-version-comparison-benchmarking">
+<h2>Previous Version Comparison Benchmarking<a class="headerlink" href="#previous-version-comparison-benchmarking" title="Permalink to this heading"></a></h2>
+<p>The repository contains high-performance-cluster running scripts to compare previous releases of FIBERS for the performance benchmarking: FIBERS 1.0, FIBERS AT (adaptive thresholding), and FIBERS v2.1.0 (most recent benchmarked release). Code used to apply FIBERS 1.0 and AT are found within https://github.com/UrbsLab/scikit-FIBERS/tree/main/src_archive. Original sources of these earlier releases are as follows:</p>
+<ol class="arabic simple">
+<li><p>FIBERS 1.0: https://github.com/UrbsLab/scikit-FIBERS/tree/gecco_dev / https://github.com/UrbsLab/scikit-FIBERS/releases/tag/v1.0-beta</p></li>
+<li><p>FIBERS AT: https://github.com/UrbsLab/scikit-FIBERS/tree/evostar_24</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="parameters.html" class="btn btn-neutral float-left" title="Hyperparameters" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="citation.html" class="btn btn-neutral float-right" title="Citing scikit-FIBERS" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Ryan Urbanowicz, Harsh Bandhey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
