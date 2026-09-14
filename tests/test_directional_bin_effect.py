@@ -1,0 +1,743 @@
+import numpy as np
+import pandas as pd
+import random
+from lifelines import KaplanMeierFitter
+from lifelines.utils import restricted_mean_survival_time as lifelines_restricted_mean_survival_time
+
+from src.skfibers.fibers import FIBERS
+from src.skfibers.methods.bin import BIN
+from src.skfibers.methods.population import BIN_SET
+
+
+MANUAL_BIN_COLUMNS = [
+    "feature_list",
+    "group_threshold",
+    "fitness",
+    "pre_fitness",
+    "log_rank_score",
+    "log_rank_p_value",
+    "bin_size",
+    "group_strata_prop",
+    "count_bt",
+    "count_at",
+    "birth_iteration",
+]
+
+
+def restricted_mean_survival_time(outcome, censor, time_point):
+    kmf = KaplanMeierFitter()
+    kmf.fit(outcome, event_observed=censor)
+    return float(lifelines_restricted_mean_survival_time(kmf, t=time_point))
+
+
+def make_manual_population():
+    feature_order = ["F_protect", "F_wrong"] + [f"Noise_{i}" for i in range(8)]
+    rows = []
+    for feature_name in feature_order:
+        rows.append([str([feature_name]), 0, None, None, None, None, None, None, None, None, 0])
+    return pd.DataFrame(rows, columns=MANUAL_BIN_COLUMNS)
+
+
+def make_directional_dataset():
+    rng = np.random.default_rng(42)
+    rows = []
+
+    for i in range(40):
+        row = {
+            "F_protect": 1,
+            "F_wrong": 0,
+            "Duration": 12.0 + (i * 0.05),
+            "Censoring": 0 if i % 6 == 0 else 1,
+        }
+        for j in range(8):
+            row[f"Noise_{j}"] = int(rng.integers(0, 2))
+        rows.append(row)
+
+    for i in range(40):
+        row = {
+            "F_protect": 0,
+            "F_wrong": 1,
+            "Duration": 3.0 + (i * 0.05),
+            "Censoring": 0 if i % 5 == 0 else 1,
+        }
+        for j in range(8):
+            row[f"Noise_{j}"] = int(rng.integers(0, 2))
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def make_base_fibers_kwargs(manual_bin_init):
+    return {
+        "outcome_label": "Duration",
+        "outcome_type": "survival",
+        "iterations": 0,
+        "pop_size": 10,
+        "tournament_prop": 0.5,
+        "crossover_prob": 0.5,
+        "min_mutation_prob": 0.1,
+        "max_mutation_prob": 0.1,
+        "merge_prob": 0.0,
+        "new_gen": 1.0,
+        "elitism": 0.1,
+        "diversity_pressure": 0,
+        "min_bin_size": 1,
+        "max_bin_size": 1,
+        "max_bin_init_size": 1,
+        "fitness_metric": "log_rank",
+        "log_rank_weighting": None,
+        "censor_label": "Censoring",
+        "group_strata_min": 0.2,
+        "penalty": 0.5,
+        "group_thresh": 0,
+        "min_thresh": 0,
+        "max_thresh": 1,
+        "int_thresh": True,
+        "thresh_evolve_prob": 0.5,
+        "manual_bin_init": manual_bin_init,
+        "covariates": None,
+        "pop_clean": None,
+        "report": None,
+        "random_seed": 7,
+        "verbose": False,
+    }
+
+
+def get_pop_row_for_feature(model, feature_name):
+    pop_df = model.get_pop()
+    return pop_df[pop_df["feature_list"].apply(lambda value: value == [feature_name])].iloc[0]
+
+
+def test_omitted_default_matches_explicit_default():
+    data = make_directional_dataset()
+    manual_bin_init = make_manual_population()
+
+    omitted_default = FIBERS(**make_base_fibers_kwargs(manual_bin_init)).fit(data)
+    explicit_default = FIBERS(
+        **make_base_fibers_kwargs(manual_bin_init),
+        desired_bin_effect="default",
+    ).fit(data)
+
+    compared_columns = [
+        "feature_list",
+        "group_threshold",
+        "pre_fitness",
+        "fitness",
+        "log_rank_score",
+        "count_bt",
+        "count_at",
+    ]
+    pd.testing.assert_frame_equal(
+        omitted_default.get_pop()[compared_columns].reset_index(drop=True),
+        explicit_default.get_pop()[compared_columns].reset_index(drop=True),
+    )
+    np.testing.assert_array_equal(
+        omitted_default.predict(data, bin_number=0),
+        explicit_default.predict(data, bin_number=0),
+    )
+    pd.testing.assert_series_equal(
+        omitted_default.transform(data, full_sums=False)["Bin_0"],
+        explicit_default.transform(data, full_sums=False)["Bin_0"],
+        check_names=False,
+    )
+
+
+def test_protective_mode_filters_wrong_direction_bins_and_encodes_presence():
+    data = make_directional_dataset()
+    manual_bin_init = make_manual_population()
+    model = FIBERS(
+        **make_base_fibers_kwargs(manual_bin_init),
+        desired_bin_effect="protective",
+    ).fit(data)
+
+    top_bin = model.set.bin_pop[0]
+    assert top_bin.feature_list == ["F_protect"]
+
+    low_outcome, high_outcome, low_censor, high_censor = model.get_bin_groups(data, 0)
+    time_point = min(max(low_outcome), max(high_outcome))
+    assert restricted_mean_survival_time(high_outcome, high_censor, time_point) > restricted_mean_survival_time(low_outcome, low_censor, time_point)
+
+    wrong_direction_bin = get_pop_row_for_feature(model, "F_wrong")
+    assert wrong_direction_bin["pre_fitness"] == 0.0
+
+    expected_protective = (data["F_protect"] > top_bin.group_threshold).astype(int)
+    np.testing.assert_array_equal(model.predict(data, bin_number=0), expected_protective.to_numpy())
+    pd.testing.assert_series_equal(
+        model.transform(data, full_sums=False)["Bin_0"],
+        expected_protective,
+        check_names=False,
+    )
+
+
+def test_high_risk_mode_filters_wrong_direction_bins_and_preserves_default_encoding():
+    data = make_directional_dataset()
+    manual_bin_init = make_manual_population()
+    model = FIBERS(
+        **make_base_fibers_kwargs(manual_bin_init),
+        desired_bin_effect="high_risk",
+    ).fit(data)
+
+    top_bin = model.set.bin_pop[0]
+    assert top_bin.feature_list == ["F_wrong"]
+
+    low_outcome, high_outcome, low_censor, high_censor = model.get_bin_groups(data, 0)
+    time_point = min(max(low_outcome), max(high_outcome))
+    assert restricted_mean_survival_time(high_outcome, high_censor, time_point) < restricted_mean_survival_time(low_outcome, low_censor, time_point)
+
+    wrong_direction_bin = get_pop_row_for_feature(model, "F_protect")
+    assert wrong_direction_bin["pre_fitness"] == 0.0
+
+    expected_high_risk = (data["F_wrong"] > top_bin.group_threshold).astype(int)
+    np.testing.assert_array_equal(model.predict(data, bin_number=0), expected_high_risk.to_numpy())
+    pd.testing.assert_series_equal(
+        model.transform(data, full_sums=False)["Bin_0"],
+        expected_high_risk,
+        check_names=False,
+    )
+
+
+def test_adaptive_thresholding_respects_default_protective_and_high_risk_modes():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 200) + ([1] * 300) + ([2] * 20),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [1.0 + (i * 0.01) for i in range(200)]
+                + [5.0 + (i * 0.01) for i in range(300)]
+                + [0.5 + (i * 0.01) for i in range(20)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    bin_df = pd.concat(
+        [pd.DataFrame({"feature_sum": feature_df["F"]}), outcome_df, censor_df],
+        axis=1,
+    )
+
+    default_score_threshold_0 = BIN().evaluate_for_threshold(
+        0,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "default",
+    )[0]
+    default_score_threshold_1 = BIN().evaluate_for_threshold(
+        1,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "default",
+    )[0]
+    protective_score_threshold_0 = BIN().evaluate_for_threshold(
+        0,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "protective",
+    )[0]
+    protective_score_threshold_1 = BIN().evaluate_for_threshold(
+        1,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "protective",
+    )[0]
+    high_risk_score_threshold_0 = BIN().evaluate_for_threshold(
+        0,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "high_risk",
+    )[0]
+    high_risk_score_threshold_1 = BIN().evaluate_for_threshold(
+        1,
+        bin_df,
+        "Duration",
+        "Censoring",
+        "survival",
+        "log_rank",
+        None,
+        None,
+        covariate_df,
+        "high_risk",
+    )[0]
+    assert default_score_threshold_1 > default_score_threshold_0
+    assert protective_score_threshold_0 > 0
+    assert protective_score_threshold_1 == 0
+    assert high_risk_score_threshold_0 == 0
+    assert high_risk_score_threshold_1 > 0
+
+    default_bin = BIN()
+    default_bin.feature_list = ["F"]
+    default_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "default",
+        0.2,
+    )
+    assert default_bin.group_threshold == 1
+
+    protective_bin = BIN()
+    protective_bin.feature_list = ["F"]
+    protective_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "protective",
+        0.2,
+    )
+    assert protective_bin.group_threshold == 0
+
+    high_risk_bin = BIN()
+    high_risk_bin.feature_list = ["F"]
+    high_risk_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "high_risk",
+        0.2,
+    )
+    assert high_risk_bin.group_threshold == 1
+    assert high_risk_bin.log_rank_score > 0
+
+
+def test_protective_adaptive_threshold_skips_directionally_valid_thresholds_that_fail_group_strata_min():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 200) + ([1] * 300) + ([2] * 20),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [5.0 for _ in range(200)]
+                + [5.0 for _ in range(300)]
+                + [100.0 for _ in range(20)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    default_bin = BIN()
+    default_bin.feature_list = ["F"]
+    default_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "default",
+        0.2,
+    )
+
+    protective_bin = BIN()
+    protective_bin.feature_list = ["F"]
+    protective_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "protective",
+        0.2,
+    )
+
+    assert default_bin.group_threshold == 1
+    assert protective_bin.group_threshold == 0
+
+
+def test_protective_adaptive_threshold_heavily_penalizes_bin_when_only_direction_valid_threshold_fails_group_strata_min():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 200) + ([1] * 300) + ([2] * 20),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [10.0 for _ in range(200)]
+                + [1.0 for _ in range(300)]
+                + [100.0 for _ in range(20)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    protective_bin = BIN()
+    protective_bin.feature_list = ["F"]
+    protective_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "protective",
+        0.2,
+    )
+    protective_bin.calculate_pre_fitness(0.2, 0.5, "log_rank", ["F"])
+
+    assert protective_bin.group_threshold == 1
+    assert protective_bin.log_rank_score > 0
+    assert protective_bin.pre_fitness > 0
+    assert np.isclose(protective_bin.pre_fitness, protective_bin.log_rank_score * 0.25)
+    assert protective_bin.used_group_strata_fallback is True
+
+
+def test_protective_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 120) + ([1] * 120) + ([2] * 120),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [10.0 + (i * 0.01) for i in range(120)]
+                + [8.0 + (i * 0.01) for i in range(120)]
+                + [1.0 + (i * 0.01) for i in range(120)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    default_bin = BIN()
+    default_bin.feature_list = ["F"]
+    default_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "default",
+        0.2,
+    )
+
+    protective_bin = BIN()
+    protective_bin.feature_list = ["F"]
+    protective_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "protective",
+        0.2,
+    )
+    protective_bin.calculate_pre_fitness(0.2, 0.5, "log_rank", ["F"])
+
+    assert default_bin.group_threshold == 1
+    assert protective_bin.group_threshold == default_bin.group_threshold
+    assert protective_bin.log_rank_score == 0
+    assert protective_bin.pre_fitness == 0
+    assert protective_bin.count_bt == default_bin.count_bt
+    assert protective_bin.count_at == default_bin.count_at
+
+
+def test_high_risk_all_wrong_direction_thresholds_keep_raw_best_threshold_with_zero_score():
+    feature_df = pd.DataFrame(
+        {
+            "F": ([0] * 120) + ([1] * 120) + ([2] * 120),
+        }
+    )
+    outcome_df = pd.DataFrame(
+        {
+            "Duration": (
+                [1.0 + (i * 0.01) for i in range(120)]
+                + [8.0 + (i * 0.01) for i in range(120)]
+                + [10.0 + (i * 0.01) for i in range(120)]
+            ),
+        }
+    )
+    censor_df = pd.DataFrame({"Censoring": [1] * len(feature_df)})
+    covariate_df = pd.DataFrame(index=feature_df.index)
+
+    default_bin = BIN()
+    default_bin.feature_list = ["F"]
+    default_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "default",
+        0.2,
+    )
+
+    high_risk_bin = BIN()
+    high_risk_bin.feature_list = ["F"]
+    high_risk_bin.evaluate(
+        feature_df,
+        outcome_df,
+        censor_df,
+        "survival",
+        "log_rank",
+        None,
+        "Duration",
+        "Censoring",
+        0,
+        1,
+        True,
+        None,
+        False,
+        1,
+        0,
+        None,
+        covariate_df,
+        "high_risk",
+        0.2,
+    )
+    high_risk_bin.calculate_pre_fitness(0.2, 0.5, "log_rank", ["F"])
+
+    assert high_risk_bin.group_threshold == default_bin.group_threshold
+    assert high_risk_bin.log_rank_score == 0
+    assert high_risk_bin.pre_fitness == 0
+    assert high_risk_bin.count_bt == default_bin.count_bt
+    assert high_risk_bin.count_at == default_bin.count_at
+
+
+def test_pop_clean_group_thresh_keeps_best_fallback_bin_when_no_bins_meet_min():
+    population = BIN_SET.__new__(BIN_SET)
+
+    weaker_bin = BIN()
+    weaker_bin.feature_list = ["A"]
+    weaker_bin.group_strata_prop = 0.05
+    weaker_bin.pre_fitness = 4.0
+
+    balanced_but_weaker_bin = BIN()
+    balanced_but_weaker_bin.feature_list = ["B"]
+    balanced_but_weaker_bin.group_strata_prop = 0.12
+    balanced_but_weaker_bin.pre_fitness = 2.0
+
+    balanced_and_stronger_bin = BIN()
+    balanced_and_stronger_bin.feature_list = ["C"]
+    balanced_and_stronger_bin.group_strata_prop = 0.12
+    balanced_and_stronger_bin.pre_fitness = 5.0
+
+    population.bin_pop = [weaker_bin, balanced_but_weaker_bin, balanced_and_stronger_bin]
+
+    population.pop_clean_group_thresh(0.2)
+
+    assert len(population.bin_pop) == 1
+    assert population.bin_pop[0].feature_list == ["C"]
+    assert population.bin_pop[0].group_strata_prop == 0.12
+
+
+def test_similarity_bin_deletion_handles_zero_cluster_fitness_sum():
+    population = BIN_SET.__new__(BIN_SET)
+    population.offspring_pop = []
+    population.feature_tracking = []
+
+    bins = []
+    for feature_name, threshold in [("A", 0), ("B", 0), ("C", 1), ("D", 1)]:
+        bin_obj = BIN()
+        bin_obj.feature_list = [feature_name]
+        bin_obj.group_threshold = threshold
+        bin_obj.fitness = 0.0
+        bin_obj.pre_fitness = 0.0
+        bin_obj.group_strata_prop = 0.0
+        bins.append(bin_obj)
+
+    population.bin_pop = bins
+    population.similarity_bin_deletion(pop_size=4, diversity_pressure=2, elitism=0.1, random=random.Random(7))
+
+    assert len(population.bin_pop) == 4
+    assert all(bin_obj.deletion_prop is not None for bin_obj in population.bin_pop)
+
+
+def test_mutation_handles_add_swap_after_deletion_without_empty_choice_crash():
+    class ControlledRandom:
+        def __init__(self):
+            self.random_values = iter([0.0] * 10)
+            self.choice_values = iter(["D", "A", "A", "A", "A"])
+
+        def random(self):
+            return next(self.random_values, 0.0)
+
+        def choice(self, seq):
+            candidate = next(self.choice_values, seq[0])
+            if candidate in seq:
+                return candidate
+            return seq[0]
+
+    bin_obj = BIN()
+    bin_obj.feature_list = ["A", "B"]
+    bin_obj.group_threshold = 0
+
+    bin_obj.mutation(
+        mutation_prob=1.0,
+        feature_names=["A", "B"],
+        min_bin_size=1,
+        max_bin_size=2,
+        max_bin_init_size=2,
+        threshold_evolving=False,
+        min_thresh=0,
+        max_thresh=1,
+        random=ControlledRandom(),
+    )
+
+    assert len(bin_obj.feature_list) >= 1
+    assert set(bin_obj.feature_list).issubset({"A", "B"})
+
+
+def test_random_initialization_caps_bin_size_to_available_features():
+    bin_obj = BIN()
+    bin_obj.initialize_random(
+        feature_names=["A", "B"],
+        min_bin_size=1,
+        max_bin_init_size=10,
+        group_thresh=0,
+        min_thresh=0,
+        max_thresh=1,
+        iteration=0,
+        random=random.Random(7),
+    )
+
+    assert 1 <= len(bin_obj.feature_list) <= 2

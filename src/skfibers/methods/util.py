@@ -523,9 +523,7 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
 
     for feature in graph_df.columns: #for each feature
         if feature in index_dict:
-            for i in range(len(graph_df[feature])):
-                if graph_df[feature][i] == 1:
-                    graph_df[feature][i] = index_dict[feature]
+            graph_df.loc[graph_df[feature] == 1, feature] = index_dict[feature]
     num_bins = len(population) #tmp
 
     #Identify if one group is not represented (to readjust colors used in colormap)
@@ -545,7 +543,7 @@ def plot_custom_bin_population_heatmap(population,feature_names,group_names,lege
         for i in range(0,len(group_names)):
             count = (graph_df == code).sum().sum()
             if count == 0:
-                graph_df = graph_df.applymap(lambda x: x - 1 if x > code else x)
+                graph_df = graph_df.where(graph_df <= code, graph_df - 1)
             else:
                 code +=1
 

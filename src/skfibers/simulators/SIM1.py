@@ -2,7 +2,6 @@ import random
 import copy
 import numpy as np
 import pandas as pd
-pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def survival_data_simulation(instances=10000, total_features=100, predictive_features=10, low_risk_proportion=0.5, threshold = 0, 
@@ -174,9 +173,10 @@ def survival_data_simulation(instances=10000, total_features=100, predictive_fea
         swap_count = int(min(len(df_0), len(df_1)) * noise_frequency)
         indexes = random.sample(list(range(min(len(df_0), len(df_1)))), swap_count)
         for i in indexes:
-            df_0['Censoring'].iloc[i], df_1['Censoring'].iloc[i] = df_1['Censoring'].iloc[i].copy(), df_0['Censoring'].iloc[i].copy()
-            df_0['Duration'].iloc[i], df_1['Duration'].iloc[i] = df_1['Duration'].iloc[i].copy(), df_0['Duration'].iloc[i].copy()
-            df_0['TrueRiskGroup'].iloc[i], df_1['TrueRiskGroup'].iloc[i] = df_1['TrueRiskGroup'].iloc[i].copy(), df_0['TrueRiskGroup'].iloc[i].copy()
+            for column in ['Censoring', 'Duration', 'TrueRiskGroup']:
+                df_0_value = df_0.at[i, column]
+                df_0.at[i, column] = df_1.at[i, column]
+                df_1.at[i, column] = df_0_value
 
     df = pd.concat([df_0, df_1]).sample(frac=1).reset_index(drop=True)
     print("Random Number Check: "+str(random.randint(0,100000)))
@@ -235,12 +235,12 @@ def censor(df, censoring_frequency, random_seed=None):
             np.random.seed(random_seed + count)
         for index in range(len(df)):
             prob = df['Duration'].iloc[index] / max_duration
-            choice = np.random.choice([0, 1], 1, p=[prob, 1 - prob])
+            choice = np.random.choice([0, 1], p=[prob, 1 - prob])
             if censor_count >= inst_to_censor:
                 break
             if choice == 0:
                 censor_count += 1
-            df['Censoring'].iloc[index] = choice
+            df.loc[index, 'Censoring'] = choice
             count += 1
     return df
 

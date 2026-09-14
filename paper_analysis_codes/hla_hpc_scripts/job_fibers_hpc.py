@@ -7,6 +7,8 @@ sys.path.append('/project/kamoun_shared/code_shared/scikit-FIBERS/')
 from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
+VALID_EFFECTS = ("default", "protective", "high_risk")
+
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description='')
@@ -44,6 +46,7 @@ def main(argv):
     parser.add_argument('--at', dest='max_thresh', help='maximum threshold', type=int, default=5)
     #int_thresh
     parser.add_argument('--te', dest='thresh_evolve_prob', help='threshold evolution probability', type=float, default=0.5)
+    parser.add_argument('--de', dest='desired_bin_effect', help='desired bin effect', type=str, choices=VALID_EFFECTS, default='default')
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default='None')
 
@@ -96,6 +99,7 @@ def main(argv):
     max_thresh = options.max_thresh 
     #int_thresh = options.int_thresh
     thresh_evolve_prob = options.thresh_evolve_prob
+    desired_bin_effect = options.desired_bin_effect
     covariates = None #Manually included in script
     if options.pop_clean == 'None':
         pop_clean = None
@@ -201,7 +205,8 @@ def main(argv):
                     new_gen=new_gen, elitism=elitism, diversity_pressure=diversity_pressure, min_bin_size=min_bin_size, max_bin_size=max_bin_size,
                     max_bin_init_size=max_bin_init_size, fitness_metric=fitness_metric, log_rank_weighting=log_rank_weighting, censor_label=censor_label, 
                     group_strata_min=group_strata_min, penalty=penalty, group_thresh=group_thresh, min_thresh=min_thresh, max_thresh=max_thresh,
-                    int_thresh=True, thresh_evolve_prob=thresh_evolve_prob, manual_bin_init=manual_bin_init, covariates=covariates, pop_clean=pop_clean,  
+                    int_thresh=True, thresh_evolve_prob=thresh_evolve_prob, desired_bin_effect=desired_bin_effect,
+                    manual_bin_init=manual_bin_init, covariates=covariates, pop_clean=pop_clean,
                     report=None, random_seed=random_seed, verbose=False)
 
     fibers = fibers.fit(data)
