@@ -60,6 +60,7 @@ inquiries related to scikit-FIBERS.
    data
    running
    parameters
+   multi_group
    directional_modes
    history
    citation

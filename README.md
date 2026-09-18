@@ -130,6 +130,7 @@ While scikit_FIBERS has a number of available hyperparameters only a few are con
   * The *group_thresh* hyperparameter controls the adaptive burden thresholding in FIBERS, where 'None' activates this mechanism, and an integer value (e.g. 0), will enforce a specific burden threshold for all discovered bins. Related to this, *max_thresh* controls the maximum burden threshold allowed in bins, assuming *group_thresh* = None. Also related to adaptive burden thresholding, the *thresh_evolve_prob* (set between 0.0 and 1.0) can lead to better performance when set closer to 1.0, but requires significantly more runtime. 
   * The *group_strata_min* hyperparameter (set as > 0.0 and < 0.5) enforces a minimum instance count balance between risk groups, where 0.5 describes two risk groups with the same instance count. 
   * The *desired_bin_effect* hyperparameter preserves the raw default behavior, requires protective bins where the *> threshold* group has better censoring-aware survival, or requires high-risk bins where that group has worse survival.
+  * The opt-in *multi_thresholding* mode evaluates both one-threshold/2-group and two-threshold/3-group bins. Use *group_thresh_list* to fix one or two thresholds, or leave it as None for adaptive search.
   * The *manual_bin_init* hyperparameter allows users to load an existing set of candidate bins for FIBERS to start learning from, rather than starting from randomly initialized bins. The value of using this function depends on the quality of the loaded bins, however utilizing expert (i.e. domain) knowledge to design candidate bins before running FIBERS has the potential to dramatically improve or speed up learning in larger or more complex tasks. 
   * Lastly, *pop_clean* = 'group_strata' applies a post-hoc cleaning of the bin population, removing any remaining bins that have a risk group instance count ratio below the *group_strata_min*. 
 
@@ -142,6 +143,8 @@ While scikit_FIBERS has a number of available hyperparameters only a few are con
 | *thresh_evolve_prob* | Probability that an optimization cycle will evolve vs. deterministically select a group threshold for new bin evaluation | float | 0.5 |
 | *group_strata_min* | Min. cutoff for group strata sizes below which a pre-fitness penalty is applied to bin | float | 0.2 |
 | *desired_bin_effect* | Optional survival-direction mode | 'default', 'protective', 'high_risk' | 'default' |
+| *multi_thresholding* | Evaluate both 2-group and 3-group bins | Boolean | False |
+| *group_thresh_list* | Optional fixed threshold list for multi-group mode | list of 1-2 increasing values, None | None |
 | *manual_bin_init* | Dataframe of FIBERS-formatted bin population used to initialize the bin population | dataframe, None | None |
 | *pop_clean* | Optional bin population cleanup strategy | 'group_strata', None | None |
 
@@ -158,6 +161,10 @@ If a bin points in the wrong direction, its applicable log-rank and/or residual 
 The binary output convention does not change between modes: `predict()` and `transform(..., full_sums=False)` encode the above-threshold group as `1` and the below-threshold group as `0`. Consequently, `1` identifies the protective group in `protective` mode and the high-risk group in `high_risk` mode.
 
 RMST acts as a direction gate rather than the optimization score: candidates that pass are still ranked by the selected log-rank, residual, or product fitness metric. The RMST comparison is based on the observed survival and censoring columns; covariates can affect residual-based fitness, but they do not adjust the direction gate itself. The constraint is applied during initialization and offspring evaluation throughout training, not only as a post-hoc filter. See the [protective and high-risk mode guide](docs/source/directional_modes.md) for the complete evaluation sequence, fallback rules, a worked example, and interpretation cautions.
+
+### Two- and three-group thresholding
+
+Set `multi_thresholding=True` to let FIBERS learn either one threshold (groups `0` and `1`) or two thresholds (low/middle/high groups `0`, `1`, and `2`). Two-group bins use the existing log-rank score; three-group bins average low-high, low-middle, and middle-high pairwise log-rank statistics. The mode is disabled by default, so existing runs are unchanged. Multi-group runs currently require `desired_bin_effect="default"`. See the [multi-group guide](docs/source/multi_group.md) for adaptive and fixed thresholds, genetic operators, prediction behavior, and helper methods.
 
 * The remaining hyperparameters in the table below can largely be left to their default values by most users. 
 
