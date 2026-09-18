@@ -63,7 +63,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param group_strata_min: the minimum cuttoff for group-strata sizes (instance count) below which bins have pre-fitness penalizaiton applied
         :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
         :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
-        :param desired_bin_effect: controls survival direction filtering ['default','protective','high_risk']
+        :param desired_bin_effect: controls survival direction filtering ['default','protective','high_risk']. Directional modes compare the censoring-aware restricted mean survival time of samples above and below the bin threshold. 'protective' requires better survival above the threshold, while 'high_risk' requires worse survival above the threshold. Directionally invalid candidates receive zero applicable fitness. Binary outputs still encode above-threshold samples as 1 in every mode.
 
         ..
             Adaptive Bin Threshold Parameters

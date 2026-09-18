@@ -8,6 +8,30 @@ fibers = FIBERS(outcome_label="Duration", iterations=100, pop_size=50, fitness_m
 fibers = fibers.fit(train_data)
 ```
 
+## Selecting a survival direction
+
+By default, FIBERS searches for bins that separate the survival curves without requiring the above-threshold group to have a particular survival direction. Set *desired_bin_effect* when the scientific question specifically concerns protective or high-risk feature burdens:
+
+```
+protective_fibers = FIBERS(
+    outcome_label="Duration",
+    censor_label="Censoring",
+    fitness_metric="log_rank",
+    desired_bin_effect="protective",
+)
+protective_fibers.fit(train_data)
+
+high_risk_fibers = FIBERS(
+    outcome_label="Duration",
+    censor_label="Censoring",
+    fitness_metric="log_rank",
+    desired_bin_effect="high_risk",
+)
+high_risk_fibers.fit(train_data)
+```
+
+In both cases, samples with a bin sum greater than the selected threshold are encoded as `1`. In the protective model, this above-threshold group has better censoring-aware survival; in the high-risk model, it has worse censoring-aware survival. See [Protective and high-risk modes](directional_modes.md) for the RMST direction test, interaction with fitness metrics and covariates, invalid-bin behavior, adaptive-threshold fallback rules, and a worked example.
+
 ## Testing Evaluation
 Once trained, FIBERS can be applied to make risk group predictions on a testing dataset that only includes potentially predictive feature columns (i.e. no time-to-event, censoring, or covariate columns). First, the feature columns alone are loaded as a dataframe. Next, FIBERS's predict() function is called with the *bin_number* parameter set to the bin 'index' in the bin population to be used as a predictive model. Index '0' is the bin with the highest fitness by default. Lastly, assuming we have the true risk groups of each testing instance (saved as a single-column dataframe) we can optionally generate a classification report comparing risk group predictions to true risk group values. 
 

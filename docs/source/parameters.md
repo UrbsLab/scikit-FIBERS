@@ -20,6 +20,7 @@ While scikit_FIBERS has a number of available hyperparameters only a few are con
   * In general, setting *iterations* and *pop_size* to larger integers is expected to improve training performance, but will require longer run times. 
   * The *group_thresh* hyperparameter controls the adaptive burden thresholding in FIBERS, where 'None' activates this mechanism, and an integer value (e.g. 0), will enforce a specific burden threshold for all discovered bins. Related to this, *max_thresh* controls the maximum burden threshold allowed in bins, assuming *group_thresh* = None. Also related to adaptive burden thresholding, the *thresh_evolve_prob* (set between 0.0 and 1.0) can lead to better performance when set closer to 1.0, but requires significantly more runtime. 
   * The *group_strata_min* hyperparameter (set as > 0.0 and < 0.5) enforces a minimum instance count balance between risk groups, where 0.5 describes two risk groups with the same instance count. 
+  * The *desired_bin_effect* hyperparameter determines whether FIBERS accepts either survival direction, only protective bins, or only high-risk bins. Direction is evaluated using censoring-aware restricted mean survival time.
   * The *manual_bin_init* hyperparameter allows users to load an existing set of candidate bins for FIBERS to start learning from, rather than starting from randomly initialized bins. The value of using this function depends on the quality of the loaded bins, however utilizing expert (i.e. domain) knowledge to design candidate bins before running FIBERS has the potential to dramatically improve or speed up learning in larger or more complex tasks. 
   * Lastly, *pop_clean* = 'group_strata' applies a post-hoc cleaning of the bin population, removing any remaining bins that have a risk group instance count ratio below the *group_strata_min*. 
 
@@ -31,8 +32,42 @@ While scikit_FIBERS has a number of available hyperparameters only a few are con
 | *max_thresh* | Maximum group threshold for adaptive thresholding | int | 5 |
 | *thresh_evolve_prob* | Probability that an optimization cycle will evolve vs. deterministically select a group threshold for new bin evaluation | float | 0.5 |
 | *group_strata_min* | Min. cutoff for group strata sizes below which a pre-fitness penalty is applied to bin | float | 0.2 |
+| *desired_bin_effect* | Optional survival-direction mode | 'default', 'protective', 'high_risk' | 'default' |
 | *manual_bin_init* | Dataframe of FIBERS-formatted bin population used to initialize the bin population | dataframe, None | None |
 | *pop_clean* | Optional bin population cleanup strategy | 'group_strata', None | None |
+
+## Directional bin-effect modes
+
+Each candidate bin defines a **bin sum** for every sample by summing the values of the features included in that bin. The selected burden threshold then creates two groups:
+
+* **Below threshold:** bin sum <= threshold.
+* **Above threshold:** bin sum > threshold.
+
+For `protective` and `high_risk` modes, FIBERS fits Kaplan-Meier survival estimates for the two groups and compares their restricted mean survival time (RMST). The comparison uses the latest follow-up time shared by both groups, defined as the smaller of their maximum observed durations. This provides a censoring-aware direction check over a time range supported by both groups.
+
+### `default`
+
+This is the backward-compatible behavior used when *desired_bin_effect* is omitted. The above-threshold group may have either better or worse survival. Candidate bins and thresholds are ranked only by the configured *fitness_metric*.
+
+### `protective`
+
+The above-threshold group must have a strictly higher RMST than the below-threshold group. This mode searches for feature burdens whose presence is associated with better survival. Equal RMST values do not satisfy the protective direction.
+
+### `high_risk`
+
+The above-threshold group must have a strictly lower RMST than the below-threshold group. This mode searches for feature burdens whose presence is associated with worse survival. Equal RMST values do not satisfy the high-risk direction.
+
+For a candidate that does not match the requested direction, FIBERS sets its applicable log-rank and/or residual score to zero. When adaptive thresholding is enabled with `group_thresh=None`, thresholds are evaluated in the following order of preference:
+
+1. The best threshold that satisfies both the requested direction and *group_strata_min*.
+2. If none satisfies both, the best directionally valid threshold; the normal group-balance penalty is applied, including an additional fallback penalty.
+3. If no threshold has the requested direction, the best available fallback remains directionally invalid and therefore has zero directional fitness.
+
+When a fixed *group_thresh* is supplied, that threshold is checked directly against the selected direction rather than searching the threshold range.
+
+The output encoding is always based on threshold membership, not the semantic label of the group. `predict()` and `transform(..., full_sums=False)` return `1` for above-threshold samples and `0` for below-threshold samples. Therefore, `1` represents the protective group in `protective` mode but the high-risk group in `high_risk` mode.
+
+See [Protective and high-risk modes](directional_modes.md) for the full evaluation sequence, interaction with each fitness metric, covariate interpretation, a worked RMST example, and output semantics.
 
 * The remaining hyperparameters in the table below can largely be left to their default values by most users. 
 
