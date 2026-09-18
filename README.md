@@ -25,7 +25,7 @@ Package information: ![Python 3.9](https://img.shields.io/badge/python-3.9-blue.
 
 scikit-FIBERS can be used directly as a **modeling strategy**, by training a bin population and using the predict() function to apply the discovered bin with the highest fitness as a predictive model of risk group assigment. It can also be used as a **feature learning algorithm**, by training a bin population and using the transform() function to convert each discovered bin in the population into corresponding dataset features for additional downstream machine learning modeling. 
 
-The scikit-FIBERS algorithm seeks to automatically identify and optimize a population of 'candidate bins' that maximize time-to-event differences between high and low risk groups. A 'bin' is a subset of features and an associated 'burden threshold' that together differentiate instances into high vs. low risk instance groups. Instances that have a bin sum (of feature values) greater than the threshold are assigend to the high-risk group, and all others to the low-risk group. The fitness (i.e. quality) of bins in the candidate bin population drives evolutionary algorithm learning. 
+The scikit-FIBERS algorithm seeks to automatically identify and optimize a population of 'candidate bins' that maximize time-to-event differences between high and low risk groups. A 'bin' is a subset of features and an associated 'burden threshold' that together differentiate instances into two risk groups. Instances with a bin sum greater than the threshold are assigned to the above-threshold group, and all others to the below-threshold group. The fitness (i.e. quality) of bins in the candidate bin population drives evolutionary algorithm learning.
 
 A schematic detailing how the scikit-FIBERS algorithm works is given below:
 
@@ -144,6 +144,20 @@ While scikit_FIBERS has a number of available hyperparameters only a few are con
 | *desired_bin_effect* | Optional survival-direction mode | 'default', 'protective', 'high_risk' | 'default' |
 | *manual_bin_init* | Dataframe of FIBERS-formatted bin population used to initialize the bin population | dataframe, None | None |
 | *pop_clean* | Optional bin population cleanup strategy | 'group_strata', None | None |
+
+### Directional bin-effect modes
+
+For every candidate bin and burden threshold, FIBERS separates the training samples into a below-threshold group (bin sum <= threshold) and an above-threshold group (bin sum > threshold). In the directional modes, it fits Kaplan-Meier survival estimates for both groups and compares their restricted mean survival time (RMST). RMST is evaluated through the latest follow-up time shared by both groups, which makes the direction check censoring-aware.
+
+* `desired_bin_effect="default"` preserves the original, non-directional behavior. Bins are ranked using the selected fitness metric without requiring the above-threshold group to have better or worse survival.
+* `desired_bin_effect="protective"` requires the above-threshold group to have a strictly higher RMST than the below-threshold group. A larger burden of the bin's features is therefore associated with better survival.
+* `desired_bin_effect="high_risk"` requires the above-threshold group to have a strictly lower RMST than the below-threshold group. A larger feature burden is therefore associated with worse survival.
+
+If a bin points in the wrong direction, its applicable log-rank and/or residual fitness score is set to zero. With adaptive thresholding (`group_thresh=None`), FIBERS first looks for the best threshold that satisfies both the requested direction and *group_strata_min*. If none does, it prefers a directionally valid threshold and applies the group-balance penalty. If no threshold has the requested direction, the fallback remains directionally invalid and receives zero directional fitness.
+
+The binary output convention does not change between modes: `predict()` and `transform(..., full_sums=False)` encode the above-threshold group as `1` and the below-threshold group as `0`. Consequently, `1` identifies the protective group in `protective` mode and the high-risk group in `high_risk` mode.
+
+RMST acts as a direction gate rather than the optimization score: candidates that pass are still ranked by the selected log-rank, residual, or product fitness metric. The RMST comparison is based on the observed survival and censoring columns; covariates can affect residual-based fitness, but they do not adjust the direction gate itself. The constraint is applied during initialization and offspring evaluation throughout training, not only as a post-hoc filter. See the [protective and high-risk mode guide](docs/source/directional_modes.md) for the complete evaluation sequence, fallback rules, a worked example, and interpretation cautions.
 
 * The remaining hyperparameters in the table below can largely be left to their default values by most users. 
 

@@ -22,7 +22,7 @@ copyright = '2023, Ryan Urbanowicz, Harsh Bandhey'
 author = 'Ryan Urbanowicz, Harsh Bandhey'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = '2.2.1'
 
 
 # -- General configuration ---------------------------------------------------

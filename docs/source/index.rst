@@ -9,7 +9,7 @@ FIBERS (Feature Inclusion Bin Evolver for Risk Stratification) is an evolutionar
 
 scikit-FIBERS can be used directly as a 'modeling strategy', by training a bin population and using the predict() function to apply the discovered bin with the highest fitness as a predictive model of risk group assigment. It can also be used as a 'feature learning algorithm', by training a bin population and using the transform() function to convert each discovered bin in the population into corresponding dataset features for additional downstream machine learning modeling. 
 
-The scikit-FIBERS algorithm seeks to automatically identify and optimize a population of 'candidate bins' that maximize time-to-event differences between high and low risk groups. A 'bin' is a subset of features and an associated 'burden threshold' that together differentiate instances into high vs. low risk instance groups. Instances that have a bin sum (of feature values) greater than the threshold are assigend to the high-risk group, and all others to the low-risk group. The fitness (i.e. quality) of bins in the candidate bin population drives evolutionary algorithm learning. 
+The scikit-FIBERS algorithm seeks to automatically identify and optimize a population of 'candidate bins' that maximize time-to-event differences between high and low risk groups. A 'bin' is a subset of features and an associated 'burden threshold' that together differentiate instances into two risk groups. Instances with a bin sum greater than the threshold are assigned to the above-threshold group, and all others to the below-threshold group. The fitness (i.e. quality) of bins in the candidate bin population drives evolutionary algorithm learning.
 
 A schematic detailing how the scikit-FIBERS algorithm works is given below:
 
@@ -60,8 +60,7 @@ inquiries related to scikit-FIBERS.
    data
    running
    parameters
+   directional_modes
    history
    citation
    modules
-
-
