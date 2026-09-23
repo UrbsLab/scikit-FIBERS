@@ -14,7 +14,7 @@ class BIN_SET:
     def __init__(self,manual_bin_init,df,feature_names,pop_size,min_bin_size,max_bin_init_size,
                  group_thresh,min_thresh,max_thresh,int_thresh,outcome_type,fitness_metric,log_rank_weighting,group_strata_min,
                  outcome_label,censor_label,threshold_evolving,penalty,iterations,iteration,residuals,covariates,random,
-                 desired_bin_effect=None,multi_thresholding=False,group_thresh_list=None):
+                 desired_bin_effect=None,n_groups=2,group_thresh_list=None):
         #Initialize bin population
         self.bin_pop = []
         self.offspring_pop = []
@@ -25,7 +25,7 @@ class BIN_SET:
                 feature_value = row["feature_list"] if "feature_list" in row.index else row.iloc[0]
                 feature_list = ast.literal_eval(feature_value) if isinstance(feature_value, str) else feature_value
                 loaded_bin = [str(item).strip("[]'") for item in feature_list]
-                if multi_thresholding and "group_threshold_list" in row.index and isinstance(row["group_threshold_list"], (list, tuple, np.ndarray)) and len(row["group_threshold_list"]) > 0:
+                if n_groups == 3 and "group_threshold_list" in row.index and isinstance(row["group_threshold_list"], (list, tuple, np.ndarray)) and len(row["group_threshold_list"]) > 0:
                     loaded_thresh = row["group_threshold_list"]
                 elif "group_threshold" in row.index:
                     loaded_thresh = row["group_threshold"]
@@ -34,11 +34,11 @@ class BIN_SET:
                 birth_iteration = row["birth_iteration"] if "birth_iteration" in row.index else row.iloc[10]
                 new_bin = BIN()
                 new_bin.initialize_manual(feature_names,loaded_bin,loaded_thresh,group_thresh,min_thresh,max_thresh,birth_iteration,
-                                          multi_thresholding,group_thresh_list)
+                                          n_groups,group_thresh_list)
                 # Bin metric score evaluation
                 new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],
-                                 desired_bin_effect,group_strata_min,multi_thresholding,group_thresh_list)
+                                 desired_bin_effect,group_strata_min,n_groups,group_thresh_list)
                 # Fitness metric calculation based on bin metric score
                 new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names) 
                 #Add new bin to population
@@ -48,14 +48,14 @@ class BIN_SET:
         while len(self.bin_pop) < pop_size:
             new_bin = BIN()
             new_bin.initialize_random(feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random,
-                                      multi_thresholding,group_thresh_list)
+                                      n_groups,group_thresh_list)
             # Check for duplicate rules based on feature list and threshold
             while self.equivalent_bin_in_pop(new_bin,iteration): # May slow down evolutionary cycles if new bins aren't found right away
-                new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+                new_bin.random_bin(feature_names,min_bin_size,max_bin_init_size,random,n_groups,min_thresh,max_thresh,group_thresh_list)
             # Bin metric score evaluation
             new_bin.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                                 censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],
-                                desired_bin_effect,group_strata_min,multi_thresholding,group_thresh_list)
+                                desired_bin_effect,group_strata_min,n_groups,group_thresh_list)
             # Fitness metric calculation based on bin metric score
             new_bin.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names) 
             #Add new bin to population
@@ -114,7 +114,7 @@ class BIN_SET:
     def generate_offspring(self,crossover_prob,mutation_prob,merge_prob,iterations,iteration,parent_list,feature_names,threshold_evolving,min_bin_size,max_bin_size,
                            max_bin_init_size,min_thresh,max_thresh,df,outcome_type,fitness_metric,log_rank_weighting,
                            outcome_label,censor_label,int_thresh,group_thresh,group_strata_min,penalty,residuals,covariates,random,
-                           desired_bin_effect,multi_thresholding=False,group_thresh_list=None):
+                           desired_bin_effect,n_groups=2,group_thresh_list=None):
         # Clone Parents
         offspring_1 = BIN()
         offspring_2 = BIN()
@@ -124,36 +124,36 @@ class BIN_SET:
         if random.random() < merge_prob: #Generate a single novel bin that is the combination of the two parent bins (yielding 3 total bins created during this mating)
             offspring_3 = BIN()
             offspring_3.copy_parent(parent_list[0],iteration)
-            offspring_3.merge(parent_list[1],max_bin_size,threshold_evolving,max_thresh,random,multi_thresholding)
+            offspring_3.merge(parent_list[1],max_bin_size,threshold_evolving,max_thresh,random,n_groups)
             # Check for duplicate rules based on feature list and threshold
             while self.equivalent_bin_in_pop(offspring_3,iteration): # May slow down evolutionary cycles if new bins arent' found right away
-                offspring_3.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+                offspring_3.random_bin(feature_names,min_bin_size,max_bin_init_size,random,n_groups,min_thresh,max_thresh,group_thresh_list)
             offspring_3.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                                 int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],desired_bin_effect,group_strata_min,
-                                multi_thresholding,group_thresh_list)
+                                n_groups,group_thresh_list)
             offspring_3.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
             if not self.equivalent_bin_in_pop(offspring_3,iteration):
                 self.offspring_pop.append(offspring_3)
 
         # Crossover
         if random.random() < crossover_prob:
-            offspring_1.uniform_crossover(offspring_2,threshold_evolving,random,multi_thresholding)
+            offspring_1.uniform_crossover(offspring_2,threshold_evolving,random,n_groups)
 
         # Mutation - check for duplicate rules
-        legacy_default = not multi_thresholding and desired_bin_effect == "default"
+        legacy_default = n_groups == 2 and desired_bin_effect == "default"
         offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random,
-                             multi_thresholding,legacy_default)
+                             n_groups,legacy_default)
         offspring_2.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random,
-                             multi_thresholding,legacy_default)
+                             n_groups,legacy_default)
 
         # Check for duplicate bins based on feature list and threshold
         while self.equivalent_bin_in_pop(offspring_1,iteration): # May slow down evolutionary cycles if new bins arent' found right away
-            offspring_1.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+            offspring_1.random_bin(feature_names,min_bin_size,max_bin_init_size,random,n_groups,min_thresh,max_thresh,group_thresh_list)
 
         # Offspring 1 Evalution 
         offspring_1.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],desired_bin_effect,group_strata_min,
-                             multi_thresholding,group_thresh_list)
+                             n_groups,group_thresh_list)
         offspring_1.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
         #Add New Offspring 1 to the Population
@@ -162,12 +162,12 @@ class BIN_SET:
 
         # Check for duplicate bins based on feature list and threshold
         while self.equivalent_bin_in_pop(offspring_2,iteration): # May slow down evolutionary cycles if new bins arent' found right away
-            offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random)
+            offspring_2.random_bin(feature_names,min_bin_size,max_bin_init_size,random,n_groups,min_thresh,max_thresh,group_thresh_list)
 
         # Offspring 2 Evalution 
         offspring_2.evaluate(df.loc[:,feature_names],df.loc[:,outcome_label],df.loc[:,censor_label],outcome_type,fitness_metric,log_rank_weighting,outcome_label,censor_label,min_thresh,max_thresh,
                              int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,df.loc[:,covariates],desired_bin_effect,group_strata_min,
-                             multi_thresholding,group_thresh_list)
+                             n_groups,group_thresh_list)
         offspring_2.calculate_pre_fitness(group_strata_min,penalty,fitness_metric,feature_names)
 
         #Add New Offspring 2 to the Population

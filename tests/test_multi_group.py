@@ -60,7 +60,7 @@ def make_multi_model(**overrides):
         "group_thresh": None,
         "min_thresh": 0,
         "max_thresh": 2,
-        "multi_thresholding": True,
+        "n_groups": 3,
         "group_thresh_list": [0, 1],
         "manual_bin_init": make_manual_population([0, 1]),
         "random_seed": 11,
@@ -103,41 +103,53 @@ def test_multi_group_helpers_return_all_three_strata_without_changing_legacy_hel
         model.get_bin_groups(data, bin_index=0)
 
 
-def test_multi_group_threshold_operators_keep_one_or_two_unique_ordered_thresholds():
+def test_three_group_threshold_operators_keep_two_unique_ordered_thresholds():
     bin_obj = BIN()
     bin_obj.feature_list = ["F0"]
-    bin_obj.set_thresholds([0])
+    bin_obj.set_thresholds([0, 1])
     rng = random.Random(4)
 
     for _ in range(20):
         bin_obj.mutation(
             1.0, ["F0", "F1"], 1, 2, 1, True, 0, 3, rng,
-            multi_thresholding=True,
+            n_groups=3,
         )
-        assert 1 <= len(bin_obj.group_threshold_list) <= 2
+        assert len(bin_obj.group_threshold_list) == 2
         assert bin_obj.group_threshold_list == sorted(set(bin_obj.group_threshold_list))
         assert all(0 <= threshold <= 3 for threshold in bin_obj.group_threshold_list)
 
 
-def test_adaptive_multi_group_search_evaluates_single_thresholds_and_pairs():
+def test_three_group_evolution_never_changes_the_group_count():
+    data = make_three_group_dataset()
+    model = make_multi_model(
+        iterations=1,
+        max_bin_size=2,
+        max_bin_init_size=2,
+    ).fit(data)
+
+    assert model.n_groups == 3
+    assert all(len(bin_obj.group_threshold_list) == 2 for bin_obj in model.set.bin_pop)
+
+
+def test_adaptive_three_group_search_evaluates_threshold_pairs_only():
     bin_obj = BIN()
     seen = []
 
     def fake_evaluation(thresholds, *args):
         seen.append(list(thresholds))
-        score = 10.0 if len(thresholds) == 2 else 1.0
-        middle_count = 1 if len(thresholds) == 2 else 0
-        proportions = [1 / 3, 1 / 3, 1 / 3] if len(thresholds) == 2 else [0.5, 0.5]
-        pairwise = [10.0, 10.0, 10.0] if len(thresholds) == 2 else []
+        score = 10.0
+        middle_count = 1
+        proportions = [1 / 3, 1 / 3, 1 / 3]
+        pairwise = [10.0, 10.0, 10.0]
         return score, 0.01, None, None, 1, middle_count, 1, pairwise, proportions, True
 
     bin_obj.evaluate_for_thresholds = fake_evaluation
-    bin_obj.evaluate_multi_thresholds(
+    bin_obj.evaluate_three_group_thresholds(
         pd.DataFrame(), "Duration", "Censoring", "survival", "log_rank",
         None, 0, 2, None, False, 5, 0, None, pd.DataFrame(), "default", 0.2,
     )
 
-    assert seen == [[0, 1], [0, 2], [1, 2], [0], [1], [2]]
+    assert seen == [[0, 1], [0, 2], [1, 2]]
     assert bin_obj.group_threshold_list == [0, 1]
 
 
@@ -147,16 +159,16 @@ def test_adaptive_multi_group_search_prefers_directionally_valid_configuration(d
 
     def fake_evaluation(thresholds, *args):
         evaluated_effect = args[-1]
-        raw_score = 12.0 if thresholds == [2] else 8.0
+        raw_score = 12.0 if thresholds == [1, 2] else 8.0
         directionally_valid = thresholds == [0, 1]
         score = raw_score if evaluated_effect == "default" or directionally_valid else 0.0
-        middle_count = 20 if len(thresholds) == 2 else 0
-        proportions = [1 / 3, 1 / 3, 1 / 3] if len(thresholds) == 2 else [0.5, 0.5]
-        pairwise = [score, score, score] if len(thresholds) == 2 else []
+        middle_count = 20
+        proportions = [1 / 3, 1 / 3, 1 / 3]
+        pairwise = [score, score, score]
         return score, 0.01, None, None, 20, middle_count, 20, pairwise, proportions, directionally_valid
 
     bin_obj.evaluate_for_thresholds = fake_evaluation
-    bin_obj.evaluate_multi_thresholds(
+    bin_obj.evaluate_three_group_thresholds(
         pd.DataFrame(), "Duration", "Censoring", "survival", "log_rank",
         None, 0, 2, None, False, 5, 0, None, pd.DataFrame(), desired_effect, 0.2,
     )
@@ -178,11 +190,21 @@ def test_multi_group_applies_directional_order_across_three_strata(desired_effec
     assert nonmatching_model.set.bin_pop[0].pre_fitness == 0
 
 
-def test_multi_group_is_opt_in():
+def test_n_groups_accepts_only_explicit_two_or_three_group_modes():
     default_model = FIBERS()
-    explicit_legacy_model = FIBERS(multi_thresholding=False)
-    assert default_model.get_params()["multi_thresholding"] is False
-    assert explicit_legacy_model.get_params()["multi_thresholding"] is False
+    explicit_legacy_model = FIBERS(n_groups=2)
+    three_group_model = FIBERS(n_groups=3)
+    assert default_model.get_params()["n_groups"] == 2
+    assert explicit_legacy_model.get_params()["n_groups"] == 2
+    assert three_group_model.get_params()["n_groups"] == 3
 
-    with pytest.raises(Exception, match="group_thresh_list"):
+    with pytest.raises(Exception, match="values of 2 or 3"):
+        FIBERS(n_groups=4)
+    with pytest.raises(Exception, match="values of 2 or 3"):
+        FIBERS(n_groups="auto")
+    with pytest.raises(Exception, match="n_groups=3"):
         FIBERS(group_thresh_list=[0, 1])
+    with pytest.raises(Exception, match="group_thresh_list"):
+        FIBERS(n_groups=3, group_thresh=1)
+    with pytest.raises(Exception, match="exactly two"):
+        FIBERS(n_groups=3, group_thresh_list=[1])

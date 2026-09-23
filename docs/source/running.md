@@ -34,14 +34,14 @@ In both cases, samples with a bin sum greater than the selected threshold are en
 
 ## Learning two or three groups
 
-Multi-group thresholding is opt-in. This example evaluates one-threshold/2-group and two-threshold/3-group bins in the same run:
+The group count is explicit. The default `n_groups=2` uses the original one-threshold method. This example runs the two-threshold/three-group method:
 
 ```python
 multi_group_fibers = FIBERS(
     outcome_label="Duration",
     censor_label="Censoring",
     fitness_metric="log_rank",
-    multi_thresholding=True,
+    n_groups=3,
     group_thresh_list=None,
     min_thresh=0,
     max_thresh=5,
@@ -49,7 +49,7 @@ multi_group_fibers = FIBERS(
 multi_group_fibers.fit(train_data)
 ```
 
-For a three-group bin, `predict(..., bin_number=0)` and `transform(..., full_sums=False)` encode low, middle, and high burden as `0`, `1`, and `2`. See [Two- and three-group thresholding](multi_group.md) for fixed thresholds, fitness calculation, population voting, group extraction, and current limitations.
+Every bin in this model has three groups. `predict(..., bin_number=0)` and `transform(..., full_sums=False)` encode low, middle, and high burden as `0`, `1`, and `2`. See [Two- and three-group thresholding](multi_group.md) for fixed thresholds, fitness calculation, population voting, and group extraction.
 
 ## Testing Evaluation
 Once trained, FIBERS can be applied to make risk group predictions on a testing dataset that only includes potentially predictive feature columns (i.e. no time-to-event, censoring, or covariate columns). First, the feature columns alone are loaded as a dataframe. Next, FIBERS's predict() function is called with the *bin_number* parameter set to the bin 'index' in the bin population to be used as a predictive model. Index '0' is the bin with the highest fitness by default. Lastly, assuming we have the true risk groups of each testing instance (saved as a single-column dataframe) we can optionally generate a classification report comparing risk group predictions to true risk group values. 

@@ -43,7 +43,7 @@ class BIN:
 
 
     def initialize_random(self,feature_names,min_bin_size,max_bin_init_size,group_thresh,min_thresh,max_thresh,iteration,random,
-                          multi_thresholding=False,group_thresh_list=None):
+                          n_groups=2,group_thresh_list=None):
         self.birth_iteration = iteration
         # Initialize features in bin
         effective_max_bin_init_size = min(max_bin_init_size, len(feature_names))
@@ -52,13 +52,13 @@ class BIN:
         feature_count = random.randint(min_bin_size,effective_max_bin_init_size)
         self.feature_list = random.sample(feature_names,feature_count)
         self.bin_size = len(self.feature_list)
-        if multi_thresholding and group_thresh_list is not None:
+        if n_groups == 3 and group_thresh_list is not None:
             self.set_thresholds(group_thresh_list)
         elif group_thresh != None: # Defined group threshold
             self.group_threshold = group_thresh
             self.group_threshold_list = [group_thresh]
-        elif multi_thresholding:
-            thresholds = random.sample(range(min_thresh, max_thresh + 1), random.randint(1, 2))
+        elif n_groups == 3:
+            thresholds = random.sample(range(min_thresh, max_thresh + 1), 2)
             self.set_thresholds(thresholds)
         else: # Adaptive group threshold
             self.group_threshold = random.randint(min_thresh,max_thresh)
@@ -66,7 +66,7 @@ class BIN:
     
 
     def initialize_manual(self,feature_names,loaded_bin,loaded_thresh,group_thresh,min_thresh,max_thresh,birth_iteration,
-                          multi_thresholding=False,group_thresh_list=None):
+                          n_groups=2,group_thresh_list=None):
         if birth_iteration == None:
             self.birth_iteration = 0
         else:
@@ -78,7 +78,12 @@ class BIN:
             else:
                 print("Warning: feature ("+str(feature)+") not found in dataset for manual bin initialization")
         loaded_thresholds = loaded_thresh if isinstance(loaded_thresh, (list, tuple, np.ndarray)) else [loaded_thresh]
-        expected_thresholds = group_thresh_list if multi_thresholding else ([group_thresh] if group_thresh is not None else None)
+        required_threshold_count = n_groups - 1
+        if len(loaded_thresholds) != required_threshold_count:
+            raise ValueError(
+                f"Manual bins require exactly {required_threshold_count} threshold(s) when n_groups={n_groups}"
+            )
+        expected_thresholds = group_thresh_list if n_groups == 3 else ([group_thresh] if group_thresh is not None else None)
         if expected_thresholds is not None and list(loaded_thresholds) != list(expected_thresholds):
             print("Warning: thresholds ("+str(list(loaded_thresholds))+") are not equal to the specified threshold setting")
         elif min(loaded_thresholds) < min_thresh or max(loaded_thresholds) > max_thresh:
@@ -102,7 +107,7 @@ class BIN:
 
     def evaluate(self,feature_df,outcome_df,censor_df,outcome_type,fitness_metric,log_rank_weighting,outcome_label,
                  censor_label,min_thresh,max_thresh,int_thresh,group_thresh,threshold_evolving,iterations,iteration,residuals,covariate_df,
-                 desired_bin_effect,group_strata_min,multi_thresholding=False,group_thresh_list=None):
+                 desired_bin_effect,group_strata_min,n_groups=2,group_thresh_list=None):
         self.used_group_strata_fallback = False
         # Sum instance values across features specified in the bin
         feature_sums = feature_df[self.feature_list].sum(axis=1)
@@ -111,8 +116,8 @@ class BIN:
         # Create evaluation dataframe including bin sum feature with 
         bin_df = pd.concat([bin_df,outcome_df,censor_df],axis=1)
 
-        if multi_thresholding:
-            self.evaluate_multi_thresholds(
+        if n_groups == 3:
+            self.evaluate_three_group_thresholds(
                 bin_df, outcome_label, censor_label, outcome_type, fitness_metric,
                 log_rank_weighting, min_thresh, max_thresh, group_thresh_list,
                 threshold_evolving, iterations, iteration, residuals, covariate_df,
@@ -237,11 +242,11 @@ class BIN:
         self.bin_size = len(self.feature_list)
 
 
-    def evaluate_multi_thresholds(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
-                                  log_rank_weighting,min_thresh,max_thresh,group_thresh_list,
-                                  threshold_evolving,iterations,iteration,residuals,covariate_df,
-                                  desired_bin_effect,group_strata_min):
-        """Evaluate 2- and 3-group threshold configurations for an opt-in multi-group run."""
+    def evaluate_three_group_thresholds(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
+                                        log_rank_weighting,min_thresh,max_thresh,group_thresh_list,
+                                        threshold_evolving,iterations,iteration,residuals,covariate_df,
+                                        desired_bin_effect,group_strata_min):
+        """Evaluate two-threshold configurations for a three-group run."""
         adaptive = group_thresh_list is None
         exhaustive = adaptive and (not threshold_evolving or iteration >= iterations)
 
@@ -251,7 +256,6 @@ class BIN:
                 for low_threshold in range(min_thresh, max_thresh)
                 for high_threshold in range(low_threshold + 1, max_thresh + 1)
             ]
-            candidates.extend([[threshold] for threshold in range(min_thresh, max_thresh + 1)])
         elif group_thresh_list is not None:
             candidates = [list(group_thresh_list)]
         else:
@@ -588,7 +592,7 @@ class BIN:
         self.birth_iteration = iteration
 
 
-    def uniform_crossover(self,other_offspring,threshold_evolving,random,multi_thresholding=False):
+    def uniform_crossover(self,other_offspring,threshold_evolving,random,n_groups=2):
         # Create list of feature names unique to one list or another
         set1 = set(self.feature_list)
         set2 = set(other_offspring.feature_list)
@@ -608,7 +612,7 @@ class BIN:
         # Apply crossover to thresholding if threshold_evolving
         if threshold_evolving:
             if random.random() < swap_probability:
-                if multi_thresholding:
+                if n_groups == 3:
                     thresholds = self.group_threshold_list
                     self.set_thresholds(other_offspring.group_threshold_list)
                     other_offspring.set_thresholds(thresholds)
@@ -621,7 +625,7 @@ class BIN:
 
 
     def mutation(self,mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random,
-                 multi_thresholding=False,legacy_default=False):
+                 n_groups=2,legacy_default=False):
         self.feature_list = sorted(self.feature_list)
 
         if len(self.feature_list) == 0: #Initialize new bin if empty after crossover
@@ -693,23 +697,13 @@ class BIN:
         # Apply mutation to thresholding if threshold_evolving
         if threshold_evolving:
             if random.random() < mutation_prob:
-                if multi_thresholding:
+                if n_groups == 3:
                     available = [threshold for threshold in range(min_thresh, max_thresh + 1)
                                  if threshold not in self.group_threshold_list]
-                    if len(self.group_threshold_list) == 1:
-                        operation = random.choice(['add', 'swap'])
-                        if operation == 'add' and available:
-                            self.set_thresholds(self.group_threshold_list + [random.choice(available)])
-                        elif available:
-                            self.set_thresholds([random.choice(available)])
-                    else:
-                        operation = random.choice(['delete', 'swap'])
-                        if operation == 'delete':
-                            self.set_thresholds([random.choice(self.group_threshold_list)])
-                        elif available:
-                            thresholds = list(self.group_threshold_list)
-                            thresholds[random.randrange(len(thresholds))] = random.choice(available)
-                            self.set_thresholds(thresholds)
+                    if available:
+                        thresholds = list(self.group_threshold_list)
+                        thresholds[random.randrange(2)] = random.choice(available)
+                        self.set_thresholds(thresholds)
                 elif min_thresh == max_thresh:
                     pass
                 else:
@@ -720,7 +714,7 @@ class BIN:
                     self.group_threshold_list = [random_thresh]
 
 
-    def merge(self,other_parent,max_bin_size,threshold_evolving,max_thresh,random,multi_thresholding=False):
+    def merge(self,other_parent,max_bin_size,threshold_evolving,max_thresh,random,n_groups=2):
         # Merge feature lists of two parents
         # Create list of feature names unique to one list or another
         set1 = set(self.feature_list)
@@ -732,10 +726,9 @@ class BIN:
             self.feature_list.remove(random.choice(self.feature_list))
 
         if threshold_evolving:
-            if multi_thresholding:
+            if n_groups == 3:
                 merged_thresholds = sorted(set(self.group_threshold_list + other_parent.group_threshold_list))
-                threshold_count = 2 if len(merged_thresholds) > 1 and random.random() < 0.5 else 1
-                self.set_thresholds(random.sample(merged_thresholds, threshold_count))
+                self.set_thresholds(random.sample(merged_thresholds, 2))
             elif self.group_threshold == 0 or other_parent.group_threshold == 0:
                 self.group_threshold += 1
                 self.group_threshold += other_parent.group_threshold
@@ -783,7 +776,8 @@ class BIN:
         if self.used_group_strata_fallback and self.pre_fitness != None:
             self.pre_fitness = (1-penalty) * self.pre_fitness
 
-    def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random):
+    def random_bin(self,feature_names,min_bin_size,max_bin_init_size,random,n_groups=2,
+                   min_thresh=None,max_thresh=None,group_thresh_list=None):
         """Takes an previously generated offspring bin (that already existed in the pop) and generates an new feature_list """
         # Initialize features in bin
         effective_max_bin_init_size = min(max_bin_init_size, len(feature_names))
@@ -792,6 +786,8 @@ class BIN:
         feature_count = random.randint(min_bin_size,effective_max_bin_init_size)
         self.feature_list = random.sample(feature_names,feature_count)
         self.bin_size = len(self.feature_list)
+        if n_groups == 3 and group_thresh_list is None:
+            self.set_thresholds(random.sample(range(min_thresh, max_thresh + 1), 2))
 
 
     def is_equivalent(self,other_bin):

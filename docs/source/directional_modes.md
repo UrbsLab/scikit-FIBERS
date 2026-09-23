@@ -2,7 +2,7 @@
 
 The *desired_bin_effect* parameter lets FIBERS restrict its evolutionary search to bins whose above-threshold group has a requested survival direction. The direction check is applied while candidate bins are evaluated; it is not merely a label assigned after training.
 
-With multi-group thresholding, the same rule is extended to a strict monotonic ordering across the low-, middle-, and high-burden groups. Protective requires increasing RMST as burden increases; high-risk requires decreasing RMST. Each adjacent pair uses its own shared follow-up horizon. See [Two- and three-group thresholding](multi_group.md) for the three-group boundaries and adaptive-selection behavior.
+With `n_groups=3`, the same rule is extended to a strict monotonic ordering across the low-, middle-, and high-burden groups. Protective requires increasing RMST as burden increases; high-risk requires decreasing RMST. Each adjacent pair uses its own shared follow-up horizon. See [Two- and three-group thresholding](multi_group.md) for the three-group boundaries and adaptive-threshold behavior.
 
 The supported values are:
 

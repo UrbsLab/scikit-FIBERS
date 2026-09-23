@@ -30,7 +30,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                  max_mutation_prob=0.3,merge_prob=0.1,new_gen=1.0,elitism=0.1,diversity_pressure=3,min_bin_size=1,max_bin_size=None,max_bin_init_size=10,fitness_metric="log_rank", 
                  log_rank_weighting=None,censor_label="Censoring",group_strata_min=0.2,penalty=0.5,group_thresh=None,min_thresh=0,max_thresh=5, 
                  int_thresh=True,thresh_evolve_prob=0.5,manual_bin_init=None,covariates=None,pop_clean=None,report=None,random_seed=None,verbose=False,
-                 desired_bin_effect="default",multi_thresholding=False,group_thresh_list=None):
+                 desired_bin_effect="default",n_groups=2,group_thresh_list=None):
 
         """
         A Scikit-Learn compatible implementation of the FIBERS Algorithm.
@@ -64,8 +64,8 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
         :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
         :param desired_bin_effect: controls survival direction filtering ['default','protective','high_risk']. Directional modes compare the censoring-aware restricted mean survival time of samples above and below the bin threshold. 'protective' requires better survival above the threshold, while 'high_risk' requires worse survival above the threshold. Directionally invalid candidates receive zero applicable fitness. Binary outputs still encode above-threshold samples as 1 in every mode.
-        :param multi_thresholding: when True, evaluate both one-threshold (2-group) and two-threshold (3-group) bins. With a directional effect, all adjacent risk strata must follow the requested RMST ordering.
-        :param group_thresh_list: optional fixed list of one or two thresholds for multi-thresholding. Use None to adaptively search both 2- and 3-group thresholds.
+        :param n_groups: number of risk groups produced by every bin. Use 2 for exact legacy behavior or 3 for the three-group method.
+        :param group_thresh_list: optional fixed list of two increasing thresholds when n_groups=3. Use None to search threshold pairs adaptively.
 
         ..
             Adaptive Bin Threshold Parameters
@@ -151,16 +151,15 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if desired_bin_effect != "default" and desired_bin_effect != "protective" and desired_bin_effect != "high_risk":
             raise Exception("'desired_bin_effect' param can only have values of 'default', 'protective', or 'high_risk'")
 
-        if multi_thresholding not in (True, False, 'True', 'False'):
-            raise Exception("'multi_thresholding' param must be a boolean")
-        multi_thresholding_enabled = multi_thresholding is True or multi_thresholding == 'True'
-        if not multi_thresholding_enabled and group_thresh_list is not None:
-            raise Exception("'group_thresh_list' can only be used when multi_thresholding=True")
-        if multi_thresholding_enabled and group_thresh is not None:
-            raise Exception("Use 'group_thresh_list' instead of 'group_thresh' when multi_thresholding=True")
+        if isinstance(n_groups, bool) or not self.check_is_int(n_groups) or n_groups not in (2, 3):
+            raise Exception("'n_groups' param can only have values of 2 or 3")
+        if n_groups == 2 and group_thresh_list is not None:
+            raise Exception("'group_thresh_list' can only be used when n_groups=3")
+        if n_groups == 3 and group_thresh is not None:
+            raise Exception("Use 'group_thresh_list' instead of 'group_thresh' when n_groups=3")
         if group_thresh_list is not None:
-            if not isinstance(group_thresh_list, (list, tuple)) or len(group_thresh_list) not in (1, 2):
-                raise Exception("'group_thresh_list' must contain one or two thresholds")
+            if not isinstance(group_thresh_list, (list, tuple)) or len(group_thresh_list) != 2:
+                raise Exception("'group_thresh_list' must contain exactly two thresholds when n_groups=3")
             if any(not self.check_is_int(value) and not self.check_is_float(value) for value in group_thresh_list):
                 raise Exception("Each value in 'group_thresh_list' must be an int or float")
             if any(value < 0 for value in group_thresh_list):
@@ -261,7 +260,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         self.random_seed = random_seed
         self.verbose = verbose
         self.desired_bin_effect = desired_bin_effect
-        self.multi_thresholding = multi_thresholding_enabled
+        self.n_groups = n_groups
         self.group_thresh_list = group_thresh_list
         if self.covariates is None:
             self.covariates = list()
@@ -372,7 +371,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                            self.min_bin_size,self.max_bin_init_size,self.group_thresh,self.min_thresh,self.max_thresh,
                            self.int_thresh,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.group_strata_min,
                            self.outcome_label,self.censor_label,threshold_evolving,self.penalty,self.iterations,0,self.residuals,self.covariates,random,
-                           self.desired_bin_effect,self.multi_thresholding,self.group_thresh_list)
+                           self.desired_bin_effect,self.n_groups,self.group_thresh_list)
         #Global fitness update
         self.set.global_fitness_update(self.penalty) #Exerimental
 
@@ -390,7 +389,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         #EVOLUTIONARY LEARNING ITERATIONS
         for iteration in tqdm(range(1, self.iterations+ 1)):
             # print('Iteration: '+str(iteration))
-            if self.multi_thresholding:
+            if self.n_groups == 3:
                 if self.group_thresh_list is None:
                     evolve = random.random()
                     threshold_evolving = self.thresh_evolve_prob > evolve
@@ -417,7 +416,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                                             threshold_evolving,self.min_bin_size,self.max_bin_size,self.max_bin_init_size,self.min_thresh,self.max_thresh,
                                             self.df,self.outcome_type,self.fitness_metric,self.log_rank_weighting,self.outcome_label,self.censor_label,self.int_thresh,
                                             self.group_thresh,self.group_strata_min,self.penalty,self.residuals,self.covariates,random,
-                                            self.desired_bin_effect,self.multi_thresholding,self.group_thresh_list)
+                                            self.desired_bin_effect,self.n_groups,self.group_thresh_list)
             # Add Offspring to Population
             self.set.add_offspring_into_pop(iteration)
 
@@ -547,10 +546,9 @@ class FIBERS(BaseEstimator, TransformerMixin):
                 temp_df['Bin_'+str(bin_count)] = feature_sums
                 bin_count += 1
 
-            # Count weighted votes. In a mixed population, a 2-group bin's high
-            # stratum votes for class 2 so that low/high remains aligned with
-            # the low/middle/high ordering of a 3-group bin.
-            class_count = 3 if self.multi_thresholding else 2
+            # Count weighted votes using the configured group count shared by
+            # every bin in the population.
+            class_count = self.n_groups
             votes = np.zeros((len(temp_df), class_count))
 
             # Iterate through each row of the DataFrame
@@ -566,7 +564,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
                     elif len(thresholds) == 2 and value <= thresholds[1]:
                         prediction = 1
                     else:
-                        prediction = 2 if self.multi_thresholding else 1
+                        prediction = self.n_groups - 1
                     votes[row_count, prediction] += bin.pre_fitness
                     bin_count += 1
                 row_count += 1
@@ -605,7 +603,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
         top_bin = self.set.bin_pop[0]
         if initialize:
-            if self.multi_thresholding:
+            if self.n_groups == 3:
                 col_list = ['Iteration','Top Bin', 'Threshold(s)', 'Fitness', 'Pre-Fitness', 'Log-Rank Score', 'Log-Rank p-value', 'Bin Size', 'Group Ratio',
                             'Count At/Below Threshold', 'Count Between Thresholds', 'Count Above Threshold', 'Birth Iteration', 'Residuals Score',
                             'Residuals p-value', 'Elapsed Time']
@@ -616,7 +614,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
             if self.verbose:
                 print(col_list)
 
-        if self.multi_thresholding:
+        if self.n_groups == 3:
             tracking_values = [iteration,top_bin.feature_list,list(top_bin.group_threshold_list),top_bin.fitness,top_bin.pre_fitness,top_bin.log_rank_score,
                                top_bin.log_rank_p_value,top_bin.bin_size,top_bin.group_strata_prop,top_bin.count_bt,top_bin.count_mt,top_bin.count_at,
                                top_bin.birth_iteration,top_bin.residuals_score,top_bin.residuals_p_value,self.elapsed_time]
@@ -971,5 +969,5 @@ class FIBERS(BaseEstimator, TransformerMixin):
             file.write(f"random_seed: {self.random_seed}\n")
             file.write(f"verbose: {self.verbose}\n")
             file.write(f"desired_bin_effect: {self.desired_bin_effect}\n")
-            file.write(f"multi_thresholding: {self.multi_thresholding}\n")
+            file.write(f"n_groups: {self.n_groups}\n")
             file.write(f"group_thresh_list: {self.group_thresh_list}\n")
