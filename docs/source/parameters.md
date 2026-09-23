@@ -18,9 +18,10 @@ While scikit_FIBERS has a number of available hyperparameters only a few are con
 
 * This second table includes hyperparameters that are not essential but can have a significant impact on algorithm performance. 
   * In general, setting *iterations* and *pop_size* to larger integers is expected to improve training performance, but will require longer run times. 
-  * The *group_thresh* hyperparameter controls the adaptive burden thresholding in FIBERS, where 'None' activates this mechanism, and an integer value (e.g. 0), will enforce a specific burden threshold for all discovered bins. Related to this, *max_thresh* controls the maximum burden threshold allowed in bins, assuming *group_thresh* = None. Also related to adaptive burden thresholding, the *thresh_evolve_prob* (set between 0.0 and 1.0) can lead to better performance when set closer to 1.0, but requires significantly more runtime. 
+  * For `n_groups=2`, *group_thresh* controls adaptive burden thresholding: None activates the search and an integer fixes one threshold. For `n_groups=3`, *group_thresh_list* replaces it: None searches pairs and two increasing values fix the thresholds. *max_thresh* bounds either search. The *thresh_evolve_prob* (set between 0.0 and 1.0) can lead to better performance when set closer to 1.0, but requires significantly more runtime.
   * The *group_strata_min* hyperparameter (set as > 0.0 and < 0.5) enforces a minimum instance count balance between risk groups, where 0.5 describes two risk groups with the same instance count. 
   * The *desired_bin_effect* hyperparameter determines whether FIBERS accepts either survival direction, only protective bins, or only high-risk bins. Direction is evaluated using censoring-aware restricted mean survival time.
+  * The *n_groups* hyperparameter explicitly selects two-group legacy behavior or the three-group method. With *n_groups*=3, *group_thresh_list* fixes two thresholds; leaving it as None searches threshold pairs adaptively.
   * The *manual_bin_init* hyperparameter allows users to load an existing set of candidate bins for FIBERS to start learning from, rather than starting from randomly initialized bins. The value of using this function depends on the quality of the loaded bins, however utilizing expert (i.e. domain) knowledge to design candidate bins before running FIBERS has the potential to dramatically improve or speed up learning in larger or more complex tasks. 
   * Lastly, *pop_clean* = 'group_strata' applies a post-hoc cleaning of the bin population, removing any remaining bins that have a risk group instance count ratio below the *group_strata_min*. 
 
@@ -28,11 +29,13 @@ While scikit_FIBERS has a number of available hyperparameters only a few are con
 | -------------- | ----------- | ------------- | ------------- |
 | *iterations* | Number of training/optimization cycles | int | 100 |
 | *pop_size* | Maximum bin population size at end of each cycle | int | 50 |
-| *group_thresh* | Optionally specify a group threshold for bins to use | int, None | None |
+| *group_thresh* | Optional fixed threshold when *n_groups*=2 | int, None | None |
 | *max_thresh* | Maximum group threshold for adaptive thresholding | int | 5 |
 | *thresh_evolve_prob* | Probability that an optimization cycle will evolve vs. deterministically select a group threshold for new bin evaluation | float | 0.5 |
 | *group_strata_min* | Min. cutoff for group strata sizes below which a pre-fitness penalty is applied to bin | float | 0.2 |
 | *desired_bin_effect* | Optional survival-direction mode | 'default', 'protective', 'high_risk' | 'default' |
+| *n_groups* | Number of risk groups produced by each bin | 2, 3 | 2 |
+| *group_thresh_list* | Optional fixed thresholds when *n_groups*=3; None enables adaptive threshold-pair search | list of 2 increasing values, None | None |
 | *manual_bin_init* | Dataframe of FIBERS-formatted bin population used to initialize the bin population | dataframe, None | None |
 | *pop_clean* | Optional bin population cleanup strategy | 'group_strata', None | None |
 
@@ -68,6 +71,8 @@ When a fixed *group_thresh* is supplied, that threshold is checked directly agai
 The output encoding is always based on threshold membership, not the semantic label of the group. `predict()` and `transform(..., full_sums=False)` return `1` for above-threshold samples and `0` for below-threshold samples. Therefore, `1` represents the protective group in `protective` mode but the high-risk group in `high_risk` mode.
 
 See [Protective and high-risk modes](directional_modes.md) for the full evaluation sequence, interaction with each fitness metric, covariate interpretation, a worked RMST example, and output semantics.
+
+See [Two- and three-group thresholding](multi_group.md) for group boundaries, pairwise scoring, output encoding, genetic operators, and the current interaction with directional modes.
 
 * The remaining hyperparameters in the table below can largely be left to their default values by most users. 
 

@@ -2,6 +2,8 @@
 
 The *desired_bin_effect* parameter lets FIBERS restrict its evolutionary search to bins whose above-threshold group has a requested survival direction. The direction check is applied while candidate bins are evaluated; it is not merely a label assigned after training.
 
+With `n_groups=3`, the same rule is extended to a strict monotonic ordering across the low-, middle-, and high-burden groups. Protective requires increasing RMST as burden increases; high-risk requires decreasing RMST. Each adjacent pair uses its own shared follow-up horizon. See [Two- and three-group thresholding](multi_group.md) for the three-group boundaries and adaptive-threshold behavior.
+
 The supported values are:
 
 | Mode | Required survival direction for the above-threshold group | Meaning of binary output `1` |
@@ -140,4 +142,3 @@ Use separate models when both directions are scientifically relevant. Comparing 
 * The direction gate does not replace statistical assessment, validation on held-out data, or replication in an independent cohort.
 * The RMST gate is unadjusted even when residual-based fitness incorporates covariates.
 * `default` remains the appropriate choice when either direction is meaningful or backward-compatible behavior is required.
-

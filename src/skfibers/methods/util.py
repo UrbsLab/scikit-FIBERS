@@ -81,7 +81,8 @@ def plot_feature_tracking(feature_names,feature_tracking,max_features=40,show=Tr
         plt.show()
 
 
-def plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=True,save=False,output_folder=None,data_name=None):
+def plot_kaplan_meir(low_outcome,low_censor,high_outcome,high_censor,show=True,save=False,output_folder=None,data_name=None,
+                     mid_outcome=None,mid_censor=None):
     kmf1 = KaplanMeierFitter()
 
     # fit the model for 1st cohort
@@ -89,7 +90,11 @@ def plot_kaplan_meir(low_outcome,low_censor,high_outcome, high_censor,show=True,
     a1 = kmf1.plot_survival_function()
     a1.set_ylabel('Survival Probability')
 
-    # fit the model for 2nd cohort
+    if mid_outcome is not None:
+        kmf1.fit(mid_outcome, mid_censor, label='Between Bin Thresholds')
+        kmf1.plot_survival_function(ax=a1)
+
+    # fit the model for final cohort
     kmf1.fit(high_outcome, high_censor, label='Above Bin Threshold')
     kmf1.plot_survival_function(ax=a1)
     a1.set_xlabel('Time After Event')
@@ -126,11 +131,18 @@ def plot_fitness_progress(perform_track_df,show=True,save=False,output_folder=No
 def plot_threshold_progress(perform_track_df,show=True,save=False,output_folder=None,data_name=None):
     # Extract columns for plotting
     time = perform_track_df['Iteration']
-    df = perform_track_df[['Threshold']]
+    if 'Threshold(s)' in perform_track_df.columns:
+        threshold_lists = perform_track_df['Threshold(s)']
+        df = pd.DataFrame({
+            'Low Threshold': threshold_lists.apply(lambda values: values[0]),
+            'High Threshold': threshold_lists.apply(lambda values: values[1] if len(values) == 2 else np.nan),
+        })
+    else:
+        df = perform_track_df[['Threshold']]
 
     # Plot the data
     plt.figure(figsize=(5, 3))
-    colors = ['blue']  # Manually set colors
+    colors = ['blue', 'orange']
     for i, column in enumerate(df.columns):
         plt.plot(time, df[column], label=column, color=colors[i])
 
