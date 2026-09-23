@@ -140,8 +140,11 @@ class BIN_SET:
             offspring_1.uniform_crossover(offspring_2,threshold_evolving,random,multi_thresholding)
 
         # Mutation - check for duplicate rules
-        offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random,multi_thresholding)
-        offspring_2.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random,multi_thresholding)
+        legacy_default = not multi_thresholding and desired_bin_effect == "default"
+        offspring_1.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random,
+                             multi_thresholding,legacy_default)
+        offspring_2.mutation(mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random,
+                             multi_thresholding,legacy_default)
 
         # Check for duplicate bins based on feature list and threshold
         while self.equivalent_bin_in_pop(offspring_1,iteration): # May slow down evolutionary cycles if new bins arent' found right away

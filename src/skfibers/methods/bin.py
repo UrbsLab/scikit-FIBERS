@@ -116,6 +116,7 @@ class BIN:
                 bin_df, outcome_label, censor_label, outcome_type, fitness_metric,
                 log_rank_weighting, min_thresh, max_thresh, group_thresh_list,
                 threshold_evolving, iterations, iteration, residuals, covariate_df,
+                desired_bin_effect, group_strata_min,
             )
             self.bin_size = len(self.feature_list)
             return
@@ -238,7 +239,8 @@ class BIN:
 
     def evaluate_multi_thresholds(self,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,
                                   log_rank_weighting,min_thresh,max_thresh,group_thresh_list,
-                                  threshold_evolving,iterations,iteration,residuals,covariate_df):
+                                  threshold_evolving,iterations,iteration,residuals,covariate_df,
+                                  desired_bin_effect,group_strata_min):
         """Evaluate 2- and 3-group threshold configurations for an opt-in multi-group run."""
         adaptive = group_thresh_list is None
         exhaustive = adaptive and (not threshold_evolving or iteration >= iterations)
@@ -255,13 +257,69 @@ class BIN:
         else:
             candidates = [list(self.group_threshold_list)]
 
+        if desired_bin_effect in ('protective', 'high_risk'):
+            best_score = None
+            best_thresholds = None
+            best_result = None
+            raw_best_score = None
+            fallback_thresholds = None
+            fallback_result = None
+            directional_fallback_score = None
+            directional_fallback_thresholds = None
+            directional_fallback_result = None
+            strata_fallback_score = None
+            strata_fallback_thresholds = None
+            strata_fallback_result = None
+
+            for thresholds in candidates:
+                raw_result = self.evaluate_for_thresholds(
+                    thresholds, bin_df, outcome_label, censor_label, outcome_type,
+                    fitness_metric, log_rank_weighting, residuals, covariate_df, "default",
+                )
+                directional_result = self.evaluate_for_thresholds(
+                    thresholds, bin_df, outcome_label, censor_label, outcome_type,
+                    fitness_metric, log_rank_weighting, residuals, covariate_df, desired_bin_effect,
+                )
+                raw_score = self.get_threshold_score(fitness_metric, raw_result[0], raw_result[2])
+                directional_score = self.get_threshold_score(fitness_metric, directional_result[0], directional_result[2])
+                matches_effect = directional_result[9]
+                matches_group_strata = self.meets_multi_group_strata_min(directional_result, group_strata_min)
+
+                if raw_best_score is None or raw_score > raw_best_score:
+                    raw_best_score = raw_score
+                    fallback_thresholds = thresholds
+                    fallback_result = directional_result
+                if matches_effect and (directional_fallback_score is None or raw_score > directional_fallback_score):
+                    directional_fallback_score = raw_score
+                    directional_fallback_thresholds = thresholds
+                    directional_fallback_result = directional_result
+                if matches_group_strata and (strata_fallback_score is None or raw_score > strata_fallback_score):
+                    strata_fallback_score = raw_score
+                    strata_fallback_thresholds = thresholds
+                    strata_fallback_result = directional_result
+                if matches_effect and matches_group_strata and (best_score is None or directional_score > best_score):
+                    best_score = directional_score
+                    best_thresholds = thresholds
+                    best_result = directional_result
+
+            if best_result is not None:
+                self.assign_multi_eval_result(best_thresholds, best_result)
+            elif directional_fallback_result is not None:
+                self.assign_multi_eval_result(directional_fallback_thresholds, directional_fallback_result)
+                self.used_group_strata_fallback = True
+            elif strata_fallback_result is not None:
+                self.assign_multi_eval_result(strata_fallback_thresholds, strata_fallback_result)
+            else:
+                self.assign_multi_eval_result(fallback_thresholds, fallback_result)
+            return
+
         best_score = None
         best_thresholds = None
         best_result = None
         for thresholds in candidates:
             result = self.evaluate_for_thresholds(
                 thresholds, bin_df, outcome_label, censor_label, outcome_type,
-                fitness_metric, log_rank_weighting, residuals, covariate_df,
+                fitness_metric, log_rank_weighting, residuals, covariate_df, "default",
             )
             score = self.get_threshold_score(fitness_metric, result[0], result[2])
             if best_score is None or score > best_score:
@@ -273,17 +331,17 @@ class BIN:
 
 
     def evaluate_for_thresholds(self,thresholds,bin_df,outcome_label,censor_label,outcome_type,
-                                fitness_metric,log_rank_weighting,residuals,covariate_df):
+                                fitness_metric,log_rank_weighting,residuals,covariate_df,desired_bin_effect="default"):
         """Evaluate one threshold (2 groups) or two thresholds (3 groups)."""
         if len(thresholds) == 1:
             result = self.evaluate_for_threshold(
                 thresholds[0], bin_df, outcome_label, censor_label, outcome_type,
-                fitness_metric, log_rank_weighting, residuals, covariate_df, "default",
+                fitness_metric, log_rank_weighting, residuals, covariate_df, desired_bin_effect,
             )
             count_bt, count_at = result[4], result[5]
             total = count_bt + count_at
             proportions = [count_bt / total, count_at / total] if total else [0, 0]
-            return result[0], result[1], result[2], result[3], count_bt, 0, count_at, [], proportions
+            return result[0], result[1], result[2], result[3], count_bt, 0, count_at, [], proportions, result[6]
 
         if outcome_type != 'survival':
             raise NotImplementedError("Multi-group thresholding currently supports survival outcomes only")
@@ -300,11 +358,36 @@ class BIN:
         total = sum(counts)
         proportions = [count / total for count in counts] if total else [0, 0, 0]
 
+        directionally_valid_bin = True
+        if desired_bin_effect in ('protective', 'high_risk'):
+            try:
+                # Compare adjacent strata at the latest follow-up time shared by
+                # that pair. A single horizon shared by all three strata can
+                # collapse later-surviving groups to the same RMST when the low
+                # group's follow-up ends much earlier.
+                adjacent_rmst_pairs = []
+                for left_index, right_index in ((0, 1), (1, 2)):
+                    time_point = min(max(outcomes[left_index]), max(outcomes[right_index]))
+                    adjacent_rmst_pairs.append((
+                        self.restricted_mean_survival_time(
+                            outcomes[left_index], censors[left_index], time_point,
+                        ),
+                        self.restricted_mean_survival_time(
+                            outcomes[right_index], censors[right_index], time_point,
+                        ),
+                    ))
+                if desired_bin_effect == 'protective':
+                    directionally_valid_bin = all(left < right for left, right in adjacent_rmst_pairs)
+                else:
+                    directionally_valid_bin = all(left > right for left, right in adjacent_rmst_pairs)
+            except Exception:
+                directionally_valid_bin = False
+
         log_rank_score = None
         p_value = None
         pairwise_scores = []
         if fitness_metric in ('log_rank', 'log_rank_residuals'):
-            if 0 in counts:
+            if 0 in counts or not directionally_valid_bin:
                 log_rank_score = 0
                 pairwise_scores = [0, 0, 0]
             else:
@@ -331,7 +414,7 @@ class BIN:
         residuals_p_value = None
         if fitness_metric in ('residuals', 'log_rank_residuals'):
             residual_groups = [residuals.loc[mask, "deviance"] for mask in masks]
-            if any(len(group) == 0 for group in residual_groups):
+            if any(len(group) == 0 for group in residual_groups) or not directionally_valid_bin:
                 residuals_score = 0
             else:
                 try:
@@ -344,12 +427,12 @@ class BIN:
 
         return (
             log_rank_score, p_value, residuals_score, residuals_p_value,
-            counts[0], counts[1], counts[2], pairwise_scores, proportions,
+            counts[0], counts[1], counts[2], pairwise_scores, proportions, directionally_valid_bin,
         )
 
 
     def assign_multi_eval_result(self,thresholds,result):
-        log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at,pairwise_scores,proportions = result
+        log_rank_score,p_value,residuals_score,residuals_p_value,count_bt,count_mt,count_at,pairwise_scores,proportions,_ = result
         self.set_thresholds(thresholds)
         self.log_rank_score = log_rank_score
         self.log_rank_p_value = p_value
@@ -360,6 +443,15 @@ class BIN:
         self.count_at = count_at
         self.pairwise_scores = [round(score, 3) for score in pairwise_scores]
         self.group_prop_list = proportions
+
+
+    def meets_multi_group_strata_min(self,result,group_strata_min):
+        counts = result[4:7]
+        total = sum(counts)
+        if total == 0:
+            return False
+        active_counts = counts if counts[1] > 0 else (counts[0], counts[2])
+        return min(count / total for count in active_counts) >= group_strata_min
 
 
     def evaluate_for_threshold(self,threshold,bin_df,outcome_label,censor_label,outcome_type,fitness_metric,log_rank_weighting,residuals,covariate_df,
@@ -529,7 +621,7 @@ class BIN:
 
 
     def mutation(self,mutation_prob,feature_names,min_bin_size,max_bin_size,max_bin_init_size,threshold_evolving,min_thresh,max_thresh,random,
-                 multi_thresholding=False):
+                 multi_thresholding=False,legacy_default=False):
         self.feature_list = sorted(self.feature_list)
 
         if len(self.feature_list) == 0: #Initialize new bin if empty after crossover
@@ -569,8 +661,15 @@ class BIN:
                     if mutate_type == 'D' or len(feature_names) == len(self.feature_list): # Deletion - also if bin (i.e. feature_list) is at the maximum possible size
                         self.feature_list.remove(feature)
                     else:
-                        # Features deleted earlier in this mutation pass can be selected again.
-                        other_features = [value for value in feature_names if value not in self.feature_list]
+                        if legacy_default:
+                            # Preserve the seeded, non-directional two-group search
+                            # trajectory from 5ff67da. That implementation selected
+                            # additions against the mutation pass's original list.
+                            other_features = [value for value in feature_names if value not in original_feature_list]
+                        else:
+                            # Directional and multi-group searches may re-select a
+                            # feature deleted earlier in this mutation pass.
+                            other_features = [value for value in feature_names if value not in self.feature_list]
                         if len(other_features) == 0:
                             continue
                         random_feature = random.choice(other_features)

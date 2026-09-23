@@ -64,7 +64,7 @@ class FIBERS(BaseEstimator, TransformerMixin):
         :param penalty: the penalty multiplier applied to the pre-fitness of bins that go beneith the group_strata_min
         :param group_thresh: the bin sum (e.g. mismatch count) for an instance over which that instance is assigned to the above threshold group
         :param desired_bin_effect: controls survival direction filtering ['default','protective','high_risk']. Directional modes compare the censoring-aware restricted mean survival time of samples above and below the bin threshold. 'protective' requires better survival above the threshold, while 'high_risk' requires worse survival above the threshold. Directionally invalid candidates receive zero applicable fitness. Binary outputs still encode above-threshold samples as 1 in every mode.
-        :param multi_thresholding: when True, evaluate both one-threshold (2-group) and two-threshold (3-group) bins. This mode is opt-in and currently uses the default, non-directional bin effect.
+        :param multi_thresholding: when True, evaluate both one-threshold (2-group) and two-threshold (3-group) bins. With a directional effect, all adjacent risk strata must follow the requested RMST ordering.
         :param group_thresh_list: optional fixed list of one or two thresholds for multi-thresholding. Use None to adaptively search both 2- and 3-group thresholds.
 
         ..
@@ -154,8 +154,6 @@ class FIBERS(BaseEstimator, TransformerMixin):
         if multi_thresholding not in (True, False, 'True', 'False'):
             raise Exception("'multi_thresholding' param must be a boolean")
         multi_thresholding_enabled = multi_thresholding is True or multi_thresholding == 'True'
-        if multi_thresholding_enabled and desired_bin_effect != "default":
-            raise Exception("'multi_thresholding' currently supports desired_bin_effect='default' only")
         if not multi_thresholding_enabled and group_thresh_list is not None:
             raise Exception("'group_thresh_list' can only be used when multi_thresholding=True")
         if multi_thresholding_enabled and group_thresh is not None:

@@ -65,7 +65,12 @@ low_censor, middle_censor, high_censor
 
 Population-wide prediction combines weighted votes from bins with different group counts. In multi-group mode, the high group of a two-group bin votes for class `2`, preserving the low/middle/high ordering when mixed with three-group bins.
 
-## Current directional-mode boundary
+## Protective and high-risk ordering
 
-`protective` and `high_risk` use a two-group RMST direction check. Their behavior is unchanged when multi-group thresholding is off. Because a corresponding three-group direction rule has not been defined, `multi_thresholding=True` currently requires `desired_bin_effect="default"`; combining these settings raises a clear parameter error.
+Multi-group thresholding supports all three *desired_bin_effect* values. One-threshold bins use the existing two-group RMST direction check. For a two-threshold bin, FIBERS compares each adjacent pair (low versus middle, then middle versus high) using censoring-aware RMST at the latest follow-up time shared by that pair. Pair-specific horizons avoid treating two later-surviving strata as tied merely because an earlier stratum has shorter follow-up.
 
+* `protective` requires `low RMST < middle RMST < high RMST`.
+* `high_risk` requires `low RMST > middle RMST > high RMST`.
+* `default` accepts either ordering.
+
+The inequalities are strict, so tied or non-monotonic groups do not satisfy a requested direction. A wrong-direction configuration receives zero applicable log-rank and/or residual fitness. During adaptive search, FIBERS first prefers configurations that satisfy both the requested direction and *group_strata_min*, then uses the same direction-valid and group-balance fallback rules as the standard two-group path.

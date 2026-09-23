@@ -164,7 +164,7 @@ RMST acts as a direction gate rather than the optimization score: candidates tha
 
 ### Two- and three-group thresholding
 
-Set `multi_thresholding=True` to let FIBERS learn either one threshold (groups `0` and `1`) or two thresholds (low/middle/high groups `0`, `1`, and `2`). Two-group bins use the existing log-rank score; three-group bins average low-high, low-middle, and middle-high pairwise log-rank statistics. The mode is disabled by default, so existing runs are unchanged. Multi-group runs currently require `desired_bin_effect="default"`. See the [multi-group guide](docs/source/multi_group.md) for adaptive and fixed thresholds, genetic operators, prediction behavior, and helper methods.
+Set `multi_thresholding=True` to let FIBERS learn either one threshold (groups `0` and `1`) or two thresholds (low/middle/high groups `0`, `1`, and `2`). Two-group bins use the existing log-rank score; three-group bins average low-high, low-middle, and middle-high pairwise log-rank statistics. The mode is disabled by default, so existing runs are unchanged. Protective mode requires RMST to increase strictly from low to middle to high burden, while high-risk mode requires it to decrease strictly. See the [multi-group guide](docs/source/multi_group.md) for adaptive and fixed thresholds, genetic operators, prediction behavior, and helper methods.
 
 * The remaining hyperparameters in the table below can largely be left to their default values by most users. 
 
