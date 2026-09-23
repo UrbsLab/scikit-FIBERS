@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scikit-fibers"
-version = "2.2.1"
+version = "2.3.0"
 description = "scikit-FIBERS (Feature Inclusion Bin Evolver for Risk Stratification) is a scikit-learn compatible machine learning algorithm for modeling or feature learning in survival analyses where feature 'burden' may be predictive of risk strata."
 readme = "README.md"
 requires-python = ">=3.9"
