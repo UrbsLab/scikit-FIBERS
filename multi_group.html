@@ -1,0 +1,199 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Two- and three-group thresholding &mdash; FIBERS 2.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=e1b27810"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Protective and high-risk modes" href="directional_modes.html" />
+    <link rel="prev" title="Hyperparameters" href="parameters.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FIBERS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Input Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running.html">Running scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Hyperparameters</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Two- and three-group thresholding</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#group-definitions">Group definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fitness-calculation">Fitness calculation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#results-and-helper-methods">Results and helper methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#protective-and-high-risk-ordering">Protective and high-risk ordering</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="directional_modes.html">Protective and high-risk modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">Algorithm History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FIBERS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Two- and three-group thresholding</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/multi_group.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="two-and-three-group-thresholding">
+<h1>Two- and three-group thresholding<a class="headerlink" href="#two-and-three-group-thresholding" title="Permalink to this heading"></a></h1>
+<p>FIBERS uses an explicit group count. <code class="docutils literal notranslate"><span class="pre">n_groups=2</span></code> is the default and retains the original one-threshold behavior. <code class="docutils literal notranslate"><span class="pre">n_groups=3</span></code> uses two thresholds and produces low-, middle-, and high-burden groups. A single population does not mix the two group counts.</p>
+<p>Select the three-group method with <code class="docutils literal notranslate"><span class="pre">n_groups=3</span></code>. Leave <em>group_thresh_list</em> as <code class="docutils literal notranslate"><span class="pre">None</span></code> to search threshold pairs adaptively:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">FIBERS</span><span class="p">(</span>
+    <span class="n">outcome_label</span><span class="o">=</span><span class="s2">&quot;Duration&quot;</span><span class="p">,</span>
+    <span class="n">censor_label</span><span class="o">=</span><span class="s2">&quot;Censoring&quot;</span><span class="p">,</span>
+    <span class="n">fitness_metric</span><span class="o">=</span><span class="s2">&quot;log_rank&quot;</span><span class="p">,</span>
+    <span class="n">n_groups</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">group_thresh_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_thresh</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">max_thresh</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The default is <code class="docutils literal notranslate"><span class="pre">n_groups=2</span></code>, so existing runs retain their original behavior. Two-group runs use the scalar <em>group_thresh</em>. Three-group runs use <em>group_thresh_list</em>, which must contain exactly two increasing thresholds when fixed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">two_group_model</span> <span class="o">=</span> <span class="n">FIBERS</span><span class="p">(</span><span class="n">n_groups</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">group_thresh</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">three_group_model</span> <span class="o">=</span> <span class="n">FIBERS</span><span class="p">(</span><span class="n">n_groups</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">group_thresh_list</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+</pre></div>
+</div>
+<section id="group-definitions">
+<h2>Group definitions<a class="headerlink" href="#group-definitions" title="Permalink to this heading"></a></h2>
+<p>For thresholds <code class="docutils literal notranslate"><span class="pre">[low_threshold,</span> <span class="pre">high_threshold]</span></code>, a bin assigns samples by their summed feature burden:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Encoded group</p></th>
+<th class="head"><p>Burden rule</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>sum &lt;= <em>low_threshold</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p><em>low_threshold</em> &lt; sum &lt;= <em>high_threshold</em></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>sum &gt; <em>high_threshold</em></p></td>
+</tr>
+</tbody>
+</table>
+<p>A two-group model continues to encode its groups as <code class="docutils literal notranslate"><span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+<p>When adaptive three-group thresholding is active, each candidate feature set is evaluated across every increasing threshold pair between <em>min_thresh</em> and <em>max_thresh</em>. When threshold evolution is selected, crossover, mutation, and merge exchange or replace thresholds while always retaining exactly two. The final training iteration again performs exhaustive threshold-pair evaluation.</p>
+</section>
+<section id="fitness-calculation">
+<h2>Fitness calculation<a class="headerlink" href="#fitness-calculation" title="Permalink to this heading"></a></h2>
+<p>With <code class="docutils literal notranslate"><span class="pre">n_groups=2</span></code>, bins use the existing two-sample log-rank test. With <code class="docutils literal notranslate"><span class="pre">n_groups=3</span></code>, bins run three pairwise log-rank tests in this order:</p>
+<ol class="arabic simple">
+<li><p>Low versus high.</p></li>
+<li><p>Low versus middle.</p></li>
+<li><p>Middle versus high.</p></li>
+</ol>
+<p>The three test statistics are averaged to obtain the bin’s log-rank score. The reported p-value is the smallest of the three pairwise p-values, and the individual statistics are available as <code class="docutils literal notranslate"><span class="pre">bin.pairwise_scores</span></code>. If any group is empty, the log-rank score is zero.</p>
+<p>For residual fitness, two-group models retain the Wilcoxon rank-sum calculation and three-group models use the Kruskal-Wallis statistic. Product fitness multiplies the applicable log-rank and residual statistics. The <em>group_strata_min</em> penalty uses the smallest proportion across all configured groups.</p>
+<p>FIBERS does not automatically compare two and three groups because their raw fitness statistics are not guaranteed to be directly comparable. Fit the two group counts separately and use held-out survival performance when a comparison is needed. The experimental AUC/Pareto-front work from separate research branches is not part of this method.</p>
+</section>
+<section id="results-and-helper-methods">
+<h2>Results and helper methods<a class="headerlink" href="#results-and-helper-methods" title="Permalink to this heading"></a></h2>
+<p>For a selected three-group bin, <code class="docutils literal notranslate"><span class="pre">predict(data,</span> <span class="pre">bin_number=...)</span></code> and <code class="docutils literal notranslate"><span class="pre">transform(data,</span> <span class="pre">full_sums=False)</span></code> return <code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">1</span></code>, or <code class="docutils literal notranslate"><span class="pre">2</span></code>. <code class="docutils literal notranslate"><span class="pre">get_multi_bin_groups()</span></code> returns:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>low_outcome, middle_outcome, high_outcome,
+low_censor, middle_censor, high_censor
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">get_kaplan_meir()</span></code> automatically plots all three curves for a three-group bin. <code class="docutils literal notranslate"><span class="pre">get_multi_kaplan_meir()</span></code> is also available explicitly. The existing <code class="docutils literal notranslate"><span class="pre">get_bin_groups()</span></code> keeps its four-value two-group return contract and directs three-group callers to <code class="docutils literal notranslate"><span class="pre">get_multi_bin_groups()</span></code>.</p>
+<p>Population-wide prediction combines weighted votes from bins that all share the model’s configured group count.</p>
+</section>
+<section id="protective-and-high-risk-ordering">
+<h2>Protective and high-risk ordering<a class="headerlink" href="#protective-and-high-risk-ordering" title="Permalink to this heading"></a></h2>
+<p>Both group counts support all three <em>desired_bin_effect</em> values. The two-group method uses the existing RMST direction check. For a three-group bin, FIBERS compares each adjacent pair (low versus middle, then middle versus high) using censoring-aware RMST at the latest follow-up time shared by that pair. Pair-specific horizons avoid treating two later-surviving strata as tied merely because an earlier stratum has shorter follow-up.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">protective</span></code> requires <code class="docutils literal notranslate"><span class="pre">low</span> <span class="pre">RMST</span> <span class="pre">&lt;</span> <span class="pre">middle</span> <span class="pre">RMST</span> <span class="pre">&lt;</span> <span class="pre">high</span> <span class="pre">RMST</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">high_risk</span></code> requires <code class="docutils literal notranslate"><span class="pre">low</span> <span class="pre">RMST</span> <span class="pre">&gt;</span> <span class="pre">middle</span> <span class="pre">RMST</span> <span class="pre">&gt;</span> <span class="pre">high</span> <span class="pre">RMST</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">default</span></code> accepts either ordering.</p></li>
+</ul>
+<p>The inequalities are strict, so tied or non-monotonic groups do not satisfy a requested direction. A wrong-direction configuration receives zero applicable log-rank and/or residual fitness. During adaptive search, FIBERS first prefers configurations that satisfy both the requested direction and <em>group_strata_min</em>, then uses the same direction-valid and group-balance fallback rules as the standard two-group path.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="parameters.html" class="btn btn-neutral float-left" title="Hyperparameters" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="directional_modes.html" class="btn btn-neutral float-right" title="Protective and high-risk modes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Ryan Urbanowicz, Harsh Bandhey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

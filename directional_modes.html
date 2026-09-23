@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protective and high-risk modes &mdash; FIBERS 2.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=e1b27810"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Algorithm History" href="history.html" />
+    <link rel="prev" title="Two- and three-group thresholding" href="multi_group.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FIBERS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Input Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running.html">Running scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Hyperparameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multi_group.html">Two- and three-group thresholding</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Protective and high-risk modes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#forming-the-two-threshold-groups">Forming the two threshold groups</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#censoring-aware-direction-test">Censoring-aware direction test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#direction-is-a-gate-not-the-fitness-score">Direction is a gate, not the fitness score</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fixed-and-adaptive-thresholds">Fixed and adaptive thresholds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-the-direction-constraint-is-applied">Where the direction constraint is applied</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prediction-and-transformation-semantics">Prediction and transformation semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#worked-example">Worked example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-example">Configuration example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interpretation-cautions">Interpretation cautions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">Algorithm History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing scikit-FIBERS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Code Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FIBERS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Protective and high-risk modes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/directional_modes.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="protective-and-high-risk-modes">
+<h1>Protective and high-risk modes<a class="headerlink" href="#protective-and-high-risk-modes" title="Permalink to this heading"></a></h1>
+<p>The <em>desired_bin_effect</em> parameter lets FIBERS restrict its evolutionary search to bins whose above-threshold group has a requested survival direction. The direction check is applied while candidate bins are evaluated; it is not merely a label assigned after training.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">n_groups=3</span></code>, the same rule is extended to a strict monotonic ordering across the low-, middle-, and high-burden groups. Protective requires increasing RMST as burden increases; high-risk requires decreasing RMST. Each adjacent pair uses its own shared follow-up horizon. See <a class="reference internal" href="multi_group.html"><span class="std std-doc">Two- and three-group thresholding</span></a> for the three-group boundaries and adaptive-threshold behavior.</p>
+<p>The supported values are:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Required survival direction for the above-threshold group</p></th>
+<th class="head"><p>Meaning of binary output <code class="docutils literal notranslate"><span class="pre">1</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>No direction is required</p></td>
+<td><p>Above-threshold membership only</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">protective</span></code></p></td>
+<td><p>Better survival than the below-threshold group</p></td>
+<td><p>Protective-burden membership</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">high_risk</span></code></p></td>
+<td><p>Worse survival than the below-threshold group</p></td>
+<td><p>High-risk-burden membership</p></td>
+</tr>
+</tbody>
+</table>
+<section id="forming-the-two-threshold-groups">
+<h2>Forming the two threshold groups<a class="headerlink" href="#forming-the-two-threshold-groups" title="Permalink to this heading"></a></h2>
+<p>For a candidate bin, FIBERS first sums the values of the features included in that bin for each sample. Given a candidate threshold, the samples are separated as follows:</p>
+<ul class="simple">
+<li><p><strong>Below-threshold group:</strong> bin sum &lt;= threshold.</p></li>
+<li><p><strong>Above-threshold group:</strong> bin sum &gt; threshold.</p></li>
+</ul>
+<p>The terms <em>above threshold</em> and <em>below threshold</em> describe burden membership only. They should not automatically be interpreted as high and low risk because the above-threshold group may be protective.</p>
+</section>
+<section id="censoring-aware-direction-test">
+<h2>Censoring-aware direction test<a class="headerlink" href="#censoring-aware-direction-test" title="Permalink to this heading"></a></h2>
+<p>For <code class="docutils literal notranslate"><span class="pre">protective</span></code> and <code class="docutils literal notranslate"><span class="pre">high_risk</span></code>, FIBERS fits a Kaplan-Meier survival estimate for each threshold group. It then chooses a shared evaluation horizon:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">shared_time</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">maximum</span> <span class="n">below</span><span class="o">-</span><span class="n">threshold</span> <span class="n">duration</span><span class="p">,</span>
+                  <span class="n">maximum</span> <span class="n">above</span><span class="o">-</span><span class="n">threshold</span> <span class="n">duration</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The restricted mean survival time (RMST) for each group is calculated from time zero through <code class="docutils literal notranslate"><span class="pre">shared_time</span></code>. Restricting the comparison to this shared horizon avoids comparing one group beyond the follow-up supported by the other group and allows censored samples to contribute through the Kaplan-Meier estimate.</p>
+<p>The direction rules use strict inequalities:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">protective</span></code> is valid when <code class="docutils literal notranslate"><span class="pre">above_RMST</span> <span class="pre">&gt;</span> <span class="pre">below_RMST</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">high_risk</span></code> is valid when <code class="docutils literal notranslate"><span class="pre">above_RMST</span> <span class="pre">&lt;</span> <span class="pre">below_RMST</span></code>.</p></li>
+</ul>
+<p>Equal RMST values do not satisfy either directional mode. A threshold is also treated as directionally invalid if a group is empty or its RMST cannot be calculated.</p>
+</section>
+<section id="direction-is-a-gate-not-the-fitness-score">
+<h2>Direction is a gate, not the fitness score<a class="headerlink" href="#direction-is-a-gate-not-the-fitness-score" title="Permalink to this heading"></a></h2>
+<p>RMST determines whether a candidate has the requested direction, but the size of the RMST difference is not itself the optimization score. Candidates that pass the direction gate continue to be ranked using the configured <em>fitness_metric</em>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Fitness metric</p></th>
+<th class="head"><p>Score for a directionally valid candidate</p></th>
+<th class="head"><p>Score for a wrong-direction candidate</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">log_rank</span></code></p></td>
+<td><p>Log-rank test statistic</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">residuals</span></code></p></td>
+<td><p>Absolute rank-sum statistic for deviance residuals</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">log_rank_residuals</span></code></p></td>
+<td><p>Log-rank score multiplied by the residual score</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The associated p-value is unavailable for a score that was set to zero by the directional gate. A candidate can satisfy the RMST direction with a small difference, so directionally valid does not by itself mean statistically significant. Statistical separation is still represented by the selected fitness statistic and its associated output.</p>
+<p>The RMST direction check uses the observed survival and censoring columns and is therefore an unadjusted direction check. If covariates are supplied, <code class="docutils literal notranslate"><span class="pre">residuals</span></code> or <code class="docutils literal notranslate"><span class="pre">log_rank_residuals</span></code> can incorporate covariate-adjusted deviance residuals into candidate ranking, but the protective/high-risk gate itself remains based on the two Kaplan-Meier RMST estimates.</p>
+</section>
+<section id="fixed-and-adaptive-thresholds">
+<h2>Fixed and adaptive thresholds<a class="headerlink" href="#fixed-and-adaptive-thresholds" title="Permalink to this heading"></a></h2>
+<p>When <em>group_thresh</em> is a fixed integer, FIBERS evaluates that threshold directly. If the resulting groups do not have the requested direction, the applicable fitness score is zero.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">group_thresh=None</span></code>, FIBERS evaluates the candidate thresholds from <em>min_thresh</em> through <em>max_thresh</em>. Directional modes use the following selection order:</p>
+<ol class="arabic simple">
+<li><p>Select the highest-scoring threshold that satisfies both the requested RMST direction and <em>group_strata_min</em>.</p></li>
+<li><p>If none satisfies both requirements, prefer the highest-scoring directionally valid threshold even when its groups are too imbalanced. The regular group-balance penalty is applied, followed by an additional fallback penalty.</p></li>
+<li><p>If no threshold has the requested direction, retain the best available fallback for algorithm continuity. Its directional fitness remains zero.</p></li>
+</ol>
+<p>With the default penalty calculation, a directionally valid fallback that misses <em>group_strata_min</em> can receive two multiplicative <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">-</span> <span class="pre">penalty)</span></code> reductions: one for group imbalance and one for requiring the fallback.</p>
+<p>This threshold logic keeps the requested biological direction as the priority while still allowing the evolutionary process to continue when a candidate cannot simultaneously satisfy the direction and balance constraints.</p>
+</section>
+<section id="where-the-direction-constraint-is-applied">
+<h2>Where the direction constraint is applied<a class="headerlink" href="#where-the-direction-constraint-is-applied" title="Permalink to this heading"></a></h2>
+<p>The selected mode is used throughout training:</p>
+<ul class="simple">
+<li><p>When random bins are initialized.</p></li>
+<li><p>When a manually supplied starting population is evaluated.</p></li>
+<li><p>When crossover, mutation, or merge operations create offspring.</p></li>
+<li><p>When adaptive thresholds are re-evaluated, including the final iteration.</p></li>
+</ul>
+<p>As a result, <code class="docutils literal notranslate"><span class="pre">protective</span></code> and <code class="docutils literal notranslate"><span class="pre">high_risk</span></code> influence which candidates receive useful fitness throughout evolution rather than filtering only the final population.</p>
+</section>
+<section id="prediction-and-transformation-semantics">
+<h2>Prediction and transformation semantics<a class="headerlink" href="#prediction-and-transformation-semantics" title="Permalink to this heading"></a></h2>
+<p>FIBERS does not reverse its binary encoding in protective mode:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">0</span> <span class="o">=</span> <span class="nb">bin</span> <span class="nb">sum</span> <span class="o">&lt;=</span> <span class="n">threshold</span>
+<span class="mi">1</span> <span class="o">=</span> <span class="nb">bin</span> <span class="nb">sum</span> <span class="o">&gt;</span> <span class="n">threshold</span>
+</pre></div>
+</div>
+<p>Therefore:</p>
+<ul class="simple">
+<li><p>In <code class="docutils literal notranslate"><span class="pre">protective</span></code> mode, a prediction of <code class="docutils literal notranslate"><span class="pre">1</span></code> means membership in the group with better censoring-aware survival during training.</p></li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">high_risk</span></code> mode, a prediction of <code class="docutils literal notranslate"><span class="pre">1</span></code> means membership in the group with worse censoring-aware survival during training.</p></li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">default</span></code> mode, a prediction of <code class="docutils literal notranslate"><span class="pre">1</span></code> means above-threshold membership without a guaranteed survival direction.</p></li>
+</ul>
+<p>The same convention is used by <code class="docutils literal notranslate"><span class="pre">transform(...,</span> <span class="pre">full_sums=False)</span></code>. When <code class="docutils literal notranslate"><span class="pre">full_sums=True</span></code>, the transformed feature contains the raw bin sum instead of a binary group assignment.</p>
+</section>
+<section id="worked-example">
+<h2>Worked example<a class="headerlink" href="#worked-example" title="Permalink to this heading"></a></h2>
+<p>Suppose a candidate bin contains three features and uses a threshold of <code class="docutils literal notranslate"><span class="pre">1</span></code>. Samples with zero or one included feature value are below threshold, while samples with a bin sum of two or more are above threshold.</p>
+<p>If the Kaplan-Meier estimates produce the following RMST values over their shared follow-up horizon:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Group</p></th>
+<th class="head"><p>RMST</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Below threshold</p></td>
+<td><p>5.7 years</p></td>
+</tr>
+<tr class="row-odd"><td><p>Above threshold</p></td>
+<td><p>8.4 years</p></td>
+</tr>
+</tbody>
+</table>
+<p>the candidate passes <code class="docutils literal notranslate"><span class="pre">protective</span></code> because <code class="docutils literal notranslate"><span class="pre">8.4</span> <span class="pre">&gt;</span> <span class="pre">5.7</span></code>. The same candidate fails <code class="docutils literal notranslate"><span class="pre">high_risk</span></code> and receives zero directional fitness in that mode. If the RMST values were reversed, it would pass <code class="docutils literal notranslate"><span class="pre">high_risk</span></code> and fail <code class="docutils literal notranslate"><span class="pre">protective</span></code>.</p>
+<p>After passing the direction gate, the candidate still competes using its configured log-rank, residual, or product fitness score. RMST establishes the direction; the fitness metric determines its evolutionary ranking.</p>
+</section>
+<section id="configuration-example">
+<h2>Configuration example<a class="headerlink" href="#configuration-example" title="Permalink to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">common_options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;outcome_label&quot;</span><span class="p">:</span> <span class="s2">&quot;Duration&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;censor_label&quot;</span><span class="p">:</span> <span class="s2">&quot;Censoring&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;fitness_metric&quot;</span><span class="p">:</span> <span class="s2">&quot;log_rank&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;group_thresh&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;min_thresh&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;max_thresh&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="s2">&quot;group_strata_min&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">protective_model</span> <span class="o">=</span> <span class="n">FIBERS</span><span class="p">(</span>
+    <span class="o">**</span><span class="n">common_options</span><span class="p">,</span>
+    <span class="n">desired_bin_effect</span><span class="o">=</span><span class="s2">&quot;protective&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+
+<span class="n">high_risk_model</span> <span class="o">=</span> <span class="n">FIBERS</span><span class="p">(</span>
+    <span class="o">**</span><span class="n">common_options</span><span class="p">,</span>
+    <span class="n">desired_bin_effect</span><span class="o">=</span><span class="s2">&quot;high_risk&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Use separate models when both directions are scientifically relevant. Comparing the discovered populations can reveal whether different feature combinations characterize protective and high-risk burdens.</p>
+</section>
+<section id="interpretation-cautions">
+<h2>Interpretation cautions<a class="headerlink" href="#interpretation-cautions" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>A directional result is an association in the training data and does not establish a causal protective or harmful effect.</p></li>
+<li><p>The direction gate does not replace statistical assessment, validation on held-out data, or replication in an independent cohort.</p></li>
+<li><p>The RMST gate is unadjusted even when residual-based fitness incorporates covariates.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">default</span></code> remains the appropriate choice when either direction is meaningful or backward-compatible behavior is required.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="multi_group.html" class="btn btn-neutral float-left" title="Two- and three-group thresholding" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="history.html" class="btn btn-neutral float-right" title="Algorithm History" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Ryan Urbanowicz, Harsh Bandhey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Input Data
+scikit-FIBERS takes a pandas dataframe of the target dataset as input (including a header). This dataset can include columns for (1) one or more potentially predictive features (2) a time-to-event outcome, (3) a censoring column (optional), where 0 values indicate that the time-to-event is the censoring time, and 1 values indicate that the time-to-event is the actual observed event time, (4) one or more covariate features (optional) that exclude any perfect correlations among them. 
+
+Note that bins sum the feature values of potentially predictive features to determine risk group assignment, so all potentially predictive features should either (1) have the same value range (2) be scaled/normalized ahead of time, and or (3) should have value magnitudes that reflect their weight of importance with respect to other features. All values in the dataset should be numeric.
+
+scikit-FIBERS can also take in a previously trained or manually generated bin population to partially or fully initialize the bin population for training. This bin population is passed as a dataframe of a FIBERS-formatted bin population using the *manual_bin_init* hyperparameter. This allows users to continue evolving a previously trained bin population for futher iterations, or to use domain/expert knowledge to initialize the evolutionary algorithm with candidate bins. 
