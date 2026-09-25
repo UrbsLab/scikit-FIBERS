@@ -1,0 +1,31 @@
+# Run in SIMPLE/paper_analysis_codes/correlation_analysis.
+# Edit config.json first. Default: imp 1, CV 1-10, seed 1, queue defq.
+# Output: /project/kamoun_shared/output_shared/ashi_2026/simple
+
+# 1. Submit the 10 FIBERS jobs. Wait for all jobs to finish successfully.
+conda activate scikit-fibers
+python main_fibers.py --config config.json
+
+# 2. Submit the 10 correlation/post-processing jobs. Wait for all to finish.
+conda activate scikit-fibers
+python main_correlation.py --config config.json
+
+# 3. Submit one job for summary tables and figures.
+conda activate scikit-fibers
+python main_plots.py --config config.json
+
+# Monitor. Logs are under the configured output_root/logs.
+bjobs -u "$USER"
+bjobs -a -u "$USER"
+
+# Optional: show commands without submitting.
+conda activate scikit-fibers
+python main_fibers.py --config config.json --dry-run
+
+# Optional: retry one FIBERS task; then rerun its correlation and the plots.
+conda activate scikit-fibers
+python main_fibers.py --config config.json --imputations 1 --folds 3 --seeds 1 --force
+conda activate scikit-fibers
+python main_correlation.py --config config.json --imputations 1 --folds 3 --force
+conda activate scikit-fibers
+python main_plots.py --config config.json --force

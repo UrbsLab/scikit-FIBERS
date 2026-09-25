@@ -1,0 +1,75 @@
+{
+  "imputations": [1],
+  "folds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "seeds": [1],
+  "input": {
+    "mode": "pre_split",
+    "train_template": "/project/kamoun_shared/data_shared/harsh_new_imp_{imputation}_*CV_10/NewImp_{imputation}_CV_{fold}_Train*.csv",
+    "test_template": "/project/kamoun_shared/data_shared/harsh_new_imp_{imputation}_*CV_10/NewImp_{imputation}_CV_{fold}_Test*.csv",
+    "full_template": "/project/kamoun_shared/data_shared/harsh_new_imp/NewImp_{imputation}.csv",
+    "id_column": "TX_ID",
+    "chunksize": 4096,
+    "split_seed": 2026
+  },
+  "output_root": "/project/kamoun_shared/output_shared/ashi_2026/simple",
+  "columns": {
+    "outcome": "graftyrs",
+    "event": "grf_fail",
+    "ranges": {
+      "A": [1, 182], "B": [1, 182], "C": [1, 182],
+      "DRB1": [6, 94], "DRB345": [6, 94], "DQA1": [6, 94], "DQB1": [6, 95]
+    },
+    "clinical_covariates": [
+      "shared", "DCD", "DON_AGE", "donage_slope_ge18", "dcadcodanox",
+      "dcadcodcva", "dcadcodcnst", "dcadcodoth", "don_cmv_negative",
+      "don_htn_0c", "ln_don_wgt_kg_0c", "ln_don_wgt_kg_0c_s55",
+      "don_ecd", "age_ecd", "yearslice", "REC_AGE_AT_TX",
+      "rec_age_spline_35", "rec_age_spline_50", "rec_age_spline_65",
+      "diab_noted", "age_diab", "dm_can_age_spline_50", "can_dgn_htn_ndm",
+      "can_dgn_pk_ndm", "can_dgn_gd_ndm", "rec_prev_ki_tx",
+      "rec_prev_ki_tx_dm", "rbmi_0c", "rbmi_miss", "rbmi_gt_20",
+      "rbmi_DM", "rbmi_gt_20_DM", "ln_c_hd_m", "ln_c_hd_0c",
+      "ln_c_hd_m_ptx", "PKPRA_MS", "PKPRA_1080", "PKPRA_GE80",
+      "hispanic", "CAN_RACE_BLACK", "CAN_RACE_asian", "CAN_RACE_WHITE"
+    ],
+    "antigen_covariates": [
+      "Agmm0", "AgmmA0", "AgmmA1", "AgmmB0", "AgmmB1", "Agmmc0", "Agmmc1",
+      "AgmmDR0", "AgmmDR1", "Agmmdqa10", "Agmmdqa11", "Agmmdqb10", "Agmmdqb11"
+    ]
+  },
+  "minimum_nonzero_frequency": 0.0,
+  "fibers": {
+    "iterations": 100, "pop_size": 50, "tournament_prop": 0.2,
+    "crossover_prob": 0.5, "min_mutation_prob": 0.2, "max_mutation_prob": 0.2,
+    "merge_prob": 0.1, "new_gen": 1.0, "elitism": 0.1,
+    "diversity_pressure": 0, "min_bin_size": 1, "max_bin_size": null,
+    "max_bin_init_size": 10, "fitness_metric": "log_rank_residuals",
+    "log_rank_weighting": null, "group_strata_min": 0.2, "penalty": 0.5,
+    "group_thresh": 0, "min_thresh": 0, "max_thresh": 5, "int_thresh": true,
+    "thresh_evolve_prob": 0.5, "pop_clean": null,
+    "desired_bin_effect": "default", "n_groups": 2
+  },
+  "correlation": {
+    "thresholds": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99],
+    "primary_threshold": 0.95,
+    "locus_thresholds": {},
+    "adaptive": {"enabled": true, "min_blocks": 1, "min_features": 4}
+  },
+  "evaluation": {
+    "bins": 50, "cox_top_bins": 1, "adjusted_top_bins": 1,
+    "primary_hr_all_bins": true, "reoptimize_top_bins": 1,
+    "minimum_group_fraction": 0.2
+  },
+  "plots": {
+    "thresholds": [0.1, 0.4, 0.95], "rows_per_page": 28,
+    "population_imputation": 1, "population_fold": 1, "population_seed": 1,
+    "interlocus_threshold": 0.4, "interlocus_reporting_thresholds": [0.1, 0.2, 0.3, 0.4, 0.45, 0.5],
+    "interlocus_max_positions": 16
+  },
+  "hpc": {
+    "queue": "i2c2_normal",
+    "fibers": {"cpus": 4, "memory_gb": 64, "hours": 24},
+    "correlation": {"cpus": 4, "memory_gb": 64, "hours": 24},
+    "plots": {"cpus": 2, "memory_gb": 32, "hours": 8}
+  }
+}
