@@ -44,13 +44,21 @@ def load_config(path):
             raise ValueError("full_dataset requires consecutive folds 1..K, K >= 2")
     if config["input"]["chunksize"] < 1:
         raise ValueError("input.chunksize must be positive")
-    if not 0 <= config["minimum_nonzero_frequency"] < 1:
-        raise ValueError("minimum_nonzero_frequency must be in [0, 1)")
+    # Accept old configurations without silently changing their filtering.
+    config.setdefault("rare_filter", config.get("minimum_nonzero_frequency", 0.0))
+    if ("minimum_nonzero_frequency" in config
+            and config["minimum_nonzero_frequency"] != config["rare_filter"]):
+        raise ValueError("rare_filter conflicts with minimum_nonzero_frequency")
+    if not 0 <= config["rare_filter"] <= 1:
+        raise ValueError("rare_filter must be in [0, 1]")
     thresholds = config["correlation"]["thresholds"]
     if not thresholds or len(set(thresholds)) != len(thresholds) or any(not 0 < r < 1 for r in thresholds):
         raise ValueError("Correlation thresholds must be unique and between 0 and 1")
     if config["correlation"]["primary_threshold"] not in thresholds:
         raise ValueError("primary_threshold must occur in thresholds")
+    scopes = config["correlation"].get("scopes", ["within"])
+    if not scopes or len(scopes) != len(set(scopes)) or not set(scopes) <= {"within", "any"}:
+        raise ValueError("correlation.scopes must contain within and/or any")
     if not set(config["plots"]["thresholds"]).issubset(thresholds):
         raise ValueError("Plot thresholds must occur in correlation.thresholds")
     if not 0 < config["plots"]["interlocus_threshold"] < 1:
@@ -118,10 +126,10 @@ def file_state(path):
 
 
 def identity(config, stage, imputation=None, fold=None, seed=None, dependencies=()):
-    keys = ["input", "columns", "minimum_nonzero_frequency", "fibers"]
-    code = ["common.py", "data.py", "methods.py", "run_fibers.py"]
+    keys = ["input", "columns", "rare_filter", "fibers", "evaluation"]
+    code = ["common.py", "data.py", "methods.py", "run_fibers.py", "run_risk.py"]
     if stage in ("correlation", "plots"):
-        keys += ["correlation", "evaluation", "seeds"]
+        keys += ["correlation", "seeds"]
         code += ["run_correlation.py"]
     if stage == "plots":
         keys += ["plots", "imputations", "folds"]
@@ -177,7 +185,7 @@ def finish_result(directory, expected, names, **details):
     expected.update(details)
     expected["outputs"] = {name: file_state(Path(directory) / name) for name in names}
     expected["python"] = sys.executable
-    expected["fibers_commit"] = subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip() if (REPO / ".git").exists() else "see UPSTREAM_COMMIT.txt"
+    expected["fibers_commit"] = subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip() if (REPO / ".git").exists() else "Git metadata not packaged; see settings.fibers_source hashes"
     save_json(Path(directory) / "completed.json", expected)
 
 

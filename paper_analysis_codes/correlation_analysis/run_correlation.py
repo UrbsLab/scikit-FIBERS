@@ -11,7 +11,7 @@ import pandas as pd
 from common import (begin_result, finish_result, fit_dir, fold_dir, identity,
                     require_result, save_json, worker_args)
 from data import active_covariates, load_fold, retained_features
-from methods import (build_schemes, correlation_table, evaluate, expand_bin,
+from methods import (build_schemes, correlation_table, cox_designs, evaluate, expand_bin,
                      optimize_threshold, pearson_matrix, scheme_name, score_groups)
 
 
@@ -49,13 +49,15 @@ def run(config, imputation, fold, force=False):
     rows, membership, processed = [], [], []
     score_caches = {"train": {}, "test": {}}
     metric_cache = {}
+    designs = cox_designs(test, config, clinical, antigen)
 
     def metrics(split, frame, score, threshold, unadjusted, adjusted):
         # Identical group assignments have identical survival results, across bins/cutoffs.
         group_hash = hashlib.sha256(np.packbits(score > threshold).tobytes()).hexdigest()
         key = (split, group_hash, unadjusted, adjusted)
         if key not in metric_cache:
-            metric_cache[key] = evaluate(frame, score, threshold, config, clinical, antigen, unadjusted, adjusted)
+            metric_cache[key] = evaluate(frame, score, threshold, config, clinical, antigen, unadjusted, adjusted,
+                                         designs if split == "test" else None)
         return {**metric_cache[key], "threshold": float(threshold)}
 
     for seed in config["seeds"]:
@@ -108,6 +110,8 @@ def run(config, imputation, fold, force=False):
                   ["correlations.csv.gz", "blocks.json", "feature_filter.csv", "split_ids.csv.gz",
                    "metrics.csv.gz", "membership.csv.gz", "processed_bins.json"],
                   split_audit=audit, clinical_covariates=clinical, antigen_covariates=antigen,
+                  cox_adjustment={label: info for label, (_, info) in designs.items()},
+                  cox_excluded_covariates=settings.get("exclude_covariates", []),
                   unique_survival_evaluations=len(metric_cache))
     print(f"Completed correlation analysis: {destination}", flush=True)
 

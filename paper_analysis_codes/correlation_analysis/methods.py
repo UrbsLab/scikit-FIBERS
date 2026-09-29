@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import hashlib
-import warnings
 
 import numpy as np
 import pandas as pd
-from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
@@ -40,8 +38,8 @@ def correlation_table(matrix, features, n):
                          "pearson_r": matrix[left, right], "n_train": n})
 
 
-def scheme_name(threshold):
-    return "r" + str(float(threshold)).replace(".", "p")
+def scheme_name(threshold, scope="within"):
+    return ("any_" if scope == "any" else "") + "r" + str(float(threshold)).replace(".", "p")
 
 
 def block_id(features):
@@ -83,11 +81,36 @@ def build_schemes(matrix, features, config):
 
     for threshold in thresholds:
         add(scheme_name(threshold), {locus: threshold for locus in loci})
+    scopes = settings.get("scopes", ["within"])
+    if "any" in scopes:
+        # Reuse the same training matrix; cluster once across all loci.
+        distances = np.clip(1 - matrix, 0, 2)
+        np.fill_diagonal(distances, 0)
+        tree = linkage(squareform(distances, checks=False), method="complete") if len(features) > 1 else None
+        for threshold in thresholds:
+            groups = []
+            labels = (fcluster(tree, np.nextafter(1 - threshold, -np.inf), criterion="distance")
+                      if tree is not None else np.ones(len(features), dtype=int))
+            for label in np.unique(labels):
+                indexes = np.flatnonzero(labels == label)
+                if len(indexes) < 2:
+                    continue
+                members = [features[i] for i in indexes]
+                minimum = float(matrix[np.ix_(indexes, indexes)][np.triu_indices(len(indexes), 1)].min())
+                if minimum <= threshold:
+                    raise AssertionError("An any-locus block violates its all-pairs cutoff")
+                member_loci = list(dict.fromkeys(feature_key(name)[0] for name in members))
+                groups.append({"block": block_id(members), "locus": "+".join(member_loci),
+                               "loci": member_loci, "features": members, "min_r": minimum})
+            schemes[scheme_name(threshold, "any")] = {
+                "scope": "any", "thresholds": {locus: threshold for locus in loci}, "blocks": groups}
+    if "within" not in scopes:
+        schemes = {name: scheme for name, scheme in schemes.items() if name.startswith("any_")}
     overrides = settings.get("locus_thresholds", {})
-    if overrides:
+    if overrides and "within" in scopes:
         add("locus_specific", {locus: overrides.get(locus, settings["primary_threshold"]) for locus in loci})
     adaptive = settings["adaptive"]
-    if adaptive["enabled"]:
+    if adaptive["enabled"] and "within" in scopes:
         chosen = {}
         for locus in loci:
             chosen[locus] = settings["primary_threshold"]
@@ -146,14 +169,25 @@ def optimize_threshold(frame, score, original_threshold, config):
     return best[2] if best else None
 
 
-def evaluate(frame, score, threshold, config, clinical, antigen, unadjusted, adjusted):
+def cox_designs(frame, config, clinical, antigen):
+    from run_risk import covariate_basis
+
+    excluded = set(config["evaluation"].get("exclude_covariates", []))
+    return {label: covariate_basis(frame, [c for c in covs if c not in excluded])
+            for label, covs in (("HR", []), ("Adj HR", clinical + antigen), ("Adj NoAg HR", clinical))}
+
+
+def evaluate(frame, score, threshold, config, clinical, antigen, unadjusted, adjusted, designs=None):
+    from run_risk import fit_noag
+
     outcome, event = config["columns"]["outcome"], config["columns"]["event"]
     high = np.asarray(score) > threshold
     statistic, p = logrank(frame, high, outcome, event)
     result = {"threshold": float(threshold), "n": len(frame), "n_above": int(high.sum()),
               "logrank": statistic, "logrank_p": p}
-    for label, covs, requested in (("HR", [], unadjusted), ("Adj HR", clinical + antigen, adjusted),
-                                   ("Adj NoAg HR", clinical, adjusted)):
+    if (unadjusted or adjusted) and designs is None:
+        designs = cox_designs(frame, config, clinical, antigen)
+    for label, requested in (("HR", unadjusted), ("Adj HR", adjusted), ("Adj NoAg HR", adjusted)):
         for suffix in ("", " lower", " upper", " p"):
             result[label + suffix] = float("nan")
         result[label + " status"] = "not_requested"
@@ -162,19 +196,10 @@ def evaluate(frame, score, threshold, config, clinical, antigen, unadjusted, adj
         if not high.any() or high.all():
             result[label + " status"] = "single_group"
             continue
-        model_frame = frame[[outcome, event] + covs].copy()
-        model_frame["_above"] = high.astype(int)
-        try:
-            with warnings.catch_warnings(record=True) as messages:
-                warnings.simplefilter("always")
-                model = CoxPHFitter().fit(model_frame, duration_col=outcome, event_col=event)
-            row = model.summary.loc["_above"]
-            for suffix, field in (("", "exp(coef)"), (" lower", "exp(coef) lower 95%"),
-                                  (" upper", "exp(coef) upper 95%"), (" p", "p")):
-                result[label + suffix] = float(row[field])
-            result[label + " status"] = "ok" if not messages else "warning:" + " | ".join(str(w.message) for w in messages)
-        except Exception as error:
-            result[label + " status"] = f"error:{type(error).__name__}:{error}"
+        fitted, _, _ = fit_noag(frame, high, outcome, event, designs[label][0], label=label)
+        for suffix in ("", " lower", " upper", " p"):
+            result[label + suffix] = fitted[label + suffix] if fitted[label + suffix] is not None else float("nan")
+        result[label + " status"] = fitted["status"]
     return result
 
 

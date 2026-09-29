@@ -11,7 +11,7 @@
     "chunksize": 4096,
     "split_seed": 2026
   },
-  "output_root": "/project/kamoun_shared/output_shared/ashi_2026/simple",
+  "output_root": "/project/kamoun_shared/output_shared/ashi_2026/simple_r0p95_rare0p001",
   "columns": {
     "outcome": "graftyrs",
     "event": "grf_fail",
@@ -37,7 +37,7 @@
       "AgmmDR0", "AgmmDR1", "Agmmdqa10", "Agmmdqa11", "Agmmdqb10", "Agmmdqb11"
     ]
   },
-  "minimum_nonzero_frequency": 0.0,
+  "rare_filter": 0.001,
   "fibers": {
     "iterations": 100, "pop_size": 50, "tournament_prop": 0.2,
     "crossover_prob": 0.5, "min_mutation_prob": 0.2, "max_mutation_prob": 0.2,
@@ -50,20 +50,23 @@
     "desired_bin_effect": "default", "n_groups": 2
   },
   "correlation": {
-    "thresholds": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99],
+    "thresholds": [0.95],
     "primary_threshold": 0.95,
+    "scopes": ["within", "any"],
     "locus_thresholds": {},
-    "adaptive": {"enabled": true, "min_blocks": 1, "min_features": 4}
+    "adaptive": {"enabled": false, "min_blocks": 1, "min_features": 4}
   },
   "evaluation": {
     "bins": 50, "cox_top_bins": 1, "adjusted_top_bins": 1,
-    "primary_hr_all_bins": true, "reoptimize_top_bins": 1,
+    "primary_hr_all_bins": false, "reoptimize_top_bins": 0,
+    "exclude_covariates": ["PKPRA_MS"],
     "minimum_group_fraction": 0.2
   },
   "plots": {
-    "thresholds": [0.1, 0.4, 0.95], "rows_per_page": 28,
+    "thresholds": [0.95], "rows_per_page": 28,
+    "complete_top_bins": true,
     "population_imputation": 1, "population_fold": 1, "population_seed": 1,
-    "interlocus_threshold": 0.4, "interlocus_reporting_thresholds": [0.1, 0.2, 0.3, 0.4, 0.45, 0.5],
+    "interlocus_threshold": 0.95, "interlocus_reporting_thresholds": [0.95],
     "interlocus_max_positions": 16
   },
   "hpc": {

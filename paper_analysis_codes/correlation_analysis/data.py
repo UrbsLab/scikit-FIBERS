@@ -103,14 +103,23 @@ def load_fold(config, imputation, fold):
 
 
 def retained_features(train, features, config):
-    variance = train[features].var(ddof=0)
-    frequency = (train[features] > 0).mean()
-    keep = (variance > 0) & (frequency >= config["minimum_nonzero_frequency"])
+    """Match the HLA CV scripts' nonzero-frequency filter, using training rows only."""
+    rare_filter = config.get("rare_filter", config.get("minimum_nonzero_frequency", 0.0))
+    mismatch = train.loc[:, features]
+    frequency = (mismatch > 0).mean()
+    invariant = mismatch.nunique() <= 1
+    rare = frequency < rare_filter if rare_filter > 0 else frequency == 0.0
+    # Unlike only checking all-zero columns, this also removes constant 1/2 columns.
+    keep = ~(rare | invariant)
     kept = [name for name in features if keep[name]]
     if not kept:
         raise ValueError("No features remain after training-only filtering")
-    table = pd.DataFrame({"feature": features, "variance": variance.to_numpy(),
-                          "nonzero_frequency": frequency.to_numpy(), "retained": keep.to_numpy()})
+    table = pd.DataFrame({"feature": features, "variance": mismatch.var(ddof=0).to_numpy(),
+                          "nonzero_frequency": frequency.to_numpy(), "rare_filter": rare_filter,
+                          "invariant": invariant.to_numpy(), "rare": rare.to_numpy(),
+                          "retained": keep.to_numpy()})
+    print(f"Training filter: rare_filter={rare_filter:g}; {len(kept)}/{len(features)} retained; "
+          f"{int(invariant.sum())} invariant; {int((rare & ~invariant).sum())} other rare", flush=True)
     return kept, table
 
 

@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 
 from common import HERE, identity, load_config, require_result
-from data import load_fold
+from data import load_fold, retained_features
 from methods import build_schemes, expand_bin, pearson_matrix, score_groups
 
 
@@ -65,7 +65,7 @@ def test_matrix_and_block_math(example):
         for block in scheme["blocks"]:
             indexes = [features.index(f) for f in block["features"]]
             values = matrix[np.ix_(indexes, indexes)][np.triu_indices(len(indexes), 1)]
-            assert np.all(values > scheme["thresholds"][block["locus"]])
+            assert np.all(values > scheme["thresholds"][block["features"][0].split("_")[1]])
     score_data = pd.DataFrame({"MM_DQA1_11": [1, 0, 2], "MM_DQA1_18": [1, 1, 2]})
     groups = expand_bin(list(score_data), schemes["r0p95"])
     assert score_groups(score_data, groups).tolist() == [1, 1, 2]
@@ -76,6 +76,39 @@ def test_complete_linkage_does_not_chain(example):
     matrix = np.array([[1, .97, .90], [.97, 1, .96], [.90, .96, 1]])
     scheme = build_schemes(matrix, names, example)["r0p95"]
     assert all(len(block["features"]) < 3 for block in scheme["blocks"])
+
+
+def test_rare_filter_matches_training_nonzero_frequency_and_boundary(example):
+    frame = pd.DataFrame({"MM_A_1": [0] * 2000, "MM_A_2": [1] * 2000,
+                          "MM_A_3": [2] * 2000, "MM_A_4": [1] + [0] * 1999,
+                          "MM_A_5": [1, 2] + [0] * 1998, "MM_A_6": [0, 2] * 1000})
+    example["rare_filter"] = .001
+    kept, stats = retained_features(frame, list(frame), example)
+    assert kept == ["MM_A_5", "MM_A_6"]
+    assert stats.set_index("feature").loc["MM_A_4", "nonzero_frequency"] == .0005
+    assert stats.invariant.tolist() == [True, True, True, False, False, False]
+    example["rare_filter"] = 0
+    assert retained_features(frame, list(frame), example)[0] == ["MM_A_4", "MM_A_5", "MM_A_6"]
+
+
+def test_filter_is_identical_for_fibers_and_correlations_not_refit_on_test(example):
+    train, test, features, _ = load_fold(example, 1, 1)
+    feature = features[0]
+    train[feature] = 0
+    test[feature] = 1
+    kept, _ = retained_features(train, features, example)
+    assert feature not in kept
+    assert list(train[kept].columns) == list(test[kept].columns)
+
+
+def test_any_locus_blocks_use_one_strict_cutoff(example):
+    names = ["MM_A_10", "MM_DQA1_11", "MM_DQB1_84"]
+    matrix = np.array([[1, .96, .95], [.96, 1, .99], [.95, .99, 1]])
+    schemes = build_schemes(matrix, names, example)
+    assert schemes["r0p95"]["blocks"] == []
+    any_blocks = schemes["any_r0p95"]["blocks"]
+    assert len(any_blocks) == 1
+    assert set(any_blocks[0]["features"]) == {"MM_DQA1_11", "MM_DQB1_84"}
 
 
 def test_overlap_is_rejected(example):
@@ -110,6 +143,9 @@ def test_complete_three_stage_pipeline(example):
     from run_correlation import run as correlate
     from run_plots import run as plot
 
+    example["correlation"]["thresholds"] = [.95]
+    example["plots"]["thresholds"] = [.95]
+
     for imp, fold in itertools.product(example["imputations"], example["folds"]):
         fit(example, imp, fold, 1)
         correlate(example, imp, fold)
@@ -120,6 +156,9 @@ def test_complete_three_stage_pipeline(example):
     top = metrics.loc[(metrics["rank"] == 1) & (metrics.dataset == "test")]
     assert top["Adj HR"].notna().any()
     assert top["Adj NoAg HR"].notna().any()
+    assert "any_r0p95" in set(top.scheme)
+    assert (root / "summary/top_bin_summary.csv").is_file()
+    assert list((root / "summary/figures").glob("figure2*any_r0p95*.png"))
     assert (root / "summary/figures/figure4_threshold_comparison.png").is_file()
     assert list((root / "summary/figures").glob("figure3*.png"))
     assert list((root / "summary/figures").glob("figure5*.png"))

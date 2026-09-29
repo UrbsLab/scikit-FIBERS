@@ -127,6 +127,20 @@ def run(config, force=False):
     consistency = consistency_rows(records, config)
     consistency.to_csv(destination / "consistency_pairs.csv.gz", index=False)
     consistency.groupby(["comparison", "scope", "scheme"])[["jaccard", "positions"]].mean().to_csv(destination / "consistency_summary.csv")
+    summary_rows = []
+    top = risk.loc[(risk["rank"] == 1) & (risk.dataset == "test") & risk.variant.isin(["original", "processed_fixed"])]
+    for (imp, seed, scheme), group in top.groupby(["imputation", "seed", "scheme"], sort=False):
+        agreement = consistency.loc[(consistency.comparison == "across_cv")
+                                    & (consistency.scope == f"imp{imp}_seed{seed}") & (consistency.scheme == scheme)]
+        row = {"imputation": imp, "seed": seed, "scheme": scheme, "n_folds": len(group),
+               "mean_jaccard": agreement.jaccard.mean(), "mean_positions": group.positions.mean()}
+        for measure in ("HR", "Adj NoAg HR", "Adj HR"):
+            good = group[measure + " status"].eq("ok")
+            row["n_" + measure] = int(good.sum())
+            # Do not present a partial-fold mean as if all folds succeeded.
+            row["mean_" + measure] = group[measure].mean() if good.all() else float("nan")
+        summary_rows.append(row)
+    pd.DataFrame(summary_rows).to_csv(destination / "top_bin_summary.csv", index=False)
     interlocus, sensitivity = aggregate_interlocus(config, directories)
     interlocus.to_csv(destination / "interlocus_summary.csv.gz", index=False)
     sensitivity.to_csv(destination / "interlocus_cutoff_counts.csv", index=False)
@@ -135,11 +149,12 @@ def run(config, force=False):
         for scheme, blocks in json.loads((directory / "blocks.json").read_text()).items():
             for locus, threshold in blocks["thresholds"].items():
                 threshold_rows.append({"imputation": imp, "fold": fold, "scheme": scheme, "locus": locus,
-                                       "threshold": threshold, "multi_position_blocks": sum(b["locus"] == locus for b in blocks["blocks"])})
+                                       "threshold": threshold, "multi_position_blocks": sum(locus in b.get("loci", [b["locus"]]) for b in blocks["blocks"])})
     pd.DataFrame(threshold_rows).to_csv(destination / "locus_thresholds.csv", index=False)
     captions = []
     plot_config = config["plots"]
-    schemes = [scheme_name(r) for r in plot_config["thresholds"]]
+    schemes = [scheme_name(r, scope) for scope in config["correlation"].get("scopes", ["within"])
+               for r in plot_config["thresholds"]]
     schemes += [name for name in ("locus_specific", "locus_adaptive") if any(r["scheme"] == name for r in records)]
     figures = destination / "figures"
     for name in schemes:

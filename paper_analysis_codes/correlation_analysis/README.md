@@ -11,7 +11,9 @@ main_plots.py        -> bsub run_plots.py
 
 There are no manifests, generated shell scripts, numbered stages, installation
 steps, or analysis `src` package. `common.py`, `data.py`, `methods.py` and
-`plotting.py` are ordinary neighboring modules shared by these workers. FIBERS
+`plotting.py` are ordinary neighboring modules shared by these workers. The
+existing `run_risk.py` supplies the shared Cox fitting functions internally;
+there is no separate risk-submission stage. FIBERS
 itself is imported from this checkout's existing `src/skfibers` directory.
 
 ## Run on LSF
@@ -20,7 +22,13 @@ Start in `SIMPLE/paper_analysis_codes/correlation_analysis`, activate your exist
 conda environment, and review `config.json`. It contains the input paths, `TX_ID`,
 clinical/antigen covariates, FIBERS settings, correlation cutoffs and LSF resources.
 The default runs imputation 1, folds 1-10, seed 1, and writes to
-`/project/kamoun_shared/output_shared/ashi_2026/simple`.
+`/project/kamoun_shared/output_shared/ashi_2026/simple_r0p95_rare0p001`.
+
+The final configuration uses `rare_filter: 0.001`, `r > 0.95` for both within-locus
+and any-locus blocks, and queue `i2c2_normal`. The earlier results used a rare
+filter of zero. The new filter changes the candidate feature set, so start all
+three stages in the new output directory; do not relabel earlier results as
+results from this filter.
 
 ```bash
 conda activate scikit-fibers
@@ -69,7 +77,15 @@ installation is needed. The login node never scans patient CSV files.
 - The seven study loci and position ranges match the prior analysis: A/B/C
   positions 1-182, DRB1/DRB345/DQA1 positions 6-94, DQB1 positions 6-95. DPA1/DPB1
   are not included. The actual input header supplies 903 candidate positions.
-  Constants and configured rare features are removed using training data only.
+  The rare filter matches `hla_hpc_scripts/job_fibers_hpc_cv.py`: calculate the
+  fraction of training patients with a mismatch greater than zero, then remove
+  positions below `rare_filter`. A fraction exactly equal to 0.001 is retained.
+  Invariant columns (including constant 1 or 2) are also removed so Pearson
+  correlations are defined. With `rare_filter: 0`, only invariants are removed.
+  Covariates and outcomes are not subject to this mismatch-frequency filter.
+  FIBERS and correlation processing use the same training-selected feature list;
+  nothing is selected or removed based on held-out frequencies. Filtering is
+  recorded in the existing `feature_filter.csv`, not an extra audit-file stage.
 - FIBERS uses the supplied study settings, including product fitness
   (`log_rank_residuals`), 100 iterations, population 50, fixed threshold 0 and
   seed 1. Product fitness uses clinical-plus-antigen-adjusted training residuals.
@@ -79,27 +95,35 @@ installation is needed. The login node never scans patient CSV files.
   including negative correlations. No Python process pool or local parallel
   jobs are launched; numerical libraries use the CPU slots allocated by LSF.
 - Within-locus blocks use complete linkage and require every pair to satisfy
-  `r > cutoff`. The hierarchy is built once per locus and reused. Interlocus
-  correlations are descriptive; they do not merge loci in processed bins.
+  `r > cutoff`. The hierarchy is built once per locus and reused. Any-locus blocks
+  apply the same complete-linkage rule across all retained loci; every pair must
+  pass, but a block does not have to span multiple loci. Both use the same saved
+  training matrix. Schemes are named `r0p95` and `any_r0p95` respectively.
 - Processing includes every member of a touched block. A block contributes its
   maximum mismatch value once, even if several original features touch it.
   With 0/1/2 inputs the contribution can be 2; it is not automatically binary.
 - Original and processed bins are compared at the original threshold. A separate
-  sensitivity analysis reselects the threshold for the top bin using training
-  log-rank separation only. All test-set evaluation holds that choice fixed.
+  optional sensitivity analysis can reselect the threshold using training
+  log-rank separation only. It is disabled in the final configuration.
 - Every bin gets train/test log-rank results. By default the top bin gets
   unadjusted HR, Adj HR (clinical plus antigen covariates), and Adj NoAg HR
-  (clinical covariates only) for every scheme. All bins also get unadjusted test
-  HR for the original and primary r > 0.95 schemes. Increase the `evaluation`
+  (clinical covariates only) for every scheme. Expensive Cox models are limited
+  to top bins by default; the full 50-bin population still gets feature inclusion,
+  consistency and log-rank outputs. Increase the `evaluation`
   top-bin counts to fit more Cox models. Cox warnings/failures are reported in
-  status columns, never replaced with a successful-looking estimate. Residuals
+  status columns, never replaced with a successful-looking estimate. The same
+  clinical design is used for original and processed bins. The documented sparse
+  `PKPRA_MS` exclusion is in `evaluation.exclude_covariates`; constant and exactly
+  collinear adjustment columns are handled by the existing validated Cox helper.
+  Models are unpenalized. Residuals
   are used in training fitness, not as outcome-derived predictors in test Cox
   models. HR refers to above-threshold versus at/below-threshold patients.
 - The exploratory adaptive scheme selects the highest candidate threshold per
   locus that provides at least one block and four positions in multi-position
   blocks; if none qualifies it uses the primary cutoff. This is a transparent
   structural heuristic, not an optimized clinical cutoff. `locus_thresholds`
-  can instead specify an explicit mapping, for example `{"DRB1": 0.4}`.
+  can instead specify an explicit mapping. Adaptive/locus-specific thresholds
+  are disabled in the final configuration.
 - Consistency is pairwise Jaccard feature overlap within populations, across CV
   folds, and across imputations at the same fold/seed. Summaries are descriptive;
   overlapping training folds and imputations are not independent replications.
@@ -141,6 +165,7 @@ or split files. Use a new `output_root` when switching input mode.
   summary/
     cv_validation.csv
     risk_comparison.csv.gz
+    top_bin_summary.csv          # all three HRs and Jaccard, with fold counts
     consistency_pairs.csv.gz
     consistency_summary.csv
     interlocus_summary.csv.gz
@@ -155,13 +180,17 @@ or split files. Use a new `output_root` when switching input mode.
 Figure 1 compares a selected full bin population before/after processing. Figure
 2 compares top bins across CV folds. Figure 3 compares top bins across imputations
 at the selected common fold and is generated only when multiple imputations are
-available. Large feature-inclusion plots are split into readable pages with the
+available. Population plots are paginated; top-bin plots retain every position
+in one complete figure by default (`plots.complete_top_bins`). Figures have the
 same row and column ordering before/after. Dark cells are original, light cells
 are added alternatives, and block colors are explained in the separate captions.
-There are no dots, embedded titles or captions.
+Gray represents ungrouped original positions; no black inclusion cells are used.
+Interlocus members of an exact block share a hue across locus sections. There
+are no dots, embedded titles or captions.
 
-Figure 4 compares consistency, position counts and paired test HR changes over
-the full threshold grid starting at 0.10. Figure 5 provides separate interlocus
+For the final single cutoff, Figure 4 compares Jaccard and all three held-out HRs
+for original, within-locus and any-locus top bins. Multiple configured cutoffs
+instead produce the exploratory threshold comparison. Figure 5 provides separate interlocus
 heatmaps for locus pairs with eligible correlations. It displays mean r across
 all training folds and counts of folds exceeding the configured cutoff, capped
 at a configurable number of positions per axis. Full numerical results are

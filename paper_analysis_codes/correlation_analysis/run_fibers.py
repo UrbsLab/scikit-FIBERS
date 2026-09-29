@@ -23,6 +23,11 @@ def run(config, imputation, fold, seed, force=False):
     features, filter_table = retained_features(train, candidates, config)
     clinical, antigen = active_covariates(train, config)
     parameters = dict(config["fibers"])
+    if len(features) < parameters["min_bin_size"]:
+        raise ValueError("Filtering left fewer features than min_bin_size")
+    parameters["max_bin_init_size"] = min(parameters["max_bin_init_size"], len(features))
+    if parameters["max_bin_size"] is not None:
+        parameters["max_bin_size"] = min(parameters["max_bin_size"], len(features))
     training_covariates = clinical + antigen if parameters["fitness_metric"] in ("residuals", "log_rank_residuals") else []
     if parameters["fitness_metric"] in ("residuals", "log_rank_residuals") and not training_covariates:
         raise ValueError("Product/residual fitness requires nonconstant training covariates")

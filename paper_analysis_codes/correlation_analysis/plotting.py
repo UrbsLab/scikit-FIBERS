@@ -31,34 +31,30 @@ def inclusion_plot(records, labels, config, directory, name, captions):
     expanded = [{f for group in record["groups"] for f in group["features"]} for record in records]
     features = set.union(*expanded)
     loci = list(config["columns"]["ranges"])
-    # A shared color means the features share a block in every displayed context.
-    maps = [{f: group["block"] for group in record["groups"] for f in group["features"]} for record in records]
+    # Colors identify exact block memberships, including blocks spanning loci.
+    maps = [{f: tuple(sorted(group["features"], key=feature_key))
+             for group in record["groups"] for f in group["features"]} for record in records]
     signatures = {}
     for feature in features:
-        signatures[feature] = tuple(mapping.get(feature, "absent") for mapping in maps)
-    grouped = defaultdict(list)
-    for feature, signature in signatures.items():
-        grouped[signature].append(feature)
-    clusters = sorted(grouped.values(), key=lambda fs: (loci.index(feature_key(fs[0])[0]), min(feature_key(f)[1] for f in fs)))
-    colors, ordered, color_index = {}, [], 0
-    for cluster in clusters:
-        color = np.array([0.13, 0.13, 0.13])
-        if len(cluster) > 1:
-            color = np.array(colorsys.hsv_to_rgb((color_index * 0.61803398875 + 0.08) % 1, 0.72, 0.65))
-            color_index += 1
-        for feature in sorted(cluster, key=feature_key):
-            colors[feature] = color
-            ordered.append(feature)
-    pages = math.ceil(len(ordered) / config["plots"]["rows_per_page"])
+        signatures[feature] = tuple(mapping.get(feature, ()) for mapping in maps)
+    block_keys = sorted({members for mapping in maps for members in mapping.values() if len(members) > 1})
+    colors = {members: np.array(colorsys.hsv_to_rgb((i * .61803398875 + .53) % 1, .70, .64))
+              for i, members in enumerate(block_keys)}
+    gray = np.array([.57, .62, .65])
+    ordered = sorted(features, key=lambda f: (loci.index(feature_key(f)[0]), signatures[f], feature_key(f)[1]))
+    per_page = (len(ordered) if config["plots"].get("complete_top_bins", False)
+                and all(r["rank"] == 1 for r in records) else config["plots"]["rows_per_page"])
+    pages = math.ceil(len(ordered) / per_page)
     for page in range(pages):
-        names = ordered[page * config["plots"]["rows_per_page"]:(page + 1) * config["plots"]["rows_per_page"]]
+        names = ordered[page * per_page:(page + 1) * per_page]
         fig, axes = plt.subplots(1, 2, figsize=(16, max(4, 0.29 * len(names) + 2.3)), sharey=True)
         for ax, sets, processed in zip(axes, (originals, expanded), (False, True)):
             rgb = np.ones((len(names), len(records), 3))
             for i, feature in enumerate(names):
                 for j, selected in enumerate(sets):
                     if feature in selected:
-                        rgb[i, j] = colors[feature] if feature in originals[j] else 0.30 * colors[feature] + 0.70
+                        color = colors.get(maps[j][feature], gray)
+                        rgb[i, j] = color if feature in originals[j] else 0.30 * color + 0.70
             ax.imshow(rgb, aspect="auto", interpolation="nearest")
             ticks = list(range(len(labels))) if len(labels) <= 12 else sorted(set([0, *range(4, len(labels), 5)]))
             ax.set_xticks(ticks, [labels[i] for i in ticks], rotation=90 if len(labels) > 12 else 0)
@@ -67,15 +63,15 @@ def inclusion_plot(records, labels, config, directory, name, captions):
         axes[0].set_ylabel("Amino acid mismatch position")
         fig.legend(handles=[Patch(facecolor="#236c80", label="Original position (dark)"),
                             Patch(facecolor="#bdd3d9", label="Added position (light)"),
-                            Patch(facecolor="#222222", label="No shared multi-position block (black/gray)")],
-                   loc="upper center", ncol=1, frameon=False, fontsize=12)
-        fig.tight_layout(rect=(0, 0, 1, 0.84))
+                            Patch(facecolor=gray, label="Ungrouped original (gray)")],
+                   loc="upper center", ncol=1, frameon=False, fontsize=14)
+        fig.tight_layout(rect=(0, 0, 1, 1 - 1.25 / fig.get_figheight()))
         suffix = f"_page{page + 1:02d}" if pages > 1 else ""
         save_figure(fig, directory, name + suffix,
                     "Feature inclusion before (left) and after (right) processing, with identical rows and column order. "
-                    "Dark cells are original features; light cells are added alternatives. Each hue identifies positions that share "
-                    "a correlated block wherever both are included in the displayed bins; black/gray means no shared multi-position "
-                    "group in this display. White means absent. Colors are local to this comparison, not HLA loci or risk. "
+                    "Dark cells are original features; matching light cells are added alternatives. Each hue identifies an exact "
+                    "correlated block, including interlocus members in different locus sections. Gray means ungrouped original. "
+                    "White means absent. Colors are local to this comparison, not HLA loci or risk. "
                     "A filled block shows feature inclusion, not independent risk effects. "
                     f"Scheme: {records[0]['scheme']}; page {page + 1}/{pages}.", captions)
 
@@ -87,6 +83,36 @@ def threshold_plot(consistency, risk, config, directory, captions):
     fig, axes = plt.subplots(1, 3, figsize=(16, 4.8))
     selected = risk.loc[(risk["rank"] == 1) & (risk["variant"] == "processed_fixed") & (risk["dataset"] == "test")]
     thresholds = config["correlation"]["thresholds"]
+    if len(thresholds) == 1:
+        plt.close(fig)
+        scopes = config["correlation"].get("scopes", ["within"])
+        names = ["original"] + [("any_" if scope == "any" else "") + "r" + str(float(thresholds[0])).replace(".", "p") for scope in scopes]
+        labels = ["Original"] + ["Within-locus" if scope == "within" else "Any-locus" for scope in scopes]
+        top = risk.loc[(risk["rank"] == 1) & (risk["dataset"] == "test") & risk.variant.isin(["original", "processed_fixed"])]
+        fig, axes = plt.subplots(1, 4, figsize=(18, 5))
+        for ax, measure in zip(axes, ["jaccard", "HR", "Adj NoAg HR", "Adj HR"]):
+            table = cv if measure == "jaccard" else top
+            values = []
+            for name in names:
+                group = table.loc[table.scheme == name]
+                valid = measure == "jaccard" or group[measure + " status"].eq("ok").all()
+                values.append(group[measure].mean() if valid else float("nan"))
+            bars = ax.bar(labels, values, color=["#929FA6", "#238A9D", "#BE7540"][:len(names)])
+            for bar, value in zip(bars, values):
+                if np.isfinite(value):
+                    ax.text(bar.get_x() + bar.get_width() / 2, value, f"{value:.4f}", ha="center", va="bottom", fontsize=14)
+            ax.set_ylabel("Mean shared-position fraction" if measure == "jaccard" else "Mean held-out " + measure)
+            ax.tick_params(axis="x", labelrotation=25)
+            ax.margins(y=.20)
+        fig.tight_layout()
+        save_figure(fig, directory, "figure4_threshold_comparison",
+                    f"Original, within-locus and any-locus top-bin comparisons at Pearson r > {thresholds[0]:g}. "
+                    "Left: mean pairwise Jaccard across cross-validation folds. Remaining panels: arithmetic means of "
+                    "held-out unadjusted, clinical-adjusted and clinical-plus-antigen-adjusted hazard ratios, not pooled "
+                    "estimates. Original bin thresholds are unchanged. See top_bin_summary.csv for estimate counts and "
+                    "risk_comparison.csv.gz for fold-specific intervals and statuses. These descriptive comparisons do not "
+                    "demonstrate clinical benefit or formal equivalence.", captions)
+        return
     for col, label, ax in (("jaccard", "Mean shared-position fraction", axes[0]), ("positions", "Mean positions per top bin", axes[1])):
         values = []
         for r in thresholds:
@@ -135,7 +161,7 @@ def interlocus_figures(summary, config, directory, captions):
         for i, j in itertools.product(range(len(left_features)), range(len(right_features))):
             if np.isfinite(shown[i, j]):
                 ax.text(j, i, f"{shown[i,j]:.2f}\n{int(counts.iloc[i,j])}", ha="center", va="center",
-                        fontsize=11, color="white" if shown[i,j] > .75 else "black")
+                        fontsize=14, color="white" if shown[i,j] > .75 else "black")
         ax.set_xticks(range(len(right_features)), [feature_key(f)[1] for f in right_features], rotation=90)
         ax.set_yticks(range(len(left_features)), [feature_key(f)[1] for f in left_features])
         ax.set_xlabel(f"{right} amino acid position")

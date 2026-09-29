@@ -1,16 +1,19 @@
 # Run in SIMPLE/paper_analysis_codes/correlation_analysis.
-# Edit config.json first. Default: imp 1, CV 1-10, seed 1, queue defq.
-# Output: /project/kamoun_shared/output_shared/ashi_2026/simple
+# Edit config.json first. Default: imp 1, CV 1-10, seed 1, queue i2c2_normal.
+# rare_filter=0.001; within-locus AND any-locus comparisons use r > 0.95.
+# Output: /project/kamoun_shared/output_shared/ashi_2026/simple_r0p95_rare0p001
+# This filter changes the fitted features: rerun all three stages in the new output folder.
 
 # 1. Submit the 10 FIBERS jobs. Wait for all jobs to finish successfully.
 conda activate scikit-fibers
 python main_fibers.py --config config.json
 
-# 2. Submit the 10 correlation/post-processing jobs. Wait for all to finish.
+# 2. Submit 10 correlation jobs: both scopes and all three held-out HRs.
+# Wait for all jobs to finish successfully.
 conda activate scikit-fibers
 python main_correlation.py --config config.json
 
-# 3. Submit one job for summary tables and figures.
+# 3. Submit one job for all summary tables and figures; no fourth main is needed.
 conda activate scikit-fibers
 python main_plots.py --config config.json
 
