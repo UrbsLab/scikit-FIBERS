@@ -3,14 +3,16 @@
 # rare_filter=0.001; within-locus AND any-locus comparisons use r > 0.95.
 # Output: /project/kamoun_shared/output_shared/ashi_2026/simple_r0p95_rare0p001
 # This filter changes the fitted features: rerun all three stages in the new output folder.
-# This code-only folder has 3 main/run pairs, common.py, data.py, methods.py,
+# This code-only folder has the 3 CV main/run pairs plus main/run_imp_summary.py,
+# common.py, data.py, methods.py,
 # plotting.py, config.json, and this commands file. Keep the bundled src/skfibers
 # beside paper_analysis_codes; no editable install is needed in your existing conda env.
 #
 # Generated figures (PDF + PNG, with separate captions):
 # 1: Original/processed population feature inclusion, within-locus and any-locus.
 # 2: Complete top-bin feature inclusion across CV folds, for both scopes.
-# 3: Top bins across imputations, for both scopes, when multiple imputations are configured.
+# 3: CV-trained top bins across imputations at the selected matching CV fold.
+#    The separate whole-imputation analysis below trains new models without CV.
 # 4: Top-bin Jaccard and all three held-out HR comparisons.
 # 5: Interlocus heatmaps for every locus pair with qualifying correlations.
 # Any-locus allows within OR between loci, all pairs in each block must have r > 0.95.
@@ -30,7 +32,7 @@ python main_fibers.py --config config.json
 conda activate scikit-fibers
 python main_correlation.py --config config.json
 
-# 3. Submit one job for all summary tables and figures; no fourth main is needed.
+# 3. Submit one job for the CV summary tables and figures.
 conda activate scikit-fibers
 python main_plots.py --config config.json
 
@@ -49,3 +51,46 @@ conda activate scikit-fibers
 python main_correlation.py --config config.json --imputations 1 --folds 3 --force
 conda activate scikit-fibers
 python main_plots.py --config config.json --force
+
+# SEPARATE WHOLE-IMPUTATION ANALYSIS (does not need any CV jobs/results).
+# In config.json set imputations to [1,2,3,4,5,6,7,8,9,10] (or your available set).
+# input.full_template must identify each COMPLETE imputed dataset, not a CV file.
+# This stage uses full_template even when input.mode is pre_split for the CV jobs.
+# It ignores folds/split_seed; rare_filter=0.001 is applied to the full training cohort.
+# Each imp job fits all configured seeds, computes correlations once, and evaluates
+# original/processed bins using the complete cohort. All parallel work uses bsub.
+# No folds are created. HRs are apparent, NOT held-out; retain CV HRs for validation.
+# Outputs are under output_root/imp_summary; existing CV outputs are not modified.
+
+# 4a. Submit one full-cohort fit + correlation/evaluation job per imputation.
+conda activate scikit-fibers
+python main_imp_summary.py --config config.json
+
+# WAIT for all whole-imputation jobs to finish successfully, then:
+# 4b. Submit one summary job. No automatic job dependencies or extra manifests.
+# At least two imputations required. This command does NOT fit FIBERS again.
+conda activate scikit-fibers
+python main_imp_summary.py --config config.json --summary-only
+
+# Whole-imputation outputs:
+# imp_summary/imp_XX/seed_XXX/: fibers.pkl, population.csv, completion metadata.
+# imp_summary/imp_XX/: correlations.csv.gz, blocks.json, feature_filter.csv,
+#   metrics.csv.gz, membership.csv.gz, processed_bins.json, completion metadata.
+# imp_summary/: top_bin_metrics.csv (all 3 HRs/intervals/statuses by imp),
+#   top_bin_summary.csv (mean HRs/paired deltas, Jaccard/delta per seed/scheme),
+#   risk_comparison.csv.gz (all evaluated bins), consistency_pairs.csv.gz,
+#   consistency_summary.csv, correlation_summary.csv.gz, cohort_validation.csv,
+#   figure_captions.txt, interpretation.txt, completed.json.
+# imp_summary/figures/: population inclusion for each imp/seed; complete top-bin
+#   inclusion with Imp1...Imp10 columns; Jaccard + 3 apparent HR panels; interlocus
+#   heatmaps with imputation counts. Within-locus and any-locus plots are separate.
+# Means across imputations are descriptive, not independent or pooled HR estimates.
+
+# Optional: inspect whole-imputation submission commands, without running jobs.
+conda activate scikit-fibers
+python main_imp_summary.py --config config.json --dry-run
+
+# Optional: retry only a failed full-imputation job; completed seeds are reused
+# unless --force is specified. Then regenerate the summary with --summary-only --force.
+conda activate scikit-fibers
+python main_imp_summary.py --config config.json --imputations 2

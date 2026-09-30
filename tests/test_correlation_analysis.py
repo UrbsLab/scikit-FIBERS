@@ -196,7 +196,7 @@ def test_full_dataset_fold_membership_is_shared_across_imputations(example):
 
 
 def test_submitters_are_stdlib_only_and_all_jobs_use_bsub(example):
-    expected = {"fibers": 4, "correlation": 4, "plots": 1}
+    expected = {"fibers": 4, "correlation": 4, "plots": 1, "imp_summary": 2}
     for stage, count in expected.items():
         result = subprocess.run([sys.executable, "-S", str(HERE / f"main_{stage}.py"),
                                  "--config", example["_config_path"], "--dry-run"],
@@ -205,6 +205,12 @@ def test_submitters_are_stdlib_only_and_all_jobs_use_bsub(example):
         assert len(commands) == count
         assert all(f"run_{stage}.py" in line for line in commands)
         assert all("-w " not in line and "-K " not in line for line in commands)
+    summary = subprocess.run([sys.executable, "-S", str(HERE / "main_imp_summary.py"),
+                              "--config", example["_config_path"], "--summary-only", "--dry-run"],
+                             capture_output=True, text=True, check=True)
+    commands = [line for line in summary.stdout.splitlines() if line.startswith("bsub ")]
+    assert len(commands) == 1 and "--summary-only" in commands[0]
+    assert "--imputation " not in commands[0]
 
 
 def test_complete_three_stage_pipeline(example):
@@ -244,3 +250,106 @@ def test_complete_three_stage_pipeline(example):
     changed["fibers"]["iterations"] = 3
     with pytest.raises(RuntimeError, match="do not match"):
         require_result(root / "imp_01/cv_01/seed_001", identity(changed, "fibers", 1, 1, 1))
+
+
+def test_whole_imputation_identity_does_not_depend_on_cv_splits(example):
+    from run_imp_summary import result_identity
+    expected = result_identity(example, "analysis", 1)
+    changed = copy.deepcopy(example)
+    changed["folds"] = list(range(1, 11))
+    changed["input"].update(split_seed=123, train_template="missing.csv", test_template="missing.csv", mode="full_dataset")
+    assert expected == result_identity(changed, "analysis", 1)
+
+
+def test_whole_imputation_consistency_keeps_seeds_separate(example):
+    from run_imp_summary import consistency_rows
+    records = []
+    config = {**example, "seeds": [1, 2]}
+    for seed, imp in itertools.product(config["seeds"], config["imputations"]):
+        for scheme in ("r0p95", "any_r0p95"):
+            records.append({"imputation": imp, "seed": seed, "rank": 1, "scheme": scheme,
+                            "original": [f"MM_A_{10 * imp}"],
+                            "groups": [{"features": ["MM_A_10", "MM_A_20"]}]})
+    table = consistency_rows(records, config)
+    assert len(table) == 6
+    assert table.loc[table.scheme == "original", "jaccard"].eq(0).all()
+    assert table.loc[table.scheme != "original", "jaccard"].eq(1).all()
+    assert set(table.scope) == {"seed1", "seed2"}
+
+
+def test_whole_imputation_summary_requires_multiple_completed_imputations(example):
+    from run_imp_summary import summarize
+    with pytest.raises(ValueError, match="at least two"):
+        summarize({**example, "imputations": [1]})
+    with pytest.raises(RuntimeError, match="Required job has not completed"):
+        summarize(example)
+    assert not (Path(example["output_root"]) / "imp_summary/completed.json").exists()
+
+
+def test_complete_whole_imputation_pipeline(example, monkeypatch):
+    import data
+    from methods import evaluate, jaccard
+    from run_imp_summary import run, summarize
+
+    example["correlation"]["thresholds"] = [.95]
+    example["plots"]["thresholds"] = [.95]
+    # Whole-cohort jobs must neither reuse nor construct folds.
+    def reject_fold(*args, **kwargs):
+        raise AssertionError("Whole-imputation analysis tried to load a CV fold")
+    monkeypatch.setattr(data, "load_fold", reject_fold)
+    example["input"].update(train_template="does_not_exist.csv", test_template="does_not_exist.csv")
+    for imp in example["imputations"]:
+        run(example, imp)
+    summarize(example)
+    root = Path(example["output_root"]) / "imp_summary"
+    assert not list(Path(example["output_root"]).glob("imp_*/cv_*"))
+    metrics = pd.read_csv(root / "risk_comparison.csv.gz")
+    assert set(metrics.dataset) == {"full_cohort"}
+    assert "fold" not in metrics and metrics.n.eq(180).all()
+    assert {"original", "r0p95", "any_r0p95"} == set(metrics.scheme)
+    top = pd.read_csv(root / "top_bin_metrics.csv")
+    assert len(top) == 6
+    for measure in ("HR", "Adj NoAg HR", "Adj HR"):
+        assert top[measure].notna().all()
+        assert {measure + " lower", measure + " upper", measure + " delta"}.issubset(top)
+    summary = pd.read_csv(root / "top_bin_summary.csv")
+    assert summary.n_imputations.eq(2).all() and summary.n_pairs.eq(1).all()
+    assert summary.evaluation.eq("full_cohort_apparent").all()
+    original = []
+    for imp in (1, 2):
+        path = root / f"imp_{imp:02d}"
+        pop = pd.read_csv(path / "seed_001/population.csv")
+        fit = json.loads((path / "seed_001/completed.json").read_text())
+        assert fit["n_training"] == 180
+        features = json.loads(pop.iloc[0].features)
+        original.append(set(features))
+        frame = pd.read_csv(example["input"]["full_template"].format(imputation=imp))
+        expected = evaluate(frame, frame[features].sum(axis=1).to_numpy(), pop.iloc[0].threshold,
+                            example, ["age"], ["Agmm0"], True, True)
+        row = top.loc[(top.imputation == imp) & (top.scheme == "original")].iloc[0]
+        for measure in ("HR", "Adj NoAg HR", "Adj HR"):
+            assert row[measure] == pytest.approx(expected[measure])
+        pairs = pd.read_csv(path / "correlations.csv.gz")
+        pair = pairs.loc[(pairs.feature1 == "MM_A_10") & (pairs.feature2 == "MM_A_20")].iloc[0]
+        assert pair.pearson_r == pytest.approx(frame[["MM_A_10", "MM_A_20"]].corr().iloc[0, 1])
+    assert summary.loc[summary.scheme == "original", "mean_jaccard"].iloc[0] == pytest.approx(jaccard(*original))
+    assert pd.read_csv(root / "correlation_summary.csv.gz").imputations_available.eq(2).all()
+    captions = (root / "figure_captions.txt").read_text()
+    assert "whole-imputation fits" in captions and "training-cohort estimates" in captions
+    for scope in ("r0p95", "any_r0p95"):
+        for extension in ("pdf", "png"):
+            assert (root / f"figures/figure2_top_imputations_seed1_{scope}.{extension}").is_file()
+            assert list((root / "figures").glob(f"figure1*_{scope}*.{extension}"))
+    assert (root / "figures/figure4_imputation_comparison_seed1.png").is_file()
+    assert list((root / "figures").glob("figure5_whole_imputations*.png"))
+    mtime = (root / "imp_01/seed_001/fibers.pkl").stat().st_mtime_ns
+    run(example, 1)
+    summarize(example)
+    assert mtime == (root / "imp_01/seed_001/fibers.pkl").stat().st_mtime_ns
+    # A nominally completed result is still rejected if it used different outcomes.
+    marker = root / "imp_02/completed.json"
+    result = json.loads(marker.read_text())
+    result["cohort_audit"]["outcomes_sha256"] = "different"
+    marker.write_text(json.dumps(result))
+    with pytest.raises(ValueError, match="outcomes differ"):
+        summarize(example, force=True)
