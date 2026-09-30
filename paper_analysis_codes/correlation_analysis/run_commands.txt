@@ -3,6 +3,23 @@
 # rare_filter=0.001; within-locus AND any-locus comparisons use r > 0.95.
 # Output: /project/kamoun_shared/output_shared/ashi_2026/simple_r0p95_rare0p001
 # This filter changes the fitted features: rerun all three stages in the new output folder.
+# This code-only folder has 3 main/run pairs, common.py, data.py, methods.py,
+# plotting.py, config.json, and this commands file. Keep the bundled src/skfibers
+# beside paper_analysis_codes; no editable install is needed in your existing conda env.
+#
+# Generated figures (PDF + PNG, with separate captions):
+# 1: Original/processed population feature inclusion, within-locus and any-locus.
+# 2: Complete top-bin feature inclusion across CV folds, for both scopes.
+# 3: Top bins across imputations, for both scopes, when multiple imputations are configured.
+# 4: Top-bin Jaccard and all three held-out HR comparisons.
+# 5: Interlocus heatmaps for every locus pair with qualifying correlations.
+# Any-locus allows within OR between loci, all pairs in each block must have r > 0.95.
+# Dark/light cells mean original/added block members; ungrouped originals are gray.
+# No black inclusion cells or dots. No filtering of positions out of the top-bin figures.
+# Tables include all correlation pairs, bin memberships, fold metrics, and consistency.
+# Adj NoAg HR adjusts clinical covariates; Adj HR also adjusts antigen mismatches.
+# PKPRA_MS is excluded from both adjusted Cox models, as set in evaluation.exclude_covariates.
+# Existing results and their captions remain in analysis_outputs; not bundled with this code.
 
 # 1. Submit the 10 FIBERS jobs. Wait for all jobs to finish successfully.
 conda activate scikit-fibers

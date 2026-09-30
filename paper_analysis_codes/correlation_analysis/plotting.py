@@ -1,5 +1,4 @@
 """Matplotlib figures. Captions are separate; cells have no dots or markers."""
-from collections import defaultdict
 import colorsys
 import itertools
 import math

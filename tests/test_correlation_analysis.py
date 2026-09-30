@@ -1,4 +1,4 @@
-"""Run with python -m pytest test_analysis.py; creates only temporary synthetic data."""
+"""Regression tests for the three-stage ASHI pipeline, not part of the HPC bundle."""
 import copy
 import itertools
 import json
@@ -6,16 +6,19 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "paper_analysis_codes" / "correlation_analysis"))
+
 from common import configure_worker
 configure_worker()
 
 import numpy as np
 import pandas as pd
 import pytest
+from lifelines import CoxPHFitter
 
 from common import HERE, identity, load_config, require_result
 from data import load_fold, retained_features
-from methods import build_schemes, expand_bin, pearson_matrix, score_groups
+from methods import build_schemes, covariate_basis, expand_bin, fit_noag, pearson_matrix, score_groups
 
 
 @pytest.fixture
@@ -54,6 +57,58 @@ def example(tmp_path):
     path = tmp_path / "config.json"
     path.write_text(json.dumps(config))
     return load_config(path)
+
+
+def sample(n=800):
+    rng = np.random.default_rng(729)
+    age = rng.normal(0, 1, n)
+    high = rng.binomial(1, .45, n)
+    death = rng.exponential(4, n) * np.exp(-.3 * age - .4 * high)
+    censor = rng.exponential(8, n)
+    return pd.DataFrame({"age": age, "age_copy": age * 3 + 10, "constant": np.zeros(n),
+                         "graftyrs": np.minimum(death, censor), "grf_fail": (death <= censor).astype(int),
+                         "high": high})
+
+
+def test_constant_and_alias_repair_preserves_bin_estimate():
+    frame = sample()
+    basis, design = covariate_basis(frame, ["age", "age_copy", "constant"])
+    assert design["constants"] == ["constant"]
+    assert len(design["aliases"]) == 1
+    result, attempts, _ = fit_noag(frame, frame.high, "graftyrs", "grf_fail", basis)
+    direct = CoxPHFitter().fit(frame[["age", "high", "graftyrs", "grf_fail"]], "graftyrs", "grf_fail")
+    assert result["status"] == "ok"
+    assert result["Adj NoAg HR"] == pytest.approx(direct.summary.loc["high", "exp(coef)"], rel=1e-5)
+    assert attempts[-1]["status"] == "ok"
+
+
+def test_near_collinearity_is_not_silently_discarded():
+    frame = sample()
+    frame["near_age"] = frame.age + np.random.default_rng(10).normal(0, 1e-5, len(frame))
+    basis, design = covariate_basis(frame, ["age", "near_age"])
+    assert len(basis.columns) == 2
+    assert design["aliases"] == []
+
+
+def test_bin_alias_and_zero_events_are_not_forced_to_succeed():
+    frame = sample()
+    basis, _ = covariate_basis(frame, ["high", "age"])
+    result, _, _ = fit_noag(frame, frame.high, "graftyrs", "grf_fail", basis, ridge=.01)
+    assert result["status"] == "bin_not_identifiable_given_covariates"
+    basis, _ = covariate_basis(frame, ["age"])
+    frame.loc[frame.high == 0, "grf_fail"] = 0
+    result, _, _ = fit_noag(frame, frame.high, "graftyrs", "grf_fail", basis)
+    assert result["status"] == "no_events_in_one_bin_group"
+
+
+def test_fixed_ridge_is_explicit_and_bin_remains_unpenalized():
+    frame = sample()
+    basis, _ = covariate_basis(frame, ["age"])
+    result, _, _ = fit_noag(frame, frame.high, "graftyrs", "grf_fail", basis, ridge=.01)
+    assert result["ridge"] == .01
+    direct = pd.concat([frame[["graftyrs", "grf_fail", "high"]], basis], axis=1)
+    model = CoxPHFitter(penalizer=np.array([0, .01])).fit(direct, "graftyrs", "grf_fail")
+    assert result["Adj NoAg HR"] == pytest.approx(model.summary.loc["high", "exp(coef)"], rel=1e-5)
 
 
 def test_matrix_and_block_math(example):
@@ -111,6 +166,20 @@ def test_any_locus_blocks_use_one_strict_cutoff(example):
     assert set(any_blocks[0]["features"]) == {"MM_DQA1_11", "MM_DQB1_84"}
 
 
+@pytest.mark.parametrize("r", [.95, -.99])
+def test_any_locus_rejects_equality_and_negative_correlations(example, r):
+    names = ["MM_A_10", "MM_DQA1_11"]
+    matrix = np.array([[1., r], [r, 1.]])
+    assert build_schemes(matrix, names, example)["any_r0p95"]["blocks"] == []
+
+
+def test_mixed_block_is_counted_once_but_preserves_nonbinary_mismatches():
+    frame = pd.DataFrame({"MM_A_10": [1, 0, 2, 0], "MM_DQA1_11": [1, 1, 1, 0],
+                          "MM_DQB1_84": [0, 0, 1, 0]})
+    groups = [{"features": ["MM_A_10", "MM_DQA1_11"]}, {"features": ["MM_DQB1_84"]}]
+    np.testing.assert_array_equal(score_groups(frame, groups), [1, 1, 3, 0])
+
+
 def test_overlap_is_rejected(example):
     path = Path(example["input"]["test_template"].format(imputation=1, fold=1))
     frame = pd.read_csv(path)
@@ -159,6 +228,10 @@ def test_complete_three_stage_pipeline(example):
     assert "any_r0p95" in set(top.scheme)
     assert (root / "summary/top_bin_summary.csv").is_file()
     assert list((root / "summary/figures").glob("figure2*any_r0p95*.png"))
+    for scope in ("r0p95", "any_r0p95"):
+        for number in (1, 2, 3):
+            assert list((root / "summary/figures").glob(f"figure{number}*_{scope}*.png"))
+            assert list((root / "summary/figures").glob(f"figure{number}*_{scope}*.pdf"))
     assert (root / "summary/figures/figure4_threshold_comparison.png").is_file()
     assert list((root / "summary/figures").glob("figure3*.png"))
     assert list((root / "summary/figures").glob("figure5*.png"))

@@ -2,10 +2,14 @@
 from __future__ import annotations
 
 import hashlib
+import warnings
 
 import numpy as np
 import pandas as pd
+from lifelines import CoxPHFitter
+from lifelines.exceptions import ConvergenceWarning
 from lifelines.statistics import logrank_test
+from scipy.linalg import qr
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 
@@ -169,17 +173,110 @@ def optimize_threshold(frame, score, original_threshold, config):
     return best[2] if best else None
 
 
-def cox_designs(frame, config, clinical, antigen):
-    from run_risk import covariate_basis
+def covariate_basis(frame, covariates):
+    """Retain the nuisance column space, removing constants/exact aliases only."""
+    covariates = list(dict.fromkeys(covariates))
+    values = frame[covariates].astype(float)
+    if not np.isfinite(values.to_numpy()).all():
+        raise ValueError("Clinical covariates contain non-finite values")
+    constants = [c for c in covariates if values[c].nunique() <= 1]
+    active = [c for c in covariates if c not in constants]
+    if not active:
+        return pd.DataFrame(index=frame.index), {"constants": constants, "aliases": [], "retained": []}
+    centered = values[active] - values[active].mean()
+    scaled = centered / centered.std(ddof=0)
+    a = scaled.to_numpy()
+    _, r, pivots = qr(a, mode="economic", pivoting=True)
+    diagonal = np.abs(np.diag(r))
+    tolerance = np.finfo(float).eps * max(a.shape) * diagonal.max()
+    rank = int(np.count_nonzero(diagonal > tolerance))
+    keep_indexes = set(pivots[:rank])
+    retained = [c for i, c in enumerate(active) if i in keep_indexes]
+    aliases = [c for c in active if c not in retained]
+    basis = scaled[retained]
+    alias_errors = {}
+    for name in aliases:
+        fitted = basis.to_numpy() @ np.linalg.lstsq(basis, scaled[name], rcond=None)[0]
+        relative_error = np.linalg.norm(scaled[name] - fitted) / np.linalg.norm(scaled[name])
+        if relative_error > 1e-10:
+            raise ValueError(f"Refusing to discard nonredundant covariate {name}")
+        alias_errors[name] = float(relative_error)
+    return basis, {"constants": constants, "aliases": aliases, "retained": retained,
+                   "alias_relative_errors": alias_errors, "rank": rank,
+                   "condition_number": float(np.linalg.cond(basis.to_numpy()))}
 
+
+def fit_noag(frame, high, outcome, event, basis, ridge=0.0, label="Adj NoAg HR"):
+    """The bin coefficient is never penalized; ridge, if requested, is fixed."""
+    high = np.asarray(high, dtype=bool)
+    result = {label: None, label + " lower": None,
+              label + " upper": None, label + " p": None,
+              "n": len(frame), "n_above": int(high.sum()),
+              "events": int(frame[event].sum()), "ridge": float(ridge), "status": "pending"}
+    attempts = []
+    if not high.any() or high.all():
+        result["status"] = "single_group"
+        return result, attempts, None
+    if frame[event].sum() == 0:
+        result["status"] = "no_events"
+        return result, attempts, None
+    if any(frame.loc[high == group, event].sum() == 0 for group in (False, True)):
+        result["status"] = "no_events_in_one_bin_group"
+        return result, attempts, None
+    centered_high = high.astype(float) - high.mean()
+    if len(basis.columns):
+        fitted = basis.to_numpy() @ np.linalg.lstsq(basis, centered_high, rcond=None)[0]
+        if np.linalg.norm(centered_high - fitted) / np.linalg.norm(centered_high) < 1e-10:
+            result["status"] = "bin_not_identifiable_given_covariates"
+            return result, attempts, None
+    model_frame = frame[[outcome, event]].reset_index(drop=True).copy()
+    for name in basis:
+        model_frame[name] = basis[name].to_numpy()
+    model_frame["_above"] = high.astype(float)
+    penalty = np.r_[np.full(len(basis.columns), ridge), 0.0]
+    for step in (0.5, 0.1):
+        messages = []
+        attempt = {"step_size": step}
+        try:
+            with warnings.catch_warnings(record=True) as messages:
+                warnings.simplefilter("always")
+                model = CoxPHFitter(penalizer=penalty, l1_ratio=0.0).fit(
+                    model_frame, duration_col=outcome, event_col=event,
+                    fit_options={"step_size": step, "max_steps": 1000, "precision": 1e-7})
+            row = model.summary.loc["_above"]
+            fields = ["exp(coef)", "exp(coef) lower 95%", "exp(coef) upper 95%", "p"]
+            finite = (np.isfinite(row[fields].to_numpy(dtype=float)).all()
+                      and np.isfinite(model.params_.to_numpy()).all()
+                      and np.isfinite(model.standard_errors_.to_numpy()).all()
+                      and (row[fields[:3]] > 0).all())
+            convergence_warning = any(issubclass(w.category, ConvergenceWarning) for w in messages)
+            if not finite or convergence_warning:
+                attempt["status"] = "convergence_warning" if convergence_warning else "nonfinite_estimate"
+            else:
+                for suffix, field in zip(("", " lower", " upper", " p"), fields):
+                    result[label + suffix] = float(row[field])
+                result["status"] = "ok"
+                result["step_size"] = step
+                result["n_covariates"] = len(basis.columns)
+                attempt["status"] = "ok"
+                attempt["warnings"] = [str(w.message) for w in messages]
+                attempts.append(attempt)
+                return result, attempts, model.summary.reset_index()
+        except Exception as error:
+            attempt["status"] = f"{type(error).__name__}: {error}"
+        attempt["warnings"] = [str(w.message) for w in messages]
+        attempts.append(attempt)
+    result["status"] = "not_estimable_after_numerical_retries"
+    return result, attempts, None
+
+
+def cox_designs(frame, config, clinical, antigen):
     excluded = set(config["evaluation"].get("exclude_covariates", []))
     return {label: covariate_basis(frame, [c for c in covs if c not in excluded])
             for label, covs in (("HR", []), ("Adj HR", clinical + antigen), ("Adj NoAg HR", clinical))}
 
 
 def evaluate(frame, score, threshold, config, clinical, antigen, unadjusted, adjusted, designs=None):
-    from run_risk import fit_noag
-
     outcome, event = config["columns"]["outcome"], config["columns"]["event"]
     high = np.asarray(score) > threshold
     statistic, p = logrank(frame, high, outcome, event)

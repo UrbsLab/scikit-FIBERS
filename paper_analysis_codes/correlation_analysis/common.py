@@ -127,7 +127,7 @@ def file_state(path):
 
 def identity(config, stage, imputation=None, fold=None, seed=None, dependencies=()):
     keys = ["input", "columns", "rare_filter", "fibers", "evaluation"]
-    code = ["common.py", "data.py", "methods.py", "run_fibers.py", "run_risk.py"]
+    code = ["common.py", "data.py", "methods.py", "run_fibers.py"]
     if stage in ("correlation", "plots"):
         keys += ["correlation", "seeds"]
         code += ["run_correlation.py"]
