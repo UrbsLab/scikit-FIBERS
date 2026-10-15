@@ -292,40 +292,32 @@ class FIBERS(BaseEstimator, TransformerMixin):
 
     def check_x_y(self, x, y):
         """
-        Function to check if x and y input to fit are valid.
-        Functionality to support input as both just X as a dataframe
-        similar to lifelines package
-        x and y similar to scikit survival.
+        Check x and y input to fit and combine them into one dataframe.
 
         :meta private:
         """
-        if y is None:
-            if not (isinstance(x, pd.DataFrame)):
-                raise Exception("x must be pandas dataframe")
-            if not ((self.outcome_label in x.columns) or (self.censor_label not in x.columns)):
-                raise Exception("x must have column labels as specified")
-            df = x
-        else:
-            if not (isinstance(x, pd.DataFrame)):
-                raise Exception("x must be pandas dataframe")
-            if not ((self.outcome_label in x.columns) or (self.censor_label not in x.columns)):
-                labels = pd.DataFrame(y, columns=[self.outcome_label, self.censor_label])
-                df = pd.concat([x, labels], axis=1)
-            else:
-                df = x
+        if not isinstance(x, pd.DataFrame):
+            raise Exception("x must be a pandas dataframe")
 
-        # Check if original_feature_matrix and y are numeric 
-        try:
-            df.copy() \
-                .apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
-        except Exception:
+        df = x
+        if y is not None and self.outcome_label not in x.columns and self.censor_label not in x.columns:
+            labels = pd.DataFrame(
+                y,
+                columns=[self.outcome_label, self.censor_label],
+                index=x.index,
+            )
+            df = pd.concat([x, labels], axis=1)
+
+        if not df.apply(
+            lambda column: pd.to_numeric(column, errors="coerce").notnull().all()
+        ).all():
             raise Exception("X must be fully numeric")
 
-        if not (self.outcome_label in df.columns):
-            raise Exception("label_name param must be a column in the dataset")
+        if self.outcome_label not in df.columns:
+            raise Exception("outcome_label param must be a column in the dataset")
 
-        if not (self.censor_label in df.columns):
-            raise Exception("duration_name param must be a column in the dataset")
+        if self.censor_label not in df.columns:
+            raise Exception("censor_label param must be a column in the dataset")
 
         return df
     
