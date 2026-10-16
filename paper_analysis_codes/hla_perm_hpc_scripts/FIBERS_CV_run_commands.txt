@@ -1,0 +1,34 @@
+# Run from paper_analysis_codes/hla_perm_hpc_scripts in your FIBERS Python environment.
+# Replace /path/to paths. Execute one stage at a time and wait for successful completion.
+# Use a separate --w root from non-CV runs: CV summary scripts scan all experiment folders.
+# Add --dry-run to any run_ command to inspect job scripts without submitting.
+# For SLURM, use --rc SLURM and replace --q with your partition.
+
+# 1. PREPARE ONE IMPUTATION (skip if already prepared).
+python run_prepare_fibers_data.py --d /path/to/SampleImp1.txt --w /path/to/hla_perm_cv_results --o /path/to/prepared_datasets --rc LSF --rm 4 --q i2c2_normal
+
+# 2. PARTITION: start after preparation finishes.
+# The wrapper appends _10 to --o, creating /path/to/BestTyping_1_CV_10.
+python run_HLA_CV_Partitioner.py --d /path/to/prepared_datasets/BestTyping_1.csv --w /path/to/hla_perm_cv_results --o /path/to/BestTyping_1_CV --cv 10 --rc LSF --rm 16 --q i2c2_normal
+
+# Local partition alternative (uses --o exactly):
+# python job_HLA_CV_Partitioner.py --d /path/to/prepared_datasets/BestTyping_1.csv --o /path/to/BestTyping_1_CV_10 --cv 10
+
+# 3. TRAIN: start after all fold files exist. Rare filtering uses training rows only.
+# --r 10 is the fixed seed used for each fold. Each command submits ten jobs.
+python run_fibers_hpc_cv.py --d /path/to/BestTyping_1_CV_10 --w /path/to/hla_perm_cv_results --o hla_perm_7locus_logrank_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank --de default
+python run_fibers_hpc_cv.py --d /path/to/BestTyping_1_CV_10 --w /path/to/hla_perm_cv_results --o hla_perm_7locus_residuals_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f residuals --de default
+python run_fibers_hpc_cv.py --d /path/to/BestTyping_1_CV_10 --w /path/to/hla_perm_cv_results --o hla_perm_7locus_product_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de default
+
+# OPTIONAL: submit these too if directional comparisons are needed, then wait for ALL training jobs.
+# python run_fibers_hpc_cv.py --d /path/to/BestTyping_1_CV_10 --w /path/to/hla_perm_cv_results --o hla_perm_7locus_product_DP3_protective --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de protective
+# python run_fibers_hpc_cv.py --d /path/to/BestTyping_1_CV_10 --w /path/to/hla_perm_cv_results --o hla_perm_7locus_product_DP3_high_risk --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de high_risk
+
+# 4. SUMMARIZE FOLDS: start after all training jobs finish.
+python run_sum_fibers_hpc_cv.py --w /path/to/hla_perm_cv_results --cv 10 --rc LSF --rm 16 --q i2c2_normal
+
+# 5. MASTER SUMMARY: start after fold summaries finish.
+python run_master_sum_fibers_hpc_cv.py --w /path/to/hla_perm_cv_results --cv 10 --rc LSF --rm 16 --q i2c2_normal
+
+# 6. COMPARISON TABLES: start after summaries finish.
+python run_table_maker_hpc_cv.py --w /path/to/hla_perm_cv_results --cv 10 --rc LSF --rm 16 --q i2c2_normal

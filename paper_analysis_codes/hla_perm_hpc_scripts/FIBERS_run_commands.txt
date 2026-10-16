@@ -1,0 +1,46 @@
+# Run from paper_analysis_codes/hla_perm_hpc_scripts in your FIBERS Python environment.
+# Replace /path/to paths. These are staged commands, not a script to execute all at once.
+# Wait for each stage to finish successfully before starting the next stage.
+# Add --dry-run to any run_ command to write job scripts without submitting.
+# For SLURM, use --rc SLURM and replace --q with your partition.
+# Optional: --python-executable /path/to/venv/bin/python selects compute-node Python.
+# --re 10 expects BestTyping_1.csv through BestTyping_10.csv; --rs 10 uses seeds 0-9.
+
+# 1. PREPARE DATA: keeps all three mismatch types, covariates, and outcomes.
+python run_prepare_fibers_data.py --d /path/to/combined_typing --w /path/to/hla_perm_results --o /path/to/prepared_datasets --prefix BestTyping --rc LSF --rm 4 --q i2c2_normal
+
+# Local single-file alternative (use instead of the preparation job for that input):
+# python job_prepare_fibers_data.py --d /path/to/SampleImp1.txt --o /path/to/prepared_datasets/BestTyping_1.csv
+
+# 2. TRAIN: these workers select donor-to-recipient permutation columns only.
+# Three fitness experiments used by the comparison table. Add --all-positions to override the original position ranges.
+python run_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_logrank_DP3 --re 10 --rs 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank --de default
+python run_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_residuals_DP3 --re 10 --rs 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f residuals --de default
+python run_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_product_DP3 --re 10 --rs 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de default
+
+# 3. SUMMARIZE SEEDS: start after all training jobs have finished.
+python run_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_logrank_DP3 --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+python run_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_residuals_DP3 --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+python run_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_product_DP3 --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+
+# 4. MASTER SUMMARIES: start after the seed-summary jobs finish.
+# The master-summary --o includes Fibers2.0_, as in hla_hpc_scripts.
+python run_master_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o Fibers2.0_hla_perm_7locus_logrank_DP3 --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+python run_master_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o Fibers2.0_hla_perm_7locus_residuals_DP3 --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+python run_master_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o Fibers2.0_hla_perm_7locus_product_DP3 --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+
+# 5. COMPARISON TABLES: start after the master summaries finish.
+python run_table_maker_hpc.py --w /path/to/hla_perm_results --o tables --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+
+# OPTIONAL DIRECTIONAL ANALYSES: use distinct output names. Each block is also staged.
+# These are summarized separately; the standard fitness table compares the three default experiments above.
+
+# protective
+python run_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_product_DP3_protective --re 10 --rs 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de protective
+python run_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_product_DP3_protective --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+python run_master_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o Fibers2.0_hla_perm_7locus_product_DP3_protective --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+
+# high_risk
+python run_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_product_DP3_high_risk --re 10 --rs 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de high_risk
+python run_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_product_DP3_high_risk --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
+python run_master_sum_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o Fibers2.0_hla_perm_7locus_product_DP3_high_risk --rs 10 --re 10 --rc LSF --rm 16 --q i2c2_normal
