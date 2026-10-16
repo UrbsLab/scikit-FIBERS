@@ -23,12 +23,19 @@ FIBERS from this checkout, so the checkout must also exist on compute nodes.
 | Master summaries | `run_master_sum_fibers_hpc.py` / `job_master_sum_fibers_hpc.py` | `run_master_sum_fibers_hpc_cv.py` / `job_master_sum_fibers_hpc_cv.py` |
 | Comparison tables | `run_table_maker_hpc.py` / `job_table_maker_hpc.py` | `run_table_maker_hpc_cv.py` / `job_table_maker_hpc_cv.py` |
 
-Preparation retains all three AA mismatch types, the 42 base covariates, all
+Preparation retains all three AA mismatch types, the 43 base covariates, all
 existing `Agmm*` columns (including 0/1/2 categories), raw antigen mismatch
 counts, and both survival outcomes. Record IDs, dates, and `DON_TY` are also
 retained when present. Antigen values are copied without recoding.
-`shared` is excluded from preparation and training; missing values in that
-column do not remove rows or stop processing.
+`shared` is retained. By default, missing cells (including 998) are preserved without dropping rows or
+stopping preparation. Each dataset gets reports under `missing_data_reports/`:
+every missing cell with its row number, `TX_ID`, and column; counts and
+percentages by column; and overall totals for the source and prepared data.
+Reports cover all input columns and identify which are retained in the output.
+Both preparation scripts accept `--drop-missing` or `--drop-missing true` to
+drop rows missing retained numeric fields. The default is `false`; metadata
+and excluded source columns do not cause drops. Reports retain source row
+numbers and `TX_ID`, identify dropped rows, and summarize the resulting dataset.
 Metadata stays with the rows through CV partitioning and is excluded by the
 workers' `IGNORE_COLUMNS` lists. See [PREPARE_DATA.md](PREPARE_DATA.md).
 The FIBERS workers then select only donor-to-recipient permutation features.
@@ -43,7 +50,7 @@ The default loci are A,B,C,DRB1,DRB345,DQA1,DQB1; `--loci-list` can also include
 DPA1 and DPB1. `--all-positions` remains accepted for command compatibility.
 Outcomes default to `graftyrs` and `grf_fail`.
 
-Training requires the 42 base covariates and adds only existing source Agmm
+Training requires the 43 base covariates and adds only existing source Agmm
 0/1 indicators for the requested `--cov-list` loci. Raw antigen counts are
 ignored, and no missing indicators are reconstructed. The default requested
 antigen loci are A,B,C,DRB1,DQA1,DQB1; the exact adjustment set depends on which
@@ -56,6 +63,9 @@ At `--ra 0`, all-zero features are removed. A positive `--ra` removes features
 whose nonzero fraction is below that threshold. CV uses training rows to choose
 features and applies exactly that list to the test fold. Missing required
 columns, non-finite values, and invalid counts or outcomes stop the worker.
+The missing-value sentinel 998 is also rejected in model inputs.
+Preparation's missing-data reports can be used to resolve missing model inputs
+before training; preparation does not impute them.
 
 The non-CV launchers expect one dataset prefix with consecutive imputation
 numbers: `BestTyping_1.csv` through `BestTyping_<re>.csv`. Prefixes may contain

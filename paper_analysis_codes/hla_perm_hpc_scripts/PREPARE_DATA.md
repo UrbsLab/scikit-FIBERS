@@ -51,7 +51,7 @@ The default output contains:
   also retained unchanged for donor type.
 - All three AA mismatch types across all nine loci: `MM_A_9` (position),
   `MM_A_9_Y` (residue), and `MM_A_9_rF_dY` (donor Y → recipient F permutation).
-- The 42 base covariates used by the permutation FIBERS jobs (`shared` is excluded).
+- The 43 base covariates used by the permutation FIBERS jobs, including `shared`.
 - All existing `Agmm*` columns, including the 0, 1, and 2 categories, plus
   the raw `REC_*_MM_EQUIV_CUR` antigen mismatch counts. Source values are
   copied exactly; no antigen indicators are created or recoded during preparation.
@@ -59,7 +59,7 @@ The default output contains:
 
 Haplotypes, allele typing, raw clinical fields outside the
 adjustment set, and `MM_*_COUNT` totals are excluded. Existing data values,
-feature names, row order, and all rows are preserved. No rare-feature filtering,
+feature names, row order, and all rows are preserved by default. No rare-feature filtering,
 constant-column filtering, binarization, or imputation is performed.
 
 Preparation copies the source antigen fields without requiring or creating
@@ -67,8 +67,54 @@ additional indicators. Training uses the existing requested Agmm adjustment
 columns and ignores raw antigen counts. Prepared data is never rewritten by
 model fitting.
 
-Missing or invalid required numeric values stop conversion with the column and
-row identified. An unsuccessful conversion does not replace an existing output.
+Missing cells are preserved by default, including in `shared`, outcomes, antigen counts,
+and AA mismatches. Every preparation run automatically writes three reports
+under `missing_data_reports/` beside the output dataset. For `BestTyping_1.csv`
+(or `BestTyping_1.csv.gz`), these are:
+
+- `BestTyping_1_missing_cells.csv`: one entry per missing cell with
+  `row_number`, `source_line_number`, `TX_ID`, `column`, the original
+  `missing_value`, `retained_in_output` (column status), and `row_dropped`.
+- `BestTyping_1_missing_columns.csv`: every input column, its
+  `retained_in_output` status, `total_rows`, `missing_count`, and
+  `missing_percent` before any row dropping, including columns with no missing cells.
+- `BestTyping_1_missing_summary.json`: total rows, columns, missing cells,
+  rows with missing cells, and columns with missing cells, separately for
+  the source and prepared dataset, plus the `drop_missing` setting and `rows_dropped`.
+
+`row_number` starts at 1 for the first data record, excluding the header and
+blank lines. `source_line_number` is the record's starting line in the
+uncompressed input, with the header on line 1. `TX_ID` is copied as text,
+preserving leading zeros and duplicate IDs; it is blank if the source lacks
+that column. Reports scan every source column, including columns excluded
+from the prepared dataset. The separate report folder keeps report CSVs out
+of the training launchers' dataset discovery.
+
+Missing markers include empty or whitespace-only cells, `NA`, `N/A`, `NaN`,
+`null`, `None`, `<NA>`, `NaT`, `.`, `\N`, `998`, and common pandas missing markers.
+Numeric representations of 998, such as `998.0` and `9.98e2`, also count as missing.
+Detection ignores case and surrounding whitespace; the complete marker list
+is saved in the JSON summary. Zero is valid, and all source values are copied
+unchanged. With no missing data, the detail report contains only its header
+and the summary contains zero counts.
+
+Absent required columns, malformed rows, invalid nonmissing numeric values,
+infinities, and invalid counts or outcomes still stop conversion. Validation
+errors leave existing data and reports unchanged. Training still requires
+complete numeric model inputs; use the reports to resolve missing values
+before fitting.
+
+Add `--drop-missing` (or `--drop-missing true`) to omit rows missing any retained
+numeric field: covariates, outcomes, Agmm fields, raw antigen counts, and selected
+AA mismatch columns. Missing metadata (IDs, dates, donor type) and excluded
+source columns do not cause row drops. Omit the flag or use `--drop-missing false`
+to keep all rows, which is the default. Both the `run_` and `job_` preparation
+scripts accept this option. Training also rejects 998 in model inputs.
+
+Reports always include missing cells in dropped rows and preserve the original
+source row numbers and `TX_ID`. Column counts describe the complete source;
+the JSON `prepared` totals describe only rows actually written. If every row
+is dropped, the output contains its header and the reports record zero output rows.
 
 Optional arguments:
 
@@ -78,7 +124,9 @@ Optional arguments:
   `None` reports only the base adjustment set. All source `Agmm*` fields and
   antigen counts are retained regardless of this option.
   `--cov-loci` remains an alias.
-- `--overwrite` explicitly replaces an existing output after successful validation.
+- `--overwrite` replaces the output dataset and its reports after successful validation.
+- `--drop-missing [true|false]` drops rows with missing retained numeric fields;
+  default `false`, or `true` when supplied without a value.
 
 To run FIBERS on permutation features from the prepared data:
 

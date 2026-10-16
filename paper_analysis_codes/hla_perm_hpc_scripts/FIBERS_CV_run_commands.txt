@@ -6,6 +6,10 @@
 
 # 1. PREPARE ONE IMPUTATION (skip if already prepared).
 python run_prepare_fibers_data.py --d /path/to/Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv.gz --w /path/to/hla_perm_cv_results --o /path/to/prepared_datasets --rc LSF --rm 4 --q i2c2_normal
+# Missing cells are preserved. Review missing_data_reports/ in the output folder before training.
+# Reports list each missing row/column with TX_ID, per-column counts, and overall totals.
+# Optional: append --drop-missing (or --drop-missing true) to remove rows missing retained numeric fields, including 998.
+# Default: --drop-missing false. Missing IDs/dates do not cause drops; reports identify dropped rows.
 
 # 2. PARTITION: start after preparation finishes.
 # The wrapper appends _10 to --o, creating /path/to/BestTyping_1_CV_10.

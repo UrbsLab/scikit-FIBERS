@@ -22,7 +22,10 @@ def add_preparation_arguments(parser):
                              "'none' reports base covariates only. All existing Agmm fields are retained.")
     parser.add_argument("--delimiter", choices=("tab", "comma"),
                         help="Input delimiter (default: detect tab or comma from header)")
-    parser.add_argument("--overwrite", action="store_true", help="Replace an existing output")
+    parser.add_argument("--overwrite", action="store_true", help="Replace the dataset and its missing-data reports")
+    parser.add_argument("--drop-missing", nargs="?", const="true", default="false", type=str.lower,
+                        choices=("true", "false"),
+                        help="Drop rows missing retained numeric fields, including 998; metadata does not cause drops (default: false)")
 
 
 def write_job(command, job_name, writepath, cluster, memory, queue, dry_run=False):
@@ -151,6 +154,8 @@ def main(argv=None):
         options.extend(["--delimiter", args.delimiter])
     if args.overwrite:
         options.append("--overwrite")
+    if args.drop_missing == "true":
+        options.append("--drop-missing")
     for source, destination in plan:
         command = [args.python_executable, str(WORKER_SCRIPT), "--d", str(source),
                    "--o", str(destination)] + options

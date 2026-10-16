@@ -3,8 +3,9 @@
 
 Accepts combined best-typing TXT/TSV/CSV or gzip input and writes CSV without
 an index. By default, keeps position, residue, AND donor-to-recipient mismatch
-columns. This is a column projection: rows, feature names, and existing values
-are preserved; no shuffling, aggregation, imputation, or rare filtering occurs.
+columns. By default, rows, feature names, and existing values are preserved.
+--drop-missing optionally removes rows with missing retained numeric fields;
+no shuffling, aggregation, imputation, or rare filtering occurs.
 
 Uses only the Python standard library and streams one row at a time.
 """
@@ -12,6 +13,7 @@ Uses only the Python standard library and streams one row at a time.
 import argparse
 import csv
 import gzip
+import json
 import math
 import os
 os.environ.setdefault('MPLBACKEND', 'Agg')
@@ -21,9 +23,9 @@ from collections import Counter
 from pathlib import Path
 
 
-# HLA base adjustment set, excluding shared because of missing source values.
+# HLA base adjustment set, including shared.
 BASE_COVARIATES = (
-    "DCD", "DON_AGE", "donage_slope_ge18", "dcadcodanox",
+    "shared", "DCD", "DON_AGE", "donage_slope_ge18", "dcadcodanox",
     "dcadcodcva", "dcadcodcnst", "dcadcodoth", "don_cmv_negative",
     "don_htn_0c", "ln_don_wgt_kg_0c", "ln_don_wgt_kg_0c_s55", "don_ecd",
     "age_ecd", "yearslice", "REC_AGE_AT_TX", "rec_age_spline_35",
@@ -61,6 +63,23 @@ MISMATCH_PATTERNS = {
     "residue": re.compile(_MM_PREFIX + r"_[A-Z]"),
     "permutation": re.compile(_MM_PREFIX + r"_r[A-Z]_d[A-Z]"),
 }
+# Recognize common CSV/pandas and SAS missing markers without rewriting them.
+# Matching ignores surrounding whitespace and letter case; zero is not missing.
+MISSING_VALUES = frozenset({
+    "", "na", "n/a", "nan", "-nan", "null", "none", "<na>", "nat", ".", r"\n",
+    "#na", "#n/a", "#n/a n/a", "-1.#ind", "-1.#qnan", "1.#ind", "1.#qnan", "998",
+})
+
+
+def is_missing(value):
+    """Recognize text markers and numeric representations of the 998 sentinel."""
+    normalized = value.strip().lower()
+    if normalized in MISSING_VALUES:
+        return True
+    try:
+        return float(normalized) == 998
+    except ValueError:
+        return False
 
 
 def get_covariates(cov_loci=DEFAULT_COV_LOCI):
@@ -100,25 +119,39 @@ def _number(value, column, row_number):
         number = float("nan")
     if not math.isfinite(number):
         raise ValueError(
-            f"Data row {row_number}, column {column}: missing or non-finite numeric value. "
-            "Resolve missing values before preparing the dataset."
+            f"Data row {row_number}, column {column}: invalid or non-finite numeric value."
         )
     return number
 
 
 def prepare_dataset(input_path, output_path, *, mismatch_level="all",
-                    cov_loci=DEFAULT_COV_LOCI, delimiter=None, overwrite=False):
+                    cov_loci=DEFAULT_COV_LOCI, delimiter=None, overwrite=False,
+                    drop_missing=False):
     """Write the selected dataset; return counts and the FIBERS covariate list.
 
     Existing Agmm columns and raw antigen mismatch counts are copied unchanged.
-    Missing base covariates, outcomes, invalid numeric data, or malformed rows cause an error.
+    Missing cells are preserved and reported for every input column.
+    With drop_missing, rows missing retained numeric fields are reported but omitted.
+    Absent required columns, invalid nonmissing numeric data, or malformed rows cause an error.
     An unsuccessful conversion leaves any existing output untouched.
     """
     input_path, output_path = Path(input_path), Path(output_path)
     if input_path.resolve() == output_path.resolve():
         raise ValueError("Input and output must be different files.")
-    if output_path.exists() and not overwrite:
-        raise FileExistsError(f"Output already exists: {output_path}; use --overwrite to replace it.")
+    report_stem = output_path.name[:-3] if output_path.suffix.lower() == ".gz" else output_path.name
+    if report_stem.lower().endswith(".csv"):
+        report_stem = report_stem[:-4]
+    report_dir = output_path.parent / "missing_data_reports"
+    report_paths = {
+        "cells": report_dir / f"{report_stem}_missing_cells.csv",
+        "columns": report_dir / f"{report_stem}_missing_columns.csv",
+        "summary": report_dir / f"{report_stem}_missing_summary.json",
+    }
+    for destination in (output_path, *report_paths.values()):
+        if destination.resolve() == input_path.resolve():
+            raise ValueError("Outputs and reports must not replace the input file.")
+        if destination.exists() and not overwrite:
+            raise FileExistsError(f"Output already exists: {destination}; use --overwrite to replace it.")
     if mismatch_level not in ("all", *MISMATCH_PATTERNS):
         raise ValueError(f"Unknown mismatch level: {mismatch_level}")
     cov_loci = tuple(cov_loci)
@@ -159,21 +192,32 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
             metadata_columns + covariates + antigen_columns + list(OUTCOMES) + list(feature_types)
         ))
         # Precompute selectors once; retain mismatch columns in their input order.
-        selectors = [(column, indices[column]) for column in output_columns
-                     if column not in metadata_columns]
-        metadata_selectors = [(column, indices[column]) for column in metadata_columns]
+        selectors = [(column, indices[column]) for column in output_columns]
+        numeric_columns = set(output_columns) - set(metadata_columns)
+        retained = [column in numeric_columns or column in metadata_columns for column in header]
+        tx_id_index = indices.get("TX_ID")
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = tempfile.NamedTemporaryFile(
-            dir=output_path.parent, prefix=".fibers-", suffix=output_path.suffix, delete=False
-        )
-        temporary_path = Path(temporary.name)
-        temporary.close()
         row_count = 0
-        try:
-            with _open_text(temporary_path, "w") as destination:
+        missing_counts = Counter()
+        prepared_missing_counts = Counter()
+        rows_with_missing = 0
+        prepared_rows_with_missing = 0
+        written_rows = 0
+        dropped_rows = 0
+        with tempfile.TemporaryDirectory(dir=output_path.parent, prefix=".fibers-") as staging:
+            temporary_path = Path(staging) / output_path.name
+            temporary_reports = {key: Path(staging) / path.name for key, path in report_paths.items()}
+            with _open_text(temporary_path, "w") as destination, temporary_reports["cells"].open(
+                    "w", encoding="utf-8", newline="") as details:
                 writer = csv.writer(destination, lineterminator="\n")
                 writer.writerow(output_columns)
+                detail_writer = csv.writer(details, lineterminator="\n")
+                detail_writer.writerow(["row_number", "source_line_number", "TX_ID", "column",
+                                        "missing_value", "retained_in_output", "row_dropped"])
+                previous_line_number = reader.line_num
                 for row in reader:
+                    source_line_number = previous_line_number + 1
+                    previous_line_number = reader.line_num
                     if not row:
                         continue
                     row_count += 1
@@ -181,8 +225,18 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                         raise ValueError(
                             f"Data row {row_count}: expected {len(header)} fields, got {len(row)}."
                         )
-                    values = {column: row[index] for column, index in metadata_selectors}
+                    missing_indices = {index for index, value in enumerate(row) if is_missing(value)}
+                    row_dropped = drop_missing and any(header[index] in numeric_columns
+                                                       for index in missing_indices)
+                    tx_id = row[tx_id_index] if tx_id_index is not None else ""
+                    for index in sorted(missing_indices):
+                        missing_counts[header[index]] += 1
+                        detail_writer.writerow([row_count, source_line_number, tx_id,
+                                                header[index], row[index], retained[index], row_dropped])
+                    rows_with_missing += bool(missing_indices)
                     for column, index in selectors:
+                        if column not in numeric_columns or index in missing_indices:
+                            continue
                         value = row[index]
                         number = _number(value, column, row_count)
                         if column == "grf_fail":
@@ -196,22 +250,66 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                             raise ValueError(
                                 f"Data row {row_count}: {column} must be a nonnegative integer count."
                             )
-                        values[column] = value
-                    writer.writerow([values[column] for column in output_columns])
+                    if row_dropped:
+                        dropped_rows += 1
+                        continue
+                    prepared_rows_with_missing += any(retained[index] for index in missing_indices)
+                    prepared_missing_counts.update(header[index] for index in missing_indices if retained[index])
+                    writer.writerow([row[index] for _, index in selectors])
+                    written_rows += 1
             if row_count == 0:
                 raise ValueError("Input contains a header but no data rows.")
+            with temporary_reports["columns"].open("w", encoding="utf-8", newline="") as handle:
+                summary_writer = csv.writer(handle, lineterminator="\n")
+                summary_writer.writerow(["column", "retained_in_output", "total_rows",
+                                         "missing_count", "missing_percent"])
+                for index, column in enumerate(header):
+                    count = missing_counts[column]
+                    summary_writer.writerow([column, retained[index], row_count, count,
+                                             f"{100 * count / row_count:.6f}"])
+            missing_summary = {
+                "input_file": str(input_path.resolve()),
+                "output_file": str(output_path.resolve()),
+                "row_number_definition": "1-based data record, excluding header and blank lines",
+                "source_line_number_definition": "1-based starting line in the uncompressed source file",
+                "TX_ID_present": tx_id_index is not None,
+                "missing_markers": sorted(MISSING_VALUES),
+                "marker_matching": "case-insensitive after stripping whitespace; numeric 998 equivalents included; values preserved",
+                "drop_missing": drop_missing,
+                "drop_missing_scope": "retained numeric columns; metadata and excluded columns do not cause drops",
+                "rows_dropped": dropped_rows,
+                "source": {
+                    "rows": row_count, "columns": len(header),
+                    "missing_cells": sum(missing_counts.values()),
+                    "rows_with_missing": rows_with_missing,
+                    "columns_with_missing": len(missing_counts),
+                },
+                "prepared": {
+                    "rows": written_rows, "columns": len(output_columns),
+                    "missing_cells": sum(prepared_missing_counts.values()),
+                    "rows_with_missing": prepared_rows_with_missing,
+                    "columns_with_missing": len(prepared_missing_counts),
+                },
+            }
+            with temporary_reports["summary"].open("w", encoding="utf-8") as handle:
+                json.dump(missing_summary, handle, indent=2)
+                handle.write("\n")
+            # Finish validation and report generation before replacing existing outputs.
+            report_dir.mkdir(parents=True, exist_ok=True)
+            for key, path in report_paths.items():
+                os.replace(temporary_reports[key], path)
             os.replace(temporary_path, output_path)
-        finally:
-            if temporary_path.exists():
-                temporary_path.unlink()
 
     return {
-        "rows": row_count,
+        "rows": written_rows,
+        "rows_dropped": dropped_rows,
         "columns": len(output_columns),
         "metadata_columns": metadata_columns,
         "covariates": covariates,
         "antigen_columns": antigen_columns,
         "mismatch_counts": dict(Counter(feature_types.values())),
+        "missing_summary": missing_summary,
+        "missing_reports": {key: str(path) for key, path in report_paths.items()},
     }
 
 
@@ -224,7 +322,10 @@ def add_preparation_arguments(parser):
                              "'none' reports base covariates only. All existing Agmm fields are retained.")
     parser.add_argument("--delimiter", choices=("tab", "comma"),
                         help="Input delimiter (default: detect tab or comma from header)")
-    parser.add_argument("--overwrite", action="store_true", help="Replace an existing output")
+    parser.add_argument("--overwrite", action="store_true", help="Replace the dataset and its missing-data reports")
+    parser.add_argument("--drop-missing", nargs="?", const="true", default="false", type=str.lower,
+                        choices=("true", "false"),
+                        help="Drop rows missing retained numeric fields, including 998; metadata does not cause drops (default: false)")
 
 
 def main(argv=None):
@@ -242,14 +343,22 @@ def main(argv=None):
         result = prepare_dataset(
             args.input, args.output, mismatch_level=args.mismatch_level, cov_loci=cov_loci,
             delimiter={"tab": "\t", "comma": ","}.get(args.delimiter), overwrite=args.overwrite,
+            drop_missing=args.drop_missing == "true",
         )
     except (ValueError, OSError, csv.Error, EOFError) as error:
         parser.exit(1, f"Error: {error}\n")
     print(f"Wrote {result['rows']:,} rows x {result['columns']:,} columns to {args.output}")
+    print(f"Rows dropped for missing numeric fields: {result['rows_dropped']:,}")
     print(f"Covariates: {len(result['covariates'])}; outcomes: {', '.join(OUTCOMES)}")
     print("AA mismatches: " + "; ".join(
         f"{level}={result['mismatch_counts'].get(level, 0):,}" for level in MISMATCH_PATTERNS
     ))
+    for scope in ("source", "prepared"):
+        summary = result["missing_summary"][scope]
+        print(f"Missing data ({scope}): {summary['missing_cells']:,} cells in "
+              f"{summary['rows_with_missing']:,} rows and {summary['columns_with_missing']:,} columns")
+    for kind, path in result["missing_reports"].items():
+        print(f"Missing-data {kind} report: {path}")
 
 
 if __name__ == "__main__":
