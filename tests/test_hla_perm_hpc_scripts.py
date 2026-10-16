@@ -2,6 +2,7 @@
 
 import contextlib
 import csv
+import gzip
 import importlib
 import io
 import shlex
@@ -222,7 +223,7 @@ def test_partitioner_disjoint_complete_folds(tmp_path):
 
 @pytest.mark.parametrize("cluster", ["LSF", "SLURM"])
 def test_prepare_generated_job_keeps_all_mismatch_types(tmp_path, monkeypatch, cluster):
-    source = tmp_path / "SampleImp7.txt"
+    source = tmp_path / "Best-Typing_AA_MM_9loc_matrix_7_aligned.txt.gz"
     row = {column: "0" for column in prepare.BASE_COVARIATES}
     metadata = dict(zip(prepare.METADATA_COLUMNS, [
         "000123", "9007199254740993", "NA", "D-042", "2019-01-01", "", ".", "2022-02-03", "L",
@@ -230,7 +231,7 @@ def test_prepare_generated_job_keeps_all_mismatch_types(tmp_path, monkeypatch, c
     row.update(metadata)
     row.update({"graftyrs": "2.5", "grf_fail": "1", "MM_A_9": "2",
                 "MM_A_9_Y": "1", "MM_A_9_rF_dY": "2", "UNUSED_FIELD": "discard"})
-    with source.open("w", newline="") as handle:
+    with gzip.open(source, "wt", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(row), delimiter="\t")
         writer.writeheader()
         writer.writerow(row)
@@ -358,6 +359,49 @@ def test_preparation_numbering_and_duplicate_rejection(tmp_path):
     (source / "Combined1.csv").touch()
     with pytest.raises(ValueError, match="Multiple inputs"):
         run_prepare.preparation_plan(source, tmp_path / "output")
+
+
+@pytest.mark.parametrize("suffix,compressed", [
+    (".tsv", False), (".txt", False), (".csv", False),
+    (".tsv.gz", True), (".txt.gz", True), (".csv.gz", True),
+    (".gz", True), ("", False), ("", True), (".TSV.GZ", True),
+])
+@pytest.mark.parametrize("delimiter", ["\t", ","])
+def test_aligned_inputs_detect_format_and_preserve_values(tmp_path, suffix, compressed, delimiter):
+    inputs = tmp_path / "inputs"
+    inputs.mkdir()
+    source = inputs / ("Best-Typing_AA_MM_9loc_matrix_7_aligned" + suffix)
+    row = {column: "0" for column in prepare.BASE_COVARIATES}
+    row.update({"graftyrs": "2.5", "grf_fail": "1", "PX_ID": "000123", "DON_TY": "L",
+                "AgmmA2": "1", "REC_A_MM_EQUIV_CUR": "2", "MM_A_9": "2",
+                "MM_A_9_Y": "1", "MM_A_9_rF_dY": "2"})
+    opener = gzip.open if compressed else open
+    with opener(source, "wt", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(row), delimiter=delimiter)
+        writer.writeheader()
+        writer.writerow(row)
+    plan = run_prepare.preparation_plan(inputs, tmp_path / "prepared")
+    assert len(plan) == 1
+    input_path, output_path = plan[0]
+    assert input_path == source.resolve()
+    assert output_path.name == "BestTyping_7.csv"
+    prepare.main(["--d", str(input_path), "--o", str(output_path)])
+    with output_path.open(newline="") as handle:
+        assert list(csv.DictReader(handle)) == [row]
+
+
+def test_aligned_batch_numbering_natural_order_and_duplicate_formats(tmp_path):
+    inputs = tmp_path / "inputs"
+    inputs.mkdir()
+    for name in ("Best-Typing_AA_MM_9loc_matrix_10_aligned.gz",
+                 "Best-Typing_AA_MM_9loc_matrix_2_aligned.tsv",
+                 "Best-Typing_AA_MM_9loc_matrix_1_aligned", "README", "notes.md"):
+        (inputs / name).touch()
+    plan = run_prepare.preparation_plan(inputs, tmp_path / "output")
+    assert [output.name for _, output in plan] == ["BestTyping_1.csv", "BestTyping_2.csv", "BestTyping_10.csv"]
+    (inputs / "Best-Typing_AA_MM_9loc_matrix_1_aligned.txt.gz").touch()
+    with pytest.raises(ValueError, match="Multiple inputs"):
+        run_prepare.preparation_plan(inputs, tmp_path / "output")
 
 
 def test_cv_reporting_preserves_full_adjusted_model(tmp_path):

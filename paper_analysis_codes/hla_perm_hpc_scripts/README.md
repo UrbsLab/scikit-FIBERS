@@ -57,8 +57,10 @@ columns, non-finite values, and invalid counts or outcomes stop the worker.
 
 The non-CV launchers expect one dataset prefix with consecutive imputation
 numbers: `BestTyping_1.csv` through `BestTyping_<re>.csv`. Prefixes may contain
-underscores. Preparation preserves input imputation numbers by default;
-`--start-index 1` can assign consecutive numbers when needed. `--rs` controls
+underscores. Preparation accepts TXT/TSV/CSV and gzip files, including
+`Best-Typing_AA_MM_9loc_matrix_<number>_aligned.tsv.gz` and extensionless
+aligned files. It preserves the number before `_aligned` (or a legacy trailing
+number); `--start-index 1` can assign consecutive numbers when needed. `--rs` controls
 the number of seeds, from 0 through `rs-1`. The CV launcher accepts one pair
 of `*_<fold>_Train.csv` and `*_<fold>_Test.csv` files per fold and checks all
 pairs before submission. `--r` sets the fixed CV seed.

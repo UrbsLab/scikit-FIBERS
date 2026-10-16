@@ -7,10 +7,10 @@
 # --re 10 expects BestTyping_1.csv through BestTyping_10.csv; --rs 10 uses seeds 0-9.
 
 # 1. PREPARE DATA: retains all mismatch types, source Agmm fields/counts, covariates, outcomes, and metadata.
-python run_prepare_fibers_data.py --d /path/to/combined_typing --w /path/to/hla_perm_results --o /path/to/prepared_datasets --prefix BestTyping --rc LSF --rm 4 --q i2c2_normal
+python run_prepare_fibers_data.py --d /path/to/combined_typing --w /path/to/hla_perm_results --o /path/to/prepared_datasets --prefix BestTyping --pattern 'Best-Typing_AA_MM_9loc_matrix_*_aligned*' --rc LSF --rm 4 --q i2c2_normal
 
 # Local single-file alternative (use instead of the preparation job for that input):
-# python job_prepare_fibers_data.py --d /path/to/SampleImp1.txt --o /path/to/prepared_datasets/BestTyping_1.csv
+# python job_prepare_fibers_data.py --d /path/to/Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv.gz --o /path/to/prepared_datasets/BestTyping_1.csv
 
 # 2. TRAIN: these workers select donor-to-recipient permutation columns only.
 # Three fitness experiments used by the comparison table. All observed positions are included for the selected loci.

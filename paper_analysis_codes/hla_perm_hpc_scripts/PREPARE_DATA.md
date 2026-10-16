@@ -3,14 +3,16 @@ are needed for preparation:
 
 ```bash
 python3 paper_analysis_codes/hla_perm_hpc_scripts/job_prepare_fibers_data.py \
-  --d /Users/harshbandhey/Downloads/SampleImp1.txt \
+  --d /path/to/Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv.gz \
   --o data/prepared/BestTyping_1.csv
 ```
 
 Replace the input path with the complete combined best-typing file to prepare
-the full dataset. Input can be tab- or comma-delimited, with optional gzip
-compression; output is CSV (gzip if the output path ends in `.gz`). The script
-streams rows, so the complete matrix does not need to fit in memory.
+the full dataset. Inputs may be `.tsv`, `.txt`, `.csv`, `.tsv.gz`, `.txt.gz`,
+`.csv.gz`, plain `.gz`, or extensionless numbered files. Gzip compression and
+tab/comma delimiters are detected automatically from the input contents.
+Output is CSV (gzip if the output path ends in `.gz`). The script streams rows,
+so the complete matrix does not need to fit in memory.
 
 For a folder of inputs, the matching `run_prepare_fibers_data.py` writes and
 submits one preparation job per file. Run it from the same folder as the other
@@ -19,15 +21,20 @@ HPC launchers, or use its full path:
 ```bash
 python3 paper_analysis_codes/hla_perm_hpc_scripts/run_prepare_fibers_data.py \
   --d /path/to/combined_typing --w /path/to/results \
-  --o /path/to/prepared_datasets --rc LSF --rm 4 --q i2c2_normal --dry-run
+  --o /path/to/prepared_datasets \
+  --pattern 'Best-Typing_AA_MM_9loc_matrix_*_aligned*' \
+  --rc LSF --rm 4 --q i2c2_normal --dry-run
 ```
 
-The runner accepts either one input file or an input folder. By default it maps
-the trailing imputation number to `BestTyping_<number>.csv`: `SampleImp1.txt`
-becomes `BestTyping_1.csv`, and `SampleImp10.txt.gz` becomes `BestTyping_10.csv`.
+The runner accepts either one input file or an input folder. It reads the
+imputation number immediately before `_aligned`, or the trailing number for
+legacy filenames. For example, `Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv.gz`
+becomes `BestTyping_1.csv`, and `Best-Typing_AA_MM_9loc_matrix_10_aligned.txt`
+becomes `BestTyping_10.csv`. The `9loc` part is not used as an imputation number.
+Names such as `SampleImp1.txt` and `SampleImp10.txt.gz` continue to work.
 `--prefix` changes `BestTyping`; `--pattern` selects input filenames within a
 folder, and `--re` limits the number of inputs in natural filename order.
-If inputs have no trailing number, specify `--start-index 1` to assign numbers
+If inputs have no recognized imputation number, specify `--start-index 1` to assign numbers
 in that order. Duplicate output names and accidental input replacement are
 rejected before submission. Existing outputs require `--overwrite`.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Keep record metadata, FIBERS covariates, survival outcomes, and AA mismatches.
 
-Accepts a combined best-typing TSV/CSV (optionally .gz) and writes CSV without
+Accepts combined best-typing TXT/TSV/CSV or gzip input and writes CSV without
 an index. By default, keeps position, residue, AND donor-to-recipient mismatch
 columns. This is a column projection: rows, feature names, and existing values
 are preserved; no shuffling, aggregation, imputation, or rare filtering occurs.
@@ -82,7 +82,13 @@ def mismatch_type(column):
 
 
 def _open_text(path, mode):
-    opener = gzip.open if path.suffix.lower() == ".gz" else open
+    if mode == "r":
+        # Detect gzip by its contents, including extensionless aligned files.
+        with path.open("rb") as probe:
+            compressed = probe.read(2) == b"\x1f\x8b"
+    else:
+        compressed = path.suffix.lower() == ".gz"
+    opener = gzip.open if compressed else open
     return opener(path, mode + "t", encoding="utf-8-sig" if mode == "r" else "utf-8",
                   newline="")
 
@@ -224,7 +230,7 @@ def add_preparation_arguments(parser):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--d", "--input", dest="input", type=Path, required=True,
-                        help="Combined best-typing TSV/CSV, optionally .gz")
+                        help="Combined best-typing TXT/TSV/CSV or gzip input; tab/comma auto-detected")
     parser.add_argument("--o", "-o", "--output", dest="output", type=Path, required=True,
                         help="Output CSV or CSV.gz, e.g. BestTyping_1.csv")
     add_preparation_arguments(parser)

@@ -10,6 +10,7 @@ from pathlib import Path
 
 DEFAULT_COV_LOCI = ('A', 'B', 'C', 'DRB1', 'DQA1', 'DQB1')
 MISMATCH_PATTERNS = ('position', 'residue', 'permutation')
+IMPUTATION_PATTERN = re.compile(r"([0-9]+)(?:_aligned)?$", re.IGNORECASE)
 
 
 def add_preparation_arguments(parser):
@@ -65,7 +66,10 @@ WORKER_SCRIPT = Path(__file__).with_name("job_prepare_fibers_data.py").resolve()
 
 def input_stem(path):
     name = path.name[:-3] if path.name.lower().endswith(".gz") else path.name
-    return Path(name).stem
+    for suffix in (".txt", ".tsv", ".csv"):
+        if name.lower().endswith(suffix):
+            return name[:-len(suffix)]
+    return name
 
 
 def preparation_plan(source, output, prefix="BestTyping", pattern="*", replicates=None,
@@ -80,26 +84,29 @@ def preparation_plan(source, output, prefix="BestTyping", pattern="*", replicate
         paths = [source]
     elif source.is_dir():
         paths = [path.resolve() for path in source.glob(pattern) if path.is_file()
-                 and path.name.lower().endswith((".txt", ".tsv", ".csv", ".txt.gz", ".tsv.gz", ".csv.gz"))]
+                 and (path.name.lower().endswith((".txt", ".tsv", ".csv", ".gz"))
+                      or (not path.suffix and IMPUTATION_PATTERN.search(path.name)))]
     else:
         raise FileNotFoundError(source)
     paths.sort(key=lambda path: [int(part) if part.isdigit() else part.lower()
                                 for part in re.split(r"(\d+)", path.name)])
     if not paths:
-        raise ValueError("No input TXT, TSV, or CSV files matched.")
+        raise ValueError("No TXT, TSV, CSV, gzip, or numbered extensionless input files matched.")
     if replicates is not None:
         if not 1 <= replicates <= len(paths):
             raise ValueError(f"--re must be between 1 and {len(paths)}.")
         paths = paths[:replicates]
     plan = []
     for offset, path in enumerate(paths):
-        match = re.search(r"([0-9]+)$", input_stem(path))
+        match = IMPUTATION_PATTERN.search(input_stem(path))
         if start_index is not None:
             index = start_index + offset
         elif match:
             index = int(match[1])
         else:
-            raise ValueError(f"No trailing imputation number in {path.name}; set --start-index.")
+            raise ValueError(
+                f"No imputation number at the end or before '_aligned' in {path.name}; set --start-index."
+            )
         if index < 1:
             raise ValueError(f"Imputation numbers must be positive: {path.name}")
         destination = output / f"{prefix}_{index}.csv"
@@ -115,7 +122,8 @@ def preparation_plan(source, output, prefix="BestTyping", pattern="*", replicate
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--d", type=Path, required=True, help="One combined typing file or a folder")
+    parser.add_argument("--d", type=Path, required=True,
+                        help="One combined typing TXT/TSV/CSV/gzip file or a folder")
     parser.add_argument("--w", type=Path, required=True, help="Parent folder for scratch scripts and logs")
     parser.add_argument("--o", type=Path, required=True, help="Output folder for prepared CSV datasets")
     parser.add_argument("--prefix", default="BestTyping", help="Output filename prefix (default: BestTyping)")
