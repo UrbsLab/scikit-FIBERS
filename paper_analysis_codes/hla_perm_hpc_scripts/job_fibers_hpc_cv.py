@@ -15,6 +15,10 @@ from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
 VALID_EFFECTS = ("default", "protective", "high_risk")
+IGNORE_COLUMNS = (
+    "PX_ID", "PERS_ID", "TX_ID", "DONOR_ID", "REC_TX_DT",
+    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE",
+)
 
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
@@ -183,7 +187,7 @@ def main(argv):
         raise FileNotFoundError(data_full_test)
     final_covariates = list(dict.fromkeys(final_covariates))
     Ag_covariates = list(dict.fromkeys(Ag_covariates))
-    train_data = pd.read_csv(data_full_train)
+    train_data = pd.read_csv(data_full_train, usecols=lambda column: column not in IGNORE_COLUMNS)
 
     # Donor-to-recipient permutations only. rF_dY means donor Y -> recipient F.
     permutation_pattern = re.compile(r"MM_(A|B|C|DRB1|DRB345|DQA1|DQB1|DPA1|DPB1)_([1-9][0-9]*)_r[A-Z]_d[A-Z]")
@@ -258,7 +262,7 @@ def main(argv):
     save_model(fibers, output, run_prefix)
 
     # Use exactly the features retained from training, with no test-based filtering.
-    original_test_data = pd.read_csv(data_full_test)
+    original_test_data = pd.read_csv(data_full_test, usecols=lambda column: column not in IGNORE_COLUMNS)
     features = MM_feature_list + final_covariates + [outcome_label, censor_label]
     missing = [column for column in features if column not in original_test_data.columns]
     if missing:

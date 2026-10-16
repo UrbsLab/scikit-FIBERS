@@ -34,6 +34,8 @@ def model_frame():
     frame["MM_A_11_rF_dY"] = 0
     for name in ("MM_A_9", "MM_A_9_Y", "MM_A_COUNT", "PX_ID", "MM_A_9_rF_dY_extra"):
         frame[name] = 1
+    for name in prepare.METADATA_COLUMNS:
+        frame[name] = ["0001", "NA", "", "2020-01-01"]
     return frame
 
 
@@ -88,6 +90,7 @@ def test_worker_preserves_direction_counts_and_position_boundaries(tmp_path, mon
     assert set(features) == set(expected)
     assert result["train"]["MM_A_9_rF_dY"].tolist() == [0, 0, 2, 2]
     assert result["parameters"]["covariates"] == list(prepare.BASE_COVARIATES)
+    assert not set(prepare.METADATA_COLUMNS) & set(result["train"].columns)
     if cv:
         assert result["test"].columns.tolist() == result["train"].columns.tolist()
 
@@ -200,15 +203,20 @@ def test_cv_launcher_preflights_all_pairs(tmp_path, monkeypatch):
 
 def test_partitioner_disjoint_complete_folds(tmp_path):
     source = tmp_path / "best_typing_1.csv"
-    pd.DataFrame({"row": range(12)}).to_csv(source, index=False)
+    original = pd.DataFrame({"row": range(12)})
+    for name in prepare.METADATA_COLUMNS:
+        original[name] = ["0001", "NA", "", "2020-01-01"] * 3
+    original.to_csv(source, index=False)
     output = tmp_path / "folds"
     load_and_split_dataset(str(source), str(output), 3)
     seen = []
     for fold in (1, 2, 3):
-        train = pd.read_csv(output / f"best_typing_1_CV_{fold}_Train.csv")
-        test = pd.read_csv(output / f"best_typing_1_CV_{fold}_Test.csv")
+        train = pd.read_csv(output / f"best_typing_1_CV_{fold}_Train.csv", keep_default_na=False)
+        test = pd.read_csv(output / f"best_typing_1_CV_{fold}_Test.csv", keep_default_na=False)
         assert not set(train.row) & set(test.row)
         assert set(train.row) | set(test.row) == set(range(12))
+        pd.testing.assert_frame_equal(
+            pd.concat([train, test]).sort_values("row").reset_index(drop=True), original)
         seen.extend(test.row)
     assert sorted(seen) == list(range(12))
 
@@ -217,8 +225,12 @@ def test_partitioner_disjoint_complete_folds(tmp_path):
 def test_prepare_generated_job_keeps_all_mismatch_types(tmp_path, monkeypatch, cluster):
     source = tmp_path / "SampleImp7.txt"
     row = {column: "0" for column in prepare.BASE_COVARIATES}
+    metadata = dict(zip(prepare.METADATA_COLUMNS, [
+        "000123", "9007199254740993", "NA", "D-042", "2019-01-01", "", ".", "2022-02-03",
+    ]))
+    row.update(metadata)
     row.update({"graftyrs": "2.5", "grf_fail": "1", "MM_A_9": "2",
-                "MM_A_9_Y": "1", "MM_A_9_rF_dY": "2", "PX_ID": "discard"})
+                "MM_A_9_Y": "1", "MM_A_9_rF_dY": "2", "UNUSED_FIELD": "discard"})
     with source.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(row), delimiter="\t")
         writer.writeheader()
@@ -236,9 +248,22 @@ def test_prepare_generated_job_keeps_all_mismatch_types(tmp_path, monkeypatch, c
         assert command.pop(0) == "srun"
     assert Path(command[1]) == SCRIPTS / "job_prepare_fibers_data.py"
     subprocess.run(command, cwd=tmp_path, check=True, capture_output=True, text=True)
-    result = pd.read_csv(output / "BestTyping_7.csv")
-    assert result.columns.tolist() == list(prepare.BASE_COVARIATES) + ["graftyrs", "grf_fail", "MM_A_9", "MM_A_9_Y", "MM_A_9_rF_dY"]
+    result = pd.read_csv(output / "BestTyping_7.csv", dtype={column: str for column in metadata},
+                         keep_default_na=False)
+    assert result.columns.tolist() == list(prepare.METADATA_COLUMNS) + list(prepare.BASE_COVARIATES) + ["graftyrs", "grf_fail", "MM_A_9", "MM_A_9_Y", "MM_A_9_rF_dY"]
     assert result["MM_A_9_rF_dY"].tolist() == [2]
+    assert result.loc[0, list(metadata)].to_dict() == metadata
+
+
+def test_preparation_accepts_missing_metadata_without_adding_columns(tmp_path, capsys):
+    source = tmp_path / "SampleImp1.csv"
+    frame = model_frame().drop(columns=list(prepare.METADATA_COLUMNS))
+    frame.to_csv(source, index=False)
+    output = tmp_path / "BestTyping_1.csv"
+    prepare.main(["--d", str(source), "--o", str(output), "--cov-list", "None"])
+    assert not set(prepare.METADATA_COLUMNS) & set(pd.read_csv(output).columns)
+    messages = capsys.readouterr().out
+    assert not any(column in messages for column in prepare.METADATA_COLUMNS)
 
 
 def test_preparation_numbering_and_duplicate_rejection(tmp_path):

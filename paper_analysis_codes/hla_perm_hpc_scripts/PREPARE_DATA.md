@@ -37,6 +37,10 @@ node Python. The worker's `--o` names a file; the runner's `--o` names a folder.
 
 The default output contains:
 
+- Record IDs (`PX_ID`, `PERS_ID`, `TX_ID`, `DONOR_ID`) and dates
+  (`REC_TX_DT`, `TFL_GRAFT_DT`, `TFL_DEATH_DT`, `TFL_LAFUDATE`) when present.
+  These retain their source values, including blanks and leading zeros, pass
+  through CV partitioning, and are ignored by the FIBERS workers.
 - All three AA mismatch types across all nine loci: `MM_A_9` (position),
   `MM_A_9_Y` (residue), and `MM_A_9_rF_dY` (donor Y → recipient F permutation).
 - The 43 base covariates used by the repository's HLA FIBERS jobs, plus the
@@ -44,7 +48,7 @@ The default output contains:
   (55 covariates total).
 - `graftyrs` and `grf_fail`, required for FIBERS survival training.
 
-Identifiers, dates, haplotypes, allele typing, raw clinical fields outside the
+Haplotypes, allele typing, raw clinical fields outside the
 adjustment set, and `MM_*_COUNT` totals are excluded. Existing data values,
 feature names, row order, and all rows are preserved. No rare-feature filtering,
 constant-column filtering, binarization, or imputation is performed.

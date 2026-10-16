@@ -24,7 +24,9 @@ FIBERS from this checkout, so the checkout must also exist on compute nodes.
 | Comparison tables | `run_table_maker_hpc.py` / `job_table_maker_hpc.py` | `run_table_maker_hpc_cv.py` / `job_table_maker_hpc_cv.py` |
 
 Preparation retains all three AA mismatch types, 55 covariates, and the two
-survival outcomes by default, as requested. See [PREPARE_DATA.md](PREPARE_DATA.md).
+survival outcomes, plus available record IDs and transplant/follow-up dates.
+Metadata stays with the rows through CV partitioning and is excluded by the
+workers' `IGNORE_COLUMNS` lists. See [PREPARE_DATA.md](PREPARE_DATA.md).
 The FIBERS workers then select only donor-to-recipient permutation features.
 `MM_A_9_rF_dY` means **donor Y → recipient F** at A position 9. The reverse pair
 `MM_A_9_rY_dF` is a separate feature. Names and integer counts are preserved.

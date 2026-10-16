@@ -5,6 +5,11 @@ os.environ.setdefault('MPLBACKEND', 'Agg')
 import argparse
 import sys
 
+METADATA_COLUMNS = (
+    "PX_ID", "PERS_ID", "TX_ID", "DONOR_ID", "REC_TX_DT",
+    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE",
+)
+
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description='')
@@ -41,7 +46,8 @@ def load_and_split_dataset(csv_file,output_folder,partitions):
     file_name = os.path.basename(csv_file)
     file_name = os.path.splitext(file_name)[0]
     # Load the dataset
-    data = pd.read_csv(csv_file)
+    data = pd.read_csv(csv_file, dtype={column: str for column in METADATA_COLUMNS},
+                       keep_default_na=False)
     os.makedirs(output_folder, exist_ok=True)
 
     # Set up cross-validation
@@ -61,4 +67,3 @@ if __name__=="__main__":
     # Provide the path to your dataset here
     #dataset_path = '/project/kamoun_shared/data_shared/harsh_new_imp/NewImp_8.csv'
     #output_folder = '/project/kamoun_shared/data_shared/harsh_new_imp_CV/'
-

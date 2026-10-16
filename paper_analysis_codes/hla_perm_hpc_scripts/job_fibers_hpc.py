@@ -15,6 +15,10 @@ from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 #from skfibers.fibers import FIBERS #PIP INSTALL RUN
 
 VALID_EFFECTS = ("default", "protective", "high_risk")
+IGNORE_COLUMNS = (
+    "PX_ID", "PERS_ID", "TX_ID", "DONOR_ID", "REC_TX_DT",
+    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE",
+)
 
 def main(argv):
     #ARGUMENTS:------------------------------------------------------------------------------------
@@ -173,7 +177,7 @@ def main(argv):
     dataset_name,ext = os.path.splitext(filename)
 
     #Load/Process Dataset
-    data = pd.read_csv(datapath)
+    data = pd.read_csv(datapath, usecols=lambda column: column not in IGNORE_COLUMNS)
 
     # Donor-to-recipient permutations only. rF_dY means donor Y -> recipient F.
     permutation_pattern = re.compile(r"MM_(A|B|C|DRB1|DRB345|DQA1|DQB1|DPA1|DPB1)_([1-9][0-9]*)_r[A-Z]_d[A-Z]")

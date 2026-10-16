@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep FIBERS covariates, survival outcomes, and AA mismatch features.
+"""Keep record metadata, FIBERS covariates, survival outcomes, and AA mismatches.
 
 Accepts a combined best-typing TSV/CSV (optionally .gz) and writes CSV without
 an index. By default, keeps position, residue, AND donor-to-recipient mismatch
@@ -36,6 +36,11 @@ BASE_COVARIATES = (
 )
 DEFAULT_COV_LOCI = ("A", "B", "C", "DRB1", "DQA1", "DQB1")
 OUTCOMES = ("graftyrs", "grf_fail")
+# Optional record-linkage and outcome dates, preserved as source text.
+METADATA_COLUMNS = (
+    "PX_ID", "PERS_ID", "TX_ID", "DONOR_ID", "REC_TX_DT",
+    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE",
+)
 
 # (source antigen mismatch count, indicator for zero, indicator for one).
 # Two mismatches is the reference category. DRB345 shares DRB1 adjustment.
@@ -149,10 +154,12 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                 feature_types[column] = level
         if not feature_types:
             raise ValueError(f"No AA mismatch columns found for level '{mismatch_level}'.")
-        output_columns = covariates + list(OUTCOMES) + list(feature_types)
+        metadata_columns = [column for column in METADATA_COLUMNS if column in indices]
+        output_columns = metadata_columns + covariates + list(OUTCOMES) + list(feature_types)
         # Precompute selectors once; retain mismatch columns in their input order.
         selectors = [(column, indices[column]) for column in output_columns
-                     if column not in derivations]
+                     if column not in derivations and column not in metadata_columns]
+        metadata_selectors = [(column, indices[column]) for column in metadata_columns]
         output_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = tempfile.NamedTemporaryFile(
             dir=output_path.parent, prefix=".fibers-", suffix=output_path.suffix, delete=False
@@ -172,7 +179,7 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                         raise ValueError(
                             f"Data row {row_count}: expected {len(header)} fields, got {len(row)}."
                         )
-                    values = {}
+                    values = {column: row[index] for column, index in metadata_selectors}
                     for column, index in selectors:
                         value = row[index]
                         number = _number(value, column, row_count)
@@ -205,6 +212,7 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
     return {
         "rows": row_count,
         "columns": len(output_columns),
+        "metadata_columns": metadata_columns,
         "covariates": covariates,
         "derived_covariates": list(derivations),
         "mismatch_counts": dict(Counter(feature_types.values())),
