@@ -40,12 +40,14 @@ The default output contains:
 - Record IDs (`PX_ID`, `PERS_ID`, `TX_ID`, `DONOR_ID`) and dates
   (`REC_TX_DT`, `TFL_GRAFT_DT`, `TFL_DEATH_DT`, `TFL_LAFUDATE`) when present.
   These retain their source values, including blanks and leading zeros, pass
-  through CV partitioning, and are ignored by the FIBERS workers.
+  through CV partitioning, and are ignored by the FIBERS workers. `DON_TY` is
+  also retained unchanged for donor type.
 - All three AA mismatch types across all nine loci: `MM_A_9` (position),
   `MM_A_9_Y` (residue), and `MM_A_9_rF_dY` (donor Y → recipient F permutation).
-- The 43 base covariates used by the repository's HLA FIBERS jobs, plus the
-  zero- and one-antigen-mismatch indicators for A, B, C, DRB1, DQA1, and DQB1
-  (55 covariates total).
+- The 43 base covariates used by the repository's HLA FIBERS jobs.
+- All existing `Agmm*` columns, including the 0, 1, and 2 categories, plus
+  the raw `REC_*_MM_EQUIV_CUR` antigen mismatch counts. Source values are
+  copied exactly; no antigen indicators are created or recoded during preparation.
 - `graftyrs` and `grf_fail`, required for FIBERS survival training.
 
 Haplotypes, allele typing, raw clinical fields outside the
@@ -53,18 +55,21 @@ adjustment set, and `MM_*_COUNT` totals are excluded. Existing data values,
 feature names, row order, and all rows are preserved. No rare-feature filtering,
 constant-column filtering, binarization, or imputation is performed.
 
-Missing antigen indicator columns are derived from `REC_*_MM_EQUIV_CUR`:
-zero mismatches becomes `(1, 0)`, one becomes `(0, 1)`, and two becomes `(0, 0)`.
-Existing indicators are retained. Missing or invalid required values stop the
-conversion with the column and data row identified; they are never replaced
-with zero. An unsuccessful conversion does not replace an existing output.
+Preparation copies the source antigen fields without requiring or creating
+additional indicators. Training uses the existing requested Agmm adjustment
+columns and ignores raw antigen counts. Prepared data is never rewritten by
+model fitting.
+
+Missing or invalid required numeric values stop conversion with the column and
+row identified. An unsuccessful conversion does not replace an existing output.
 
 Optional arguments:
 
 - `--mismatch-level position`, `residue`, or `permutation` keeps one type only;
   the default is `all`.
-- `--cov-list None` keeps only the 43 base covariates. A comma-separated locus
-  list changes the antigen adjustment set, without restricting AA feature loci.
+- `--cov-list` specifies antigen loci when reporting available model covariates;
+  `None` reports only the base adjustment set. All source `Agmm*` fields and
+  antigen counts are retained regardless of this option.
   `--cov-loci` remains an alias.
 - `--overwrite` explicitly replaces an existing output after successful validation.
 
@@ -77,7 +82,7 @@ python paper_analysis_codes/hla_perm_hpc_scripts/job_fibers_hpc.py \
 ```
 
 Use a full cohort for model fitting. The nine-row sample is sufficient for
-checking conversion but cannot support the 55-covariate survival model.
+checking conversion but is too small for the configured survival adjustment.
 The `job_fibers_hpc.py` and `job_fibers_hpc_cv.py` workers in this folder select
 only permutation features from either the all-types or permutation-only output.
 The original workers in `hla_hpc_scripts` still select position-only features.

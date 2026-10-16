@@ -56,7 +56,7 @@ def main(argv):
 
     parser.add_argument('--dry-run', action='store_true', help='Write job files without submitting')
     parser.add_argument('--python-executable', default='python', help='Compute-node Python')
-    parser.add_argument('--all-positions', action='store_true', help='Use all observed AA positions')
+    parser.add_argument('--all-positions', action='store_true', help='Compatibility option: all observed AA positions are always used')
 
     options=parser.parse_args(argv[1:])
 

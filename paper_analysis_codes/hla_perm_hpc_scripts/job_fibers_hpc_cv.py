@@ -17,7 +17,10 @@ from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 VALID_EFFECTS = ("default", "protective", "high_risk")
 IGNORE_COLUMNS = (
     "PX_ID", "PERS_ID", "TX_ID", "DONOR_ID", "REC_TX_DT",
-    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE",
+    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE", "DON_TY",
+    "REC_A_MM_EQUIV_CUR", "REC_B_MM_EQUIV_CUR", "REC_C_MM_EQUIV_CUR",
+    "REC_DR_MM_EQUIV_CUR", "REC_DQA1_MM_EQUIV_CUR", "REC_DQ_MM_EQUIV_CUR",
+    "REC_DPA1_MM_EQUIV_CUR", "REC_DPB1_MM_EQUIV_CUR",
 )
 
 def main(argv):
@@ -62,7 +65,7 @@ def main(argv):
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default=None)
 
-    parser.add_argument('--all-positions', action='store_true', help='Use all observed AA positions')
+    parser.add_argument('--all-positions', action='store_true', help='Compatibility option: all observed AA positions are always used')
 
     options=parser.parse_args(argv[1:])
 
@@ -148,22 +151,31 @@ def main(argv):
         'DPA1':  ['Agmmdpa10', 'Agmmdpa11'],
         'DPB1':  ['Agmmdpb10', 'Agmmdpb11']}
 
-    #hard coded specific AA-MM positions to include in these analyses
-    locus_range_dict = {
-        'A': [1,182],
-        'B': [1,182],
-        'C': [1,182],
-        'DRB1': [6,94],
-        'DRB345': [6,94],
-        'DQA1':  [6,94],
-        'DQB1':  [6,95],
-        'DPA1':  [6,94],
-        'DPB1':  [6,94]}
+    # Disabled: raw antigen counts are not used for training.
+    # raw_antigen_columns = {
+    #     'A': 'REC_A_MM_EQUIV_CUR', 'B': 'REC_B_MM_EQUIV_CUR',
+    #     'C': 'REC_C_MM_EQUIV_CUR', 'DRB1': 'REC_DR_MM_EQUIV_CUR',
+    #     'DRB345': 'REC_DR_MM_EQUIV_CUR', 'DQA1': 'REC_DQA1_MM_EQUIV_CUR',
+    #     'DQB1': 'REC_DQ_MM_EQUIV_CUR', 'DPA1': 'REC_DPA1_MM_EQUIV_CUR',
+    #     'DPB1': 'REC_DPB1_MM_EQUIV_CUR',
+    # }
+
+    # Historical position limits retained for reference; filtering is disabled.
+    # locus_range_dict = {
+    #     'A': [1,182],
+    #     'B': [1,182],
+    #     'C': [1,182],
+    #     'DRB1': [6,94],
+    #     'DRB345': [6,94],
+    #     'DQA1':  [6,94],
+    #     'DQB1':  [6,95],
+    #     'DPA1':  [6,94],
+    #     'DPB1':  [6,94]}
 
     final_covariates = covariates[:]
     Ag_covariates = []
     base_covariates = covariates[:]
-    if not loci_list or set(loci_list) - set(locus_range_dict) or set(cov_list or []) - set(cov_typ_dict):
+    if not loci_list or set(loci_list) - set(cov_typ_dict) or set(cov_list or []) - set(cov_typ_dict):
         raise ValueError("Unknown or empty locus list")
 
     #Create Final Covariate List
@@ -173,7 +185,6 @@ def main(argv):
             for each in cov_sub_list:
                 final_covariates.append(each) #add selected Ag covariate to primary covariates
                 Ag_covariates.append(each)
-    print(final_covariates) #temporary
 
     # Match the exact fold suffix, preserving arbitrary dataset prefixes.
     train_suffix = f"_{cv}_Train.csv"
@@ -189,15 +200,35 @@ def main(argv):
     Ag_covariates = list(dict.fromkeys(Ag_covariates))
     train_data = pd.read_csv(data_full_train, usecols=lambda column: column not in IGNORE_COLUMNS)
 
+    # Choose existing antigen covariates on the training schema, then reuse them for testing.
+    final_covariates = [column for column in final_covariates
+                        if column in base_covariates or column in train_data]
+    Ag_covariates = [column for column in Ag_covariates if column in train_data]
+    print(final_covariates)
+
+    # Disabled: retain source Agmm values without reconstruction.
+    # for locus in cov_list or []:
+    #     missing_indicators = [column for column in cov_typ_dict[locus] if column not in train_data]
+    #     if missing_indicators:
+    #         source_column = raw_antigen_columns[locus]
+    #         if source_column not in train_data:
+    #             raise ValueError('Missing required antigen indicators or raw count: '+source_column)
+    #         raw_counts = pd.to_numeric(train_data[source_column], errors='raise')
+    #         if not raw_counts.isin([0, 1, 2]).all():
+    #             raise ValueError(source_column+' must contain only 0, 1, or 2')
+    #         for count, column in enumerate(cov_typ_dict[locus]):
+    #             if column in missing_indicators:
+    #                 train_data[column] = (raw_counts == count).astype(int)
+
     # Donor-to-recipient permutations only. rF_dY means donor Y -> recipient F.
     permutation_pattern = re.compile(r"MM_(A|B|C|DRB1|DRB345|DQA1|DQB1|DPA1|DPB1)_([1-9][0-9]*)_r[A-Z]_d[A-Z]")
     MM_feature_list = []
     for feature in train_data.columns:
         match = permutation_pattern.fullmatch(feature)
         if match and match[1] in loci_list:
-            lower, upper = locus_range_dict[match[1]]
-            if options.all_positions or lower <= int(match[2]) <= upper:
-                MM_feature_list.append(feature)
+            # lower, upper = locus_range_dict[match[1]]
+            # if options.all_positions or lower <= int(match[2]) <= upper:
+            MM_feature_list.append(feature)
     if not MM_feature_list:
         raise ValueError("No requested permutation features (e.g. MM_A_9_rF_dY) were found")
     features = MM_feature_list + final_covariates + [outcome_label, censor_label]
@@ -263,6 +294,20 @@ def main(argv):
 
     # Use exactly the features retained from training, with no test-based filtering.
     original_test_data = pd.read_csv(data_full_test, usecols=lambda column: column not in IGNORE_COLUMNS)
+
+    # Disabled: retain source Agmm values without reconstruction.
+    # for locus in cov_list or []:
+    #     missing_indicators = [column for column in cov_typ_dict[locus] if column not in original_test_data]
+    #     if missing_indicators:
+    #         source_column = raw_antigen_columns[locus]
+    #         if source_column not in original_test_data:
+    #             raise ValueError('Missing required antigen indicators or raw count: '+source_column)
+    #         raw_counts = pd.to_numeric(original_test_data[source_column], errors='raise')
+    #         if not raw_counts.isin([0, 1, 2]).all():
+    #             raise ValueError(source_column+' must contain only 0, 1, or 2')
+    #         for count, column in enumerate(cov_typ_dict[locus]):
+    #             if column in missing_indicators:
+    #                 original_test_data[column] = (raw_counts == count).astype(int)
     features = MM_feature_list + final_covariates + [outcome_label, censor_label]
     missing = [column for column in features if column not in original_test_data.columns]
     if missing:

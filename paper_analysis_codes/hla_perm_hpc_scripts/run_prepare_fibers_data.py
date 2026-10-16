@@ -17,8 +17,8 @@ def add_preparation_arguments(parser):
     parser.add_argument("--mismatch-level", choices=("all", *MISMATCH_PATTERNS), default="all",
                         help="Mismatch features to keep (default: all three types)")
     parser.add_argument("--cov-list", "--cov-loci", dest="cov_loci", default=",".join(DEFAULT_COV_LOCI),
-                        help="Antigen adjustment loci (default: A,B,C,DRB1,DQA1,DQB1); "
-                             "use 'none' for the 43 base covariates only")
+                        help="Antigen loci for reporting available model covariates (default: A,B,C,DRB1,DQA1,DQB1); "
+                             "'none' reports base covariates only. All existing Agmm fields are retained.")
     parser.add_argument("--delimiter", choices=("tab", "comma"),
                         help="Input delimiter (default: detect tab or comma from header)")
     parser.add_argument("--overwrite", action="store_true", help="Replace an existing output")

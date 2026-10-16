@@ -7,7 +7,7 @@ import sys
 
 METADATA_COLUMNS = (
     "PX_ID", "PERS_ID", "TX_ID", "DONOR_ID", "REC_TX_DT",
-    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE",
+    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE", "DON_TY",
 )
 
 def main(argv):

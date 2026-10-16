@@ -78,14 +78,13 @@ def run_worker(tmp_path, monkeypatch, frame, cv=False, test=None, extra=()):
 
 @pytest.mark.parametrize("cv", [False, True])
 @pytest.mark.parametrize("all_positions", [False, True])
-def test_worker_preserves_direction_counts_and_position_boundaries(tmp_path, monkeypatch, cv, all_positions):
+def test_worker_preserves_direction_counts_and_all_positions(tmp_path, monkeypatch, cv, all_positions):
     frame = model_frame()
     result = run_worker(tmp_path, monkeypatch, frame, cv=cv,
                         extra=["--all-positions"] if all_positions else [])
     expected = ["MM_A_9_rF_dY", "MM_A_9_rY_dF", "MM_A_182_rF_dY",
-                "MM_DRB1_6_rF_dY", "MM_DRB1_94_rF_dY", "MM_DQB1_95_rF_dY", "MM_A_10_rF_dY"]
-    if all_positions:
-        expected += ["MM_A_183_rF_dY", "MM_DRB1_5_rF_dY", "MM_DRB1_95_rF_dY", "MM_DQB1_96_rF_dY"]
+                "MM_DRB1_6_rF_dY", "MM_DRB1_94_rF_dY", "MM_DQB1_95_rF_dY", "MM_A_10_rF_dY",
+                "MM_A_183_rF_dY", "MM_DRB1_5_rF_dY", "MM_DRB1_95_rF_dY", "MM_DQB1_96_rF_dY"]
     features = [name for name in result["train"] if name.startswith("MM_")]
     assert set(features) == set(expected)
     assert result["train"]["MM_A_9_rF_dY"].tolist() == [0, 0, 2, 2]
@@ -226,7 +225,7 @@ def test_prepare_generated_job_keeps_all_mismatch_types(tmp_path, monkeypatch, c
     source = tmp_path / "SampleImp7.txt"
     row = {column: "0" for column in prepare.BASE_COVARIATES}
     metadata = dict(zip(prepare.METADATA_COLUMNS, [
-        "000123", "9007199254740993", "NA", "D-042", "2019-01-01", "", ".", "2022-02-03",
+        "000123", "9007199254740993", "NA", "D-042", "2019-01-01", "", ".", "2022-02-03", "L",
     ]))
     row.update(metadata)
     row.update({"graftyrs": "2.5", "grf_fail": "1", "MM_A_9": "2",
@@ -255,15 +254,98 @@ def test_prepare_generated_job_keeps_all_mismatch_types(tmp_path, monkeypatch, c
     assert result.loc[0, list(metadata)].to_dict() == metadata
 
 
-def test_preparation_accepts_missing_metadata_without_adding_columns(tmp_path, capsys):
+@pytest.mark.parametrize("cov_list", ["None", ",".join(prepare.DEFAULT_COV_LOCI)])
+def test_preparation_accepts_missing_metadata_without_adding_columns(tmp_path, capsys, cov_list):
     source = tmp_path / "SampleImp1.csv"
     frame = model_frame().drop(columns=list(prepare.METADATA_COLUMNS))
     frame.to_csv(source, index=False)
     output = tmp_path / "BestTyping_1.csv"
-    prepare.main(["--d", str(source), "--o", str(output), "--cov-list", "None"])
+    prepare.main(["--d", str(source), "--o", str(output), "--cov-list", cov_list])
     assert not set(prepare.METADATA_COLUMNS) & set(pd.read_csv(output).columns)
     messages = capsys.readouterr().out
     assert not any(column in messages for column in prepare.METADATA_COLUMNS)
+
+
+@pytest.mark.parametrize("cov_loci", [[], ["A"], prepare.DEFAULT_COV_LOCI])
+def test_preparation_keeps_all_antigen_fields_without_encoding(tmp_path, cov_loci):
+    rows = []
+    for count in (0, 1, 2):
+        row = {column: "0" for column in prepare.BASE_COVARIATES}
+        row.update({"graftyrs": "2.5", "grf_fail": "1", "MM_A_9_rF_dY": str(count),
+                    "DON_TY": "L" if count == 0 else "C"})
+        for source, _, _ in prepare.ANTIGEN_COVARIATES.values():
+            row[source] = str(count)
+        for locus in ("A", "B", "DR", "DPB1"):
+            for category in (0, 1, 2):
+                row[f"Agmm{locus}{category}"] = str(int(count == category))
+        rows.append(row)
+    source = tmp_path / "SampleImp1.csv"
+    with source.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    output = tmp_path / "BestTyping_1.csv"
+    prepare.prepare_dataset(source, output, cov_loci=cov_loci)
+    with output.open(newline="") as handle:
+        result = list(csv.DictReader(handle))
+    assert result == rows
+    assert "Agmmc0" not in result[0]
+    assert "Agmmc1" not in result[0]
+    assert [row["REC_C_MM_EQUIV_CUR"] for row in result] == ["0", "1", "2"]
+    assert [row["AgmmA2"] for row in result] == ["0", "0", "1"]
+
+
+@pytest.mark.parametrize("cv", [False, True])
+def test_workers_ignore_raw_antigen_counts_and_use_existing_covariates(tmp_path, monkeypatch, cv):
+    train = model_frame()
+    test = train.copy()
+    for source, _, _ in prepare.ANTIGEN_COVARIATES.values():
+        train[source] = ["unused", "raw", "antigen", "counts"]
+        test[source] = ["unused", "test", "antigen", "counts"]
+    train["AgmmA0"] = [1, 0, 0, 0]
+    train["AgmmA1"] = [0, 1, 0, 0]
+    test["AgmmA0"] = [0, 0, 1, 0]
+    test["AgmmA1"] = [0, 1, 0, 1]
+    test["Agmmc0"] = 1  # A test-only covariate must not change the training schema.
+    train["AgmmA2"] = [0, 0, 1, 1]
+    test["AgmmA2"] = [1, 0, 0, 0]
+    result = run_worker(tmp_path, monkeypatch, train, cv=cv, test=test,
+                        extra=["--cov-list", ",".join(prepare.DEFAULT_COV_LOCI)])
+    assert result["parameters"]["covariates"] == list(prepare.BASE_COVARIATES) + ["AgmmA0", "AgmmA1"]
+    for locus in prepare.DEFAULT_COV_LOCI:
+        source, zero, one = prepare.ANTIGEN_COVARIATES[locus]
+        assert source not in result["train"]
+        if locus != "A":
+            assert zero not in result["train"]
+            assert one not in result["train"]
+    assert result["train"]["AgmmA0"].tolist() == train["AgmmA0"].tolist()
+    assert result["train"]["AgmmA1"].tolist() == train["AgmmA1"].tolist()
+    if cv:
+        assert result["test"]["AgmmA0"].tolist() == test["AgmmA0"].tolist()
+        assert result["test"]["AgmmA1"].tolist() == test["AgmmA1"].tolist()
+        assert "Agmmc0" not in result["test"]
+    assert "AgmmA2" not in result["train"]
+    source = tmp_path / ("folds/long_dataset_name_CV_1_Train.csv" if cv else "BestTyping_1.csv")
+    pd.testing.assert_frame_equal(pd.read_csv(source, keep_default_na=False), train)
+
+
+@pytest.mark.parametrize("cv", [False, True])
+def test_workers_support_dp_loci_outside_old_ranges(tmp_path, monkeypatch, cv):
+    frame = model_frame()
+    frame["MM_DPA1_228_rF_dY"] = [0, 1, 2, 0]
+    frame["MM_DPB1_215_rF_dY"] = [1, 0, 2, 0]
+    result = run_worker(tmp_path, monkeypatch, frame, cv=cv, extra=["--loci-list", "DPA1,DPB1"])
+    assert {column for column in result["train"] if column.startswith("MM_")} == {
+        "MM_DPA1_228_rF_dY", "MM_DPB1_215_rF_dY", "MM_DPB1_8_rF_dY",
+    }
+
+
+def test_cv_requires_selected_source_covariates_in_test_fold(tmp_path, monkeypatch):
+    train = model_frame()
+    train["AgmmA0"] = [0, 1, 0, 0]
+    test = train.drop(columns="AgmmA0")
+    with pytest.raises(ValueError, match="Testing fold is missing required columns: AgmmA0"):
+        run_worker(tmp_path, monkeypatch, train, cv=True, test=test, extra=["--cov-list", "A"])
 
 
 def test_preparation_numbering_and_duplicate_rejection(tmp_path):

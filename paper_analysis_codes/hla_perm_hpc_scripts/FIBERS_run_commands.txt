@@ -6,14 +6,14 @@
 # Optional: --python-executable /path/to/venv/bin/python selects compute-node Python.
 # --re 10 expects BestTyping_1.csv through BestTyping_10.csv; --rs 10 uses seeds 0-9.
 
-# 1. PREPARE DATA: keeps all three mismatch types, covariates, and outcomes.
+# 1. PREPARE DATA: retains all mismatch types, source Agmm fields/counts, covariates, outcomes, and metadata.
 python run_prepare_fibers_data.py --d /path/to/combined_typing --w /path/to/hla_perm_results --o /path/to/prepared_datasets --prefix BestTyping --rc LSF --rm 4 --q i2c2_normal
 
 # Local single-file alternative (use instead of the preparation job for that input):
 # python job_prepare_fibers_data.py --d /path/to/SampleImp1.txt --o /path/to/prepared_datasets/BestTyping_1.csv
 
 # 2. TRAIN: these workers select donor-to-recipient permutation columns only.
-# Three fitness experiments used by the comparison table. Add --all-positions to override the original position ranges.
+# Three fitness experiments used by the comparison table. All observed positions are included for the selected loci.
 python run_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_logrank_DP3 --re 10 --rs 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank --de default
 python run_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_residuals_DP3 --re 10 --rs 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f residuals --de default
 python run_fibers_hpc.py --d /path/to/prepared_datasets --w /path/to/hla_perm_results --o hla_perm_7locus_product_DP3 --re 10 --rs 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de default

@@ -39,11 +39,11 @@ OUTCOMES = ("graftyrs", "grf_fail")
 # Optional record-linkage and outcome dates, preserved as source text.
 METADATA_COLUMNS = (
     "PX_ID", "PERS_ID", "TX_ID", "DONOR_ID", "REC_TX_DT",
-    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE",
+    "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE", "DON_TY",
 )
 
 # (source antigen mismatch count, indicator for zero, indicator for one).
-# Two mismatches is the reference category. DRB345 shares DRB1 adjustment.
+# These identify source antigen fields; preparation never encodes them.
 ANTIGEN_COVARIATES = {
     "A": ("REC_A_MM_EQUIV_CUR", "AgmmA0", "AgmmA1"),
     "B": ("REC_B_MM_EQUIV_CUR", "AgmmB0", "AgmmB1"),
@@ -64,7 +64,7 @@ MISMATCH_PATTERNS = {
 
 
 def get_covariates(cov_loci=DEFAULT_COV_LOCI):
-    """Return the exact list to pass to FIBERS(covariates=...)."""
+    """Return candidate model covariates; workers use available antigen indicators."""
     covariates = list(BASE_COVARIATES)
     for locus in cov_loci:
         if locus not in ANTIGEN_COVARIATES:
@@ -104,9 +104,8 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                     cov_loci=DEFAULT_COV_LOCI, delimiter=None, overwrite=False):
     """Write the selected dataset; return counts and the FIBERS covariate list.
 
-    Missing antigen indicators are derived only from their corresponding
-    REC_*_MM_EQUIV_CUR count. Existing indicators are retained. Missing base
-    covariates, outcomes, invalid numeric data, or malformed rows cause an error.
+    Existing Agmm columns and raw antigen mismatch counts are copied unchanged.
+    Missing base covariates, outcomes, invalid numeric data, or malformed rows cause an error.
     An unsuccessful conversion leaves any existing output untouched.
     """
     input_path, output_path = Path(input_path), Path(output_path)
@@ -117,7 +116,7 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
     if mismatch_level not in ("all", *MISMATCH_PATTERNS):
         raise ValueError(f"Unknown mismatch level: {mismatch_level}")
     cov_loci = tuple(cov_loci)
-    covariates = get_covariates(cov_loci)
+    requested_covariates = get_covariates(cov_loci)
 
     with _open_text(input_path, "r") as source:
         first_line = source.readline()
@@ -133,19 +132,14 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
             raise ValueError(f"Input has empty or duplicate column names: {duplicates}")
         indices = {column: i for i, column in enumerate(header)}
 
-        derivations = {}
-        antigen_indicators = set()
-        for locus in cov_loci:
-            count_column, zero_column, one_column = ANTIGEN_COVARIATES[locus]
-            for count, column in enumerate((zero_column, one_column)):
-                antigen_indicators.add(column)
-                if column not in indices:
-                    derivations[column] = (count_column, count)
-        required = set(covariates).difference(derivations) | set(OUTCOMES)
-        required.update(source_column for source_column, _ in derivations.values())
+        required = set(BASE_COVARIATES) | set(OUTCOMES)
         missing = sorted(required.difference(indices))
         if missing:
             raise ValueError("Missing required columns: " + ", ".join(missing))
+        covariates = [column for column in requested_covariates if column in indices]
+        antigen_counts = {columns[0] for columns in ANTIGEN_COVARIATES.values()}
+        antigen_columns = [column for column in header
+                           if column.lower().startswith('agmm') or column in antigen_counts]
 
         feature_types = {}
         for column in header:
@@ -155,10 +149,12 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
         if not feature_types:
             raise ValueError(f"No AA mismatch columns found for level '{mismatch_level}'.")
         metadata_columns = [column for column in METADATA_COLUMNS if column in indices]
-        output_columns = metadata_columns + covariates + list(OUTCOMES) + list(feature_types)
+        output_columns = list(dict.fromkeys(
+            metadata_columns + covariates + antigen_columns + list(OUTCOMES) + list(feature_types)
+        ))
         # Precompute selectors once; retain mismatch columns in their input order.
         selectors = [(column, indices[column]) for column in output_columns
-                     if column not in derivations and column not in metadata_columns]
+                     if column not in metadata_columns]
         metadata_selectors = [(column, indices[column]) for column in metadata_columns]
         output_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = tempfile.NamedTemporaryFile(
@@ -183,9 +179,11 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                     for column, index in selectors:
                         value = row[index]
                         number = _number(value, column, row_count)
-                        if column in antigen_indicators or column == "grf_fail":
+                        if column == "grf_fail":
                             if number not in (0, 1):
                                 raise ValueError(f"Data row {row_count}: {column} must be 0 or 1.")
+                        if column in antigen_counts and number not in (0, 1, 2):
+                            raise ValueError(f"Data row {row_count}: {column} must be 0, 1, or 2.")
                         if column == "graftyrs" and number < 0:
                             raise ValueError(f"Data row {row_count}: graftyrs must be nonnegative.")
                         if column in feature_types and (number < 0 or not number.is_integer()):
@@ -193,14 +191,6 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                                 f"Data row {row_count}: {column} must be a nonnegative integer count."
                             )
                         values[column] = value
-                    for column, (source_column, count) in derivations.items():
-                        number = _number(row[indices[source_column]], source_column, row_count)
-                        if number not in (0, 1, 2):
-                            raise ValueError(
-                                f"Data row {row_count}: {source_column} must be 0, 1, or 2 "
-                                f"to derive {column}."
-                            )
-                        values[column] = int(number == count)
                     writer.writerow([values[column] for column in output_columns])
             if row_count == 0:
                 raise ValueError("Input contains a header but no data rows.")
@@ -214,7 +204,7 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
         "columns": len(output_columns),
         "metadata_columns": metadata_columns,
         "covariates": covariates,
-        "derived_covariates": list(derivations),
+        "antigen_columns": antigen_columns,
         "mismatch_counts": dict(Counter(feature_types.values())),
     }
 
@@ -224,8 +214,8 @@ def add_preparation_arguments(parser):
     parser.add_argument("--mismatch-level", choices=("all", *MISMATCH_PATTERNS), default="all",
                         help="Mismatch features to keep (default: all three types)")
     parser.add_argument("--cov-list", "--cov-loci", dest="cov_loci", default=",".join(DEFAULT_COV_LOCI),
-                        help="Antigen adjustment loci (default: A,B,C,DRB1,DQA1,DQB1); "
-                             "use 'none' for the 43 base covariates only")
+                        help="Antigen loci for reporting available model covariates (default: A,B,C,DRB1,DQA1,DQB1); "
+                             "'none' reports base covariates only. All existing Agmm fields are retained.")
     parser.add_argument("--delimiter", choices=("tab", "comma"),
                         help="Input delimiter (default: detect tab or comma from header)")
     parser.add_argument("--overwrite", action="store_true", help="Replace an existing output")
@@ -254,8 +244,6 @@ def main(argv=None):
     print("AA mismatches: " + "; ".join(
         f"{level}={result['mismatch_counts'].get(level, 0):,}" for level in MISMATCH_PATTERNS
     ))
-    if result["derived_covariates"]:
-        print("Derived antigen indicators: " + ", ".join(result["derived_covariates"]))
 
 
 if __name__ == "__main__":

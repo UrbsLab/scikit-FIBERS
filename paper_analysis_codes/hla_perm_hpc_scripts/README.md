@@ -23,8 +23,10 @@ FIBERS from this checkout, so the checkout must also exist on compute nodes.
 | Master summaries | `run_master_sum_fibers_hpc.py` / `job_master_sum_fibers_hpc.py` | `run_master_sum_fibers_hpc_cv.py` / `job_master_sum_fibers_hpc_cv.py` |
 | Comparison tables | `run_table_maker_hpc.py` / `job_table_maker_hpc.py` | `run_table_maker_hpc_cv.py` / `job_table_maker_hpc_cv.py` |
 
-Preparation retains all three AA mismatch types, 55 covariates, and the two
-survival outcomes, plus available record IDs and transplant/follow-up dates.
+Preparation retains all three AA mismatch types, the 43 base covariates, all
+existing `Agmm*` columns (including 0/1/2 categories), raw antigen mismatch
+counts, and both survival outcomes. Record IDs, dates, and `DON_TY` are also
+retained when present. Antigen values are copied without recoding.
 Metadata stays with the rows through CV partitioning and is excluded by the
 workers' `IGNORE_COLUMNS` lists. See [PREPARE_DATA.md](PREPARE_DATA.md).
 The FIBERS workers then select only donor-to-recipient permutation features.
@@ -33,13 +35,19 @@ The FIBERS workers then select only donor-to-recipient permutation features.
 Position-only columns, residue-only columns, locus totals, and metadata do not
 enter permutation bins.
 
-Defaults follow the original position ranges: A/B/C 1–182;
-DRB1/DRB345/DQA1/DPA1/DPB1 6–94; DQB1 6–95. The default loci are
-A,B,C,DRB1,DRB345,DQA1,DQB1. Use `--loci-list` to change loci and
-`--all-positions` to include every observed position. Outcomes default to
-`graftyrs` and `grf_fail`. The 43 base covariates plus antigen indicators for
-A,B,C,DRB1,DQA1,DQB1 give 55 adjustment covariates. `--cov-list None` keeps
-only the 43 base covariates; DRB1 and DRB345 share deduplicated indicators.
+Training uses every observed AA position for the selected loci. The old
+`locus_range_dict` and its filtering condition remain commented in both workers.
+The default loci are A,B,C,DRB1,DRB345,DQA1,DQB1; `--loci-list` can also include
+DPA1 and DPB1. `--all-positions` remains accepted for command compatibility.
+Outcomes default to `graftyrs` and `grf_fail`.
+
+Training requires the 43 base covariates and adds only existing source Agmm
+0/1 indicators for the requested `--cov-list` loci. Raw antigen counts are
+ignored, and no missing indicators are reconstructed. The default requested
+antigen loci are A,B,C,DRB1,DQA1,DQB1; the exact adjustment set depends on which
+source indicators are present and is saved with the fitted model. CV chooses
+this set from the training schema and requires the same fields in its test fold.
+`--cov-list None` uses only the base covariates; DRB1 and DRB345 share indicators.
 `--de default`, `--de protective`, and `--de high_risk` are supported.
 
 At `--ra 0`, all-zero features are removed. A positive `--ra` removes features
