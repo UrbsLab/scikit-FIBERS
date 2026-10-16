@@ -16,6 +16,7 @@ from src.skfibers.fibers import FIBERS #SOURCE CODE RUN
 
 VALID_EFFECTS = ("default", "protective", "high_risk")
 IGNORE_COLUMNS = (
+    "shared",  # Also ignore this excluded covariate in older prepared files.
     "PX_ID", "PERS_ID", "TX_ID", "DONOR_ID", "REC_TX_DT",
     "TFL_GRAFT_DT", "TFL_DEATH_DT", "TFL_LAFUDATE", "DON_TY",
     "REC_A_MM_EQUIV_CUR", "REC_B_MM_EQUIV_CUR", "REC_C_MM_EQUIV_CUR",
@@ -129,7 +130,7 @@ def main(argv):
     #Hard Coded Covariate Information
     #If there is a colinearity issue with calculating residuals, Keith indicated that we can remove dcadcodoth and/or PKPRA_MS from covariate list
     covariates = [
-              'shared', 'DCD', 'DON_AGE', 'donage_slope_ge18', 'dcadcodanox', 'dcadcodcva', 'dcadcodcnst', 'dcadcodoth', 'don_cmv_negative',
+              'DCD', 'DON_AGE', 'donage_slope_ge18', 'dcadcodanox', 'dcadcodcva', 'dcadcodcnst', 'dcadcodoth', 'don_cmv_negative',
               'don_htn_0c', 'ln_don_wgt_kg_0c', 'ln_don_wgt_kg_0c_s55', 'don_ecd', 'age_ecd', 'yearslice', 'REC_AGE_AT_TX',
               'rec_age_spline_35', 'rec_age_spline_50', 'rec_age_spline_65', 'diab_noted', 'age_diab', 'dm_can_age_spline_50',
               'can_dgn_htn_ndm', 'can_dgn_pk_ndm', 'can_dgn_gd_ndm', 'rec_prev_ki_tx', 'rec_prev_ki_tx_dm', 'rbmi_0c', 'rbmi_miss',

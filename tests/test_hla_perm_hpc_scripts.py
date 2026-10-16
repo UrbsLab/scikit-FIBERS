@@ -133,7 +133,7 @@ def test_antigen_covariates_deduplicated(tmp_path, monkeypatch):
     frame["AgmmDR1"] = [1, 0, 1, 0]
     result = run_worker(tmp_path, monkeypatch, frame, extra=["--cov-list", "DRB1,DRB345"])
     assert result["parameters"]["covariates"] == list(prepare.BASE_COVARIATES) + ["AgmmDR0", "AgmmDR1"]
-    assert len(prepare.get_covariates()) == 55
+    assert len(prepare.get_covariates()) == 54
 
 
 @pytest.mark.parametrize("cluster", ["LSF", "SLURM"])
@@ -294,6 +294,33 @@ def test_preparation_keeps_all_antigen_fields_without_encoding(tmp_path, cov_loc
     assert "Agmmc1" not in result[0]
     assert [row["REC_C_MM_EQUIV_CUR"] for row in result] == ["0", "1", "2"]
     assert [row["AgmmA2"] for row in result] == ["0", "0", "1"]
+
+
+def test_preparation_drops_shared_without_losing_rows(tmp_path):
+    frame = model_frame()
+    frame["shared"] = ["", "NA", "NaN", "1"]
+    source = tmp_path / "SampleImp1.tsv"
+    frame.to_csv(source, sep="\t", index=False)
+    output = tmp_path / "BestTyping_1.csv"
+    summary = prepare.prepare_dataset(source, output)
+    result = pd.read_csv(output, dtype=str, keep_default_na=False)
+    expected = pd.read_csv(source, sep="\t", dtype=str, keep_default_na=False)
+    assert "shared" not in result
+    assert "shared" not in summary["covariates"]
+    assert summary["rows"] == len(frame)
+    pd.testing.assert_frame_equal(result, expected[result.columns])
+
+
+@pytest.mark.parametrize("cv", [False, True])
+def test_workers_ignore_missing_shared_in_older_prepared_files(tmp_path, monkeypatch, cv):
+    frame = model_frame()
+    frame["shared"] = ["", "NA", "NaN", "1"]
+    result = run_worker(tmp_path, monkeypatch, frame, cv=cv)
+    assert "shared" not in result["parameters"]["covariates"]
+    for split in ("train", "test") if cv else ("train",):
+        data = result[split]
+        assert "shared" not in data
+        pd.testing.assert_frame_equal(data, frame[data.columns])
 
 
 @pytest.mark.parametrize("cv", [False, True])

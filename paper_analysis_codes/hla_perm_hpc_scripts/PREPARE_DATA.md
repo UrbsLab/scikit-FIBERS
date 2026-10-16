@@ -51,7 +51,7 @@ The default output contains:
   also retained unchanged for donor type.
 - All three AA mismatch types across all nine loci: `MM_A_9` (position),
   `MM_A_9_Y` (residue), and `MM_A_9_rF_dY` (donor Y → recipient F permutation).
-- The 43 base covariates used by the repository's HLA FIBERS jobs.
+- The 42 base covariates used by the permutation FIBERS jobs (`shared` is excluded).
 - All existing `Agmm*` columns, including the 0, 1, and 2 categories, plus
   the raw `REC_*_MM_EQUIV_CUR` antigen mismatch counts. Source values are
   copied exactly; no antigen indicators are created or recoded during preparation.

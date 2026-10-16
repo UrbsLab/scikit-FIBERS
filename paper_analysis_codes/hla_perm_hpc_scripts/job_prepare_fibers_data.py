@@ -21,9 +21,9 @@ from collections import Counter
 from pathlib import Path
 
 
-# Matches the base adjustment set in hla_hpc_protective_scripts/job_fibers_hpc_cv.py.
+# HLA base adjustment set, excluding shared because of missing source values.
 BASE_COVARIATES = (
-    "shared", "DCD", "DON_AGE", "donage_slope_ge18", "dcadcodanox",
+    "DCD", "DON_AGE", "donage_slope_ge18", "dcadcodanox",
     "dcadcodcva", "dcadcodcnst", "dcadcodoth", "don_cmv_negative",
     "don_htn_0c", "ln_don_wgt_kg_0c", "ln_don_wgt_kg_0c_s55", "don_ecd",
     "age_ecd", "yearslice", "REC_AGE_AT_TX", "rec_age_spline_35",

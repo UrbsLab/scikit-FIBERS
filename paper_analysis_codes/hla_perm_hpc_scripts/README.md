@@ -23,10 +23,12 @@ FIBERS from this checkout, so the checkout must also exist on compute nodes.
 | Master summaries | `run_master_sum_fibers_hpc.py` / `job_master_sum_fibers_hpc.py` | `run_master_sum_fibers_hpc_cv.py` / `job_master_sum_fibers_hpc_cv.py` |
 | Comparison tables | `run_table_maker_hpc.py` / `job_table_maker_hpc.py` | `run_table_maker_hpc_cv.py` / `job_table_maker_hpc_cv.py` |
 
-Preparation retains all three AA mismatch types, the 43 base covariates, all
+Preparation retains all three AA mismatch types, the 42 base covariates, all
 existing `Agmm*` columns (including 0/1/2 categories), raw antigen mismatch
 counts, and both survival outcomes. Record IDs, dates, and `DON_TY` are also
 retained when present. Antigen values are copied without recoding.
+`shared` is excluded from preparation and training; missing values in that
+column do not remove rows or stop processing.
 Metadata stays with the rows through CV partitioning and is excluded by the
 workers' `IGNORE_COLUMNS` lists. See [PREPARE_DATA.md](PREPARE_DATA.md).
 The FIBERS workers then select only donor-to-recipient permutation features.
@@ -41,7 +43,7 @@ The default loci are A,B,C,DRB1,DRB345,DQA1,DQB1; `--loci-list` can also include
 DPA1 and DPB1. `--all-positions` remains accepted for command compatibility.
 Outcomes default to `graftyrs` and `grf_fail`.
 
-Training requires the 43 base covariates and adds only existing source Agmm
+Training requires the 42 base covariates and adds only existing source Agmm
 0/1 indicators for the requested `--cov-list` loci. Raw antigen counts are
 ignored, and no missing indicators are reconstructed. The default requested
 antigen loci are A,B,C,DRB1,DQA1,DQB1; the exact adjustment set depends on which
