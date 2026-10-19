@@ -114,6 +114,7 @@ def test_cv_rare_filter_uses_training_only(tmp_path, monkeypatch):
     ("MM_A_9_rF_dY", -1, "nonnegative integer"),
     ("MM_A_9_rF_dY", 1.5, "nonnegative integer"),
     ("grf_fail", 2, "event indicators"),
+    ("grf_fail", 998, "event indicators"),
 ])
 def test_invalid_training_data_rejected(tmp_path, monkeypatch, column, value, error):
     frame = model_frame()
@@ -403,12 +404,12 @@ def test_drop_missing_is_opt_in_and_reports_dropped_rows(tmp_path, options, drop
                     "MM_A_9": "0", "MM_A_9_Y": "0", "MM_A_9_rF_dY": "0", "UNUSED": "present"})
         rows.append(row)
     for row, (column, marker) in zip(rows, [
-        ("shared", "998"), ("grf_fail", "998.0"), ("graftyrs", "NaN"), ("MM_A_9", " 998 "),
-        ("MM_A_9_Y", "9.98e2"), ("MM_A_9_rF_dY", ""), ("AgmmA2", "998.00"),
-        ("REC_A_MM_EQUIV_CUR", "998"),
+        ("shared", "NA"), ("grf_fail", "null"), ("graftyrs", "NaN"), ("MM_A_9", " N/A "),
+        ("MM_A_9_Y", "."), ("MM_A_9_rF_dY", ""), ("AgmmA2", "None"),
+        ("REC_A_MM_EQUIV_CUR", "<NA>"),
     ]):
         row[column] = marker
-    rows[8].update(TX_ID="", TFL_DEATH_DT="", UNUSED="998")
+    rows[8].update(TX_ID="", TFL_DEATH_DT="", UNUSED="NA")
     source = tmp_path / "SampleImp1.txt.gz"
     with gzip.open(source, "wt", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]), delimiter="\t")
@@ -440,7 +441,7 @@ def test_drop_missing_is_opt_in_and_reports_dropped_rows(tmp_path, options, drop
 
 def test_drop_missing_all_rows_still_writes_reports_and_output_header(tmp_path):
     frame = model_frame()
-    frame["shared"] = "998"
+    frame["shared"] = "NA"
     source = tmp_path / "SampleImp1.csv"
     frame.to_csv(source, index=False)
     output = tmp_path / "BestTyping_1.csv"
@@ -461,7 +462,7 @@ def test_drop_missing_all_rows_still_writes_reports_and_output_header(tmp_path):
 def test_prepare_launcher_forwards_drop_missing(tmp_path, monkeypatch, cluster, options, drop):
     source = tmp_path / "Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv"
     frame = model_frame()
-    frame["shared"] = ["998", "0", "1", "0"]
+    frame["shared"] = ["NA", "0", "1", "0"]
     frame.to_csv(source, sep="\t", index=False)
     output = tmp_path / "prepared"
     work = tmp_path / "work"
@@ -506,20 +507,45 @@ def test_workers_require_complete_shared_for_training(tmp_path, monkeypatch, cv)
 
 
 @pytest.mark.parametrize("cv", [False, True])
-@pytest.mark.parametrize("marker", ["998", "998.0", "9.98e2"])
-def test_workers_reject_missing_998_sentinel(tmp_path, monkeypatch, cv, marker):
+@pytest.mark.parametrize("value", ["998", "998.0", "9.98e2"])
+def test_workers_accept_numeric_998(tmp_path, monkeypatch, cv, value):
     frame = model_frame()
-    frame["shared"] = marker
-    with pytest.raises(ValueError, match="missing-value sentinel 998"):
-        run_worker(tmp_path, monkeypatch, frame, cv=cv)
+    frame["shared"] = value
+    result = run_worker(tmp_path, monkeypatch, frame, cv=cv)
+    assert result["train"]["shared"].tolist() == [998] * 4
+    if cv:
+        assert result["test"]["shared"].tolist() == [998] * 4
 
 
-def test_cv_rejects_missing_998_in_test_data(tmp_path, monkeypatch):
+def test_cv_accepts_numeric_998_in_test_data(tmp_path, monkeypatch):
     train = model_frame()
     test = train.copy()
     test["shared"] = "998.0"
-    with pytest.raises(ValueError, match="Testing data contains missing-value sentinel 998"):
-        run_worker(tmp_path, monkeypatch, train, cv=True, test=test)
+    result = run_worker(tmp_path, monkeypatch, train, cv=True, test=test)
+    assert result["test"]["shared"].tolist() == [998] * 4
+
+
+@pytest.mark.parametrize("drop_missing", [False, True])
+def test_preparation_preserves_998_without_reporting_or_dropping_it(tmp_path, drop_missing):
+    values = ["998", "998.0", " 998 ", "9.98e2"]
+    frame = model_frame().drop(columns=list(prepare.METADATA_COLUMNS))
+    for column in ("shared", "DON_AGE", "TX_ID", "UNUSED"):
+        frame[column] = values
+    source, output = tmp_path / "input.csv", tmp_path / "prepared.csv"
+    frame.to_csv(source, index=False)
+    result = prepare.prepare_dataset(source, output, drop_missing=drop_missing)
+    with output.open(newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    for column in ("shared", "DON_AGE", "TX_ID"):
+        assert [row[column] for row in rows] == values
+    assert result["rows_dropped"] == 0
+    assert result["missing_summary"]["source"]["missing_cells"] == 0
+    assert result["missing_summary"]["prepared"]["missing_cells"] == 0
+    assert "998" not in result["missing_summary"]["missing_markers"]
+    with open(result["missing_reports"]["cells"], newline="") as handle:
+        assert list(csv.DictReader(handle)) == []
+    with open(result["missing_reports"]["columns"], newline="") as handle:
+        assert all(row["missing_count"] == "0" for row in csv.DictReader(handle))
 
 
 @pytest.mark.parametrize("cv", [False, True])

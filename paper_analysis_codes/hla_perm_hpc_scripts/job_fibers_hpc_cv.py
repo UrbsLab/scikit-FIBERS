@@ -236,8 +236,6 @@ def main(argv):
     if missing:
         raise ValueError("Missing required columns: " + ", ".join(missing))
     train_data = train_data.loc[:, features].apply(pd.to_numeric, errors='raise')
-    if (train_data == 998).any().any():
-        raise ValueError("Model data contains missing-value sentinel 998; resolve missing inputs before training")
     if train_data.empty or not np.isfinite(train_data.to_numpy(dtype=float)).all():
         raise ValueError("Model data must contain rows and finite numeric values")
     counts = train_data.loc[:, MM_feature_list].to_numpy(dtype=float)
@@ -315,8 +313,6 @@ def main(argv):
     if missing:
         raise ValueError("Testing fold is missing required columns: " + ", ".join(missing))
     test_data = original_test_data.loc[:, features].apply(pd.to_numeric, errors='raise')
-    if (test_data == 998).any().any():
-        raise ValueError("Testing data contains missing-value sentinel 998; resolve missing inputs before evaluation")
     if test_data.empty or not np.isfinite(test_data.to_numpy(dtype=float)).all():
         raise ValueError("Testing data must contain rows and finite numeric values")
     test_counts = test_data.loc[:, MM_feature_list].to_numpy(dtype=float)

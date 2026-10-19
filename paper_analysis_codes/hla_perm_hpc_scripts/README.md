@@ -27,7 +27,7 @@ Preparation retains all three AA mismatch types, the 43 base covariates, all
 existing `Agmm*` columns (including 0/1/2 categories), raw antigen mismatch
 counts, and both survival outcomes. Record IDs, dates, and `DON_TY` are also
 retained when present. Antigen values are copied without recoding.
-`shared` is retained. By default, missing cells (including 998) are preserved without dropping rows or
+`shared` is retained. By default, missing cells are preserved without dropping rows or
 stopping preparation. Each dataset gets reports under `missing_data_reports/`:
 every missing cell with its row number, `TX_ID`, and column; counts and
 percentages by column; and overall totals for the source and prepared data.
@@ -38,6 +38,18 @@ and excluded source columns do not cause drops. Reports retain source row
 numbers and `TX_ID`, identify dropped rows, and summarize the resulting dataset.
 Metadata stays with the rows through CV partitioning and is excluded by the
 workers' `IGNORE_COLUMNS` lists. See [PREPARE_DATA.md](PREPARE_DATA.md).
+The preparation commands now enable the requested cohort: 2010–2025 transplants,
+kidney only, deceased donors, recipient age at least 18, donor age at least 9,
+and missing-numeric row removal. Each condition has a parameter. Filters use
+`REC_TX_DT`, `REC_TX_ORG_TY`, `DON_TY`, `REC_AGE_AT_TX`, and `DON_AGE` before
+column selection and CV splitting; they do not use STROBE flags. Missing
+eligibility fields exclude rows and are recorded in the row-exclusion report.
+The `--censor-date 2025-12-31` option caps existing follow-up and censors later
+events without extending earlier follow-up. `--days-per-year 365.24` matches
+the supplied sample's survival-year units. General script defaults remain
+unfiltered; the run-command files explicitly enable the requested settings.
+The reports also record exclusions by source row, `PX_ID`, `TX_ID`, and reason,
+plus counts for the cohort, missing-data, and censoring steps.
 The FIBERS workers then select only donor-to-recipient permutation features.
 `MM_A_9_rF_dY` means **donor Y → recipient F** at A position 9. The reverse pair
 `MM_A_9_rY_dF` is a separate feature. Names and integer counts are preserved.
@@ -63,7 +75,7 @@ At `--ra 0`, all-zero features are removed. A positive `--ra` removes features
 whose nonzero fraction is below that threshold. CV uses training rows to choose
 features and applies exactly that list to the test fold. Missing required
 columns, non-finite values, and invalid counts or outcomes stop the worker.
-The missing-value sentinel 998 is also rejected in model inputs.
+`998` is treated as an ordinary numeric value in preparation and training.
 Preparation's missing-data reports can be used to resolve missing model inputs
 before training; preparation does not impute them.
 

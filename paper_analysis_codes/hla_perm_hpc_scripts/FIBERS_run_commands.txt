@@ -7,14 +7,17 @@
 # --re 10 expects BestTyping_1.csv through BestTyping_10.csv; --rs 10 uses seeds 0-9.
 
 # 1. PREPARE DATA: retains all mismatch types, source Agmm fields/counts, covariates, outcomes, and metadata.
-python run_prepare_fibers_data.py --d /path/to/combined_typing --w /path/to/hla_perm_results --o /path/to/prepared_datasets --prefix BestTyping --pattern 'Best-Typing_AA_MM_9loc_matrix_*_aligned*' --rc LSF --rm 4 --q i2c2_normal
-# Missing cells are preserved. Review missing_data_reports/ in the output folder before training.
-# Reports list each missing row/column with TX_ID, per-column counts, and overall totals.
-# Optional: append --drop-missing (or --drop-missing true) to remove rows missing retained numeric fields, including 998.
-# Default: --drop-missing false. Missing IDs/dates do not cause drops; reports identify dropped rows.
+python run_prepare_fibers_data.py --d /path/to/combined_typing --w /path/to/hla_perm_results --o /path/to/prepared_datasets --prefix BestTyping --pattern 'Best-Typing_AA_MM_9loc_matrix_*_aligned*' --rc LSF --rm 4 --q i2c2_normal --tx-year-min 2010 --tx-year-max 2025 --kidney-only --deceased-donor-only --recipient-age-min 18 --donor-age-min 9 --censor-date 2025-12-31 --days-per-year 365.24 --drop-missing
+# Cohort: 2010-2025 inclusive; kidney only; deceased donor; recipient age >=18; donor age >=9.
+# Apply filters to source variables before selecting columns and before CV splitting.
+# --drop-missing removes missing retained numeric fields; it remains opt-in outside these commands.
+# Missing eligibility fields also exclude rows. Other missing IDs/dates do not cause drops.
+# Review missing_data_reports/: row_exclusions.csv lists source rows, PX_ID, TX_ID and reasons.
+# --censor-date only shortens existing follow-up; it never extends older follow-up to 2025.
+# --days-per-year must match the source graftyrs definition (SampleImp1 uses 365.24).
 
 # Local single-file alternative (use instead of the preparation job for that input):
-# python job_prepare_fibers_data.py --d /path/to/Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv.gz --o /path/to/prepared_datasets/BestTyping_1.csv
+# python job_prepare_fibers_data.py --d /path/to/Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv.gz --o /path/to/prepared_datasets/BestTyping_1.csv --tx-year-min 2010 --tx-year-max 2025 --kidney-only --deceased-donor-only --recipient-age-min 18 --donor-age-min 9 --censor-date 2025-12-31 --days-per-year 365.24 --drop-missing
 
 # 2. TRAIN: these workers select donor-to-recipient permutation columns only.
 # Three fitness experiments used by the comparison table. All observed positions are included for the selected loci.

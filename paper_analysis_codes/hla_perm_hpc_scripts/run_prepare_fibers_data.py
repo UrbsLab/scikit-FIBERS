@@ -1,12 +1,14 @@
 """Submit combined-typing preparation jobs and name outputs <prefix>_<imputation>.csv."""
 
 import argparse
+import math
 import shlex
 import subprocess
 import re
 import sys
 import time
 from pathlib import Path
+from datetime import datetime
 
 DEFAULT_COV_LOCI = ('A', 'B', 'C', 'DRB1', 'DQA1', 'DQB1')
 MISMATCH_PATTERNS = ('position', 'residue', 'permutation')
@@ -25,7 +27,18 @@ def add_preparation_arguments(parser):
     parser.add_argument("--overwrite", action="store_true", help="Replace the dataset and its missing-data reports")
     parser.add_argument("--drop-missing", nargs="?", const="true", default="false", type=str.lower,
                         choices=("true", "false"),
-                        help="Drop rows missing retained numeric fields, including 998; metadata does not cause drops (default: false)")
+                        help="Drop rows missing retained numeric fields (default: false); cohort eligibility is checked separately")
+    parser.add_argument("--tx-year-min", type=int, help="Inclusive minimum transplant year from REC_TX_DT")
+    parser.add_argument("--tx-year-max", type=int, help="Inclusive maximum transplant year from REC_TX_DT")
+    parser.add_argument("--kidney-only", nargs="?", const="true", default="false", type=str.lower,
+                        choices=("true", "false"), help="Require REC_TX_ORG_TY=KI (default: false)")
+    parser.add_argument("--deceased-donor-only", nargs="?", const="true", default="false", type=str.lower,
+                        choices=("true", "false"), help="Require DON_TY=C (default: false)")
+    parser.add_argument("--recipient-age-min", type=float, help="Inclusive minimum REC_AGE_AT_TX in years")
+    parser.add_argument("--donor-age-min", type=float, help="Inclusive minimum DON_AGE in years")
+    parser.add_argument("--censor-date", help="Administrative cutoff, e.g. 2025-12-31; caps existing outcomes")
+    parser.add_argument("--days-per-year", type=float, default=365.24,
+                        help="Divisor used by source graftyrs (default: 365.24, verified in SampleImp1)")
 
 
 def write_job(command, job_name, writepath, cluster, memory, queue, dry_run=False):
@@ -142,6 +155,34 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.rm < 1:
         parser.error("--rm must be positive.")
+    # Validate parameter combinations before submitting any jobs. The worker is standalone.
+    for name in ("tx_year_min", "tx_year_max"):
+        value = getattr(args, name)
+        if value is not None and not 1 <= value <= 9999:
+            parser.error(f"{name} must be between 1 and 9999.")
+    if args.tx_year_min is not None and args.tx_year_max is not None and args.tx_year_min > args.tx_year_max:
+        parser.error("tx_year_min must not exceed tx_year_max.")
+    for name in ("recipient_age_min", "donor_age_min"):
+        value = getattr(args, name)
+        if value is not None and (not math.isfinite(value) or value < 0):
+            parser.error(f"{name} must be finite and nonnegative.")
+    if not math.isfinite(args.days_per_year) or args.days_per_year <= 0:
+        parser.error("days_per_year must be finite and positive.")
+    if args.censor_date is not None:
+        try:
+            cutoff = datetime.fromisoformat(args.censor_date.strip().replace("Z", "+00:00")).date()
+        except ValueError:
+            cutoff = None
+            for pattern in ("%m/%d/%Y", "%m/%d/%y", "%m-%d-%Y"):
+                try:
+                    cutoff = datetime.strptime(args.censor_date.strip(), pattern).date()
+                    break
+                except ValueError:
+                    continue
+            if cutoff is None:
+                parser.error("Invalid censor date; use YYYY-MM-DD.")
+        if args.tx_year_min is not None and cutoff.year < args.tx_year_min:
+            parser.error("censor_date precedes the entire requested transplant-year window.")
     covariates = [] if args.cov_loci.strip().lower() == "none" else [
         locus.strip() for locus in args.cov_loci.split(",") if locus.strip()
     ]
@@ -156,6 +197,14 @@ def main(argv=None):
         options.append("--overwrite")
     if args.drop_missing == "true":
         options.append("--drop-missing")
+    for name in ("tx_year_min", "tx_year_max", "recipient_age_min", "donor_age_min",
+                 "censor_date", "days_per_year"):
+        value = getattr(args, name)
+        if value is not None:
+            options.extend(["--" + name.replace("_", "-"), str(value)])
+    for name in ("kidney_only", "deceased_donor_only"):
+        if getattr(args, name) == "true":
+            options.append("--" + name.replace("_", "-"))
     for source, destination in plan:
         command = [args.python_executable, str(WORKER_SCRIPT), "--d", str(source),
                    "--o", str(destination)] + options

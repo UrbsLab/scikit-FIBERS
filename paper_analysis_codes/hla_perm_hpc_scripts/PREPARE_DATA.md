@@ -4,8 +4,50 @@ are needed for preparation:
 ```bash
 python3 paper_analysis_codes/hla_perm_hpc_scripts/job_prepare_fibers_data.py \
   --d /path/to/Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv.gz \
-  --o data/prepared/BestTyping_1.csv
+  --o data/prepared/BestTyping_1.csv \
+  --tx-year-min 2010 --tx-year-max 2025 \
+  --kidney-only --deceased-donor-only \
+  --recipient-age-min 18 --donor-age-min 9 \
+  --censor-date 2025-12-31 --days-per-year 365.24 --drop-missing
 ```
+
+This applies the requested analysis cohort and removes missing numeric rows.
+Both preparation scripts accept these parameters, and the supplied CV and non-CV
+command files enable them. General script defaults still preserve rows: cohort
+filters, censoring, and missing-row removal are opt-in.
+
+## Cohort and censoring parameters
+
+| Parameter | Source field and behavior |
+| --- | --- |
+| `--tx-year-min 2010 --tx-year-max 2025` | Keep `REC_TX_DT` from January 1, 2010 through December 31, 2025, inclusive. Either bound can be set independently. |
+| `--kidney-only` | Require `REC_TX_ORG_TY=KI`, including decoded `KI: Kidney`. Combined-organ codes such as `KP` are excluded. Uses the transplant-organ field, not `ORG_TY` or STROBE flags. |
+| `--deceased-donor-only` | Require `DON_TY=C` (cadaveric/deceased), including decoded `C: ...` values. Living donor code `L` is excluded. |
+| `--recipient-age-min 18` | Keep `REC_AGE_AT_TX >= 18`, in years. |
+| `--donor-age-min 9` | Keep `DON_AGE >= 9`, in years. |
+| `--censor-date 2025-12-31` | Cap existing survival follow-up at this date. Omit to preserve outcomes unchanged. |
+| `--days-per-year 365.24` | Conversion used by source `graftyrs`. Default 365.24 matches all nine supplied sample rows; change it for a different upstream definition. |
+| `--drop-missing` | Remove rows missing retained numeric fields. Default remains false. |
+
+The boolean cohort flags also accept explicit `true` or `false`. Filters run
+before column selection and before CV partitioning. A missing field needed for
+an enabled filter excludes the row with an explicit reason, even with
+`--drop-missing false`. An absent required source column or malformed nonmissing
+date stops conversion. ISO dates/timestamps, US `MM/DD/YYYY`, and the sample's
+`MM/DD/YY` are accepted. Two-digit years use Python's standard pivot: 69–99 mean
+1969–1999; 00–68 mean 2000–2068. Use four-digit years outside that range.
+
+Censoring preserves the existing endpoint definition. Maximum follow-up is
+`(censor_date - REC_TX_DT).days / days_per_year`. If `graftyrs` exceeds it, the
+output receives the shorter duration and `grf_fail=0`. Events exactly on the
+cutoff remain events, allowing 0.00001 day for rounding in source `graftyrs`.
+Earlier events and earlier censored follow-up remain unchanged. Missing outcomes
+are not reconstructed from event dates. Follow-up is never extended: if outcomes
+were censored earlier upstream, regenerate them upstream to recover later
+follow-up. Transplants after the censor date are excluded. Source files are never
+modified.
+
+## Inputs and batch preparation
 
 Replace the input path with the complete combined best-typing file to prepare
 the full dataset. Inputs may be `.tsv`, `.txt`, `.csv`, `.tsv.gz`, `.txt.gz`,
@@ -23,6 +65,10 @@ python3 paper_analysis_codes/hla_perm_hpc_scripts/run_prepare_fibers_data.py \
   --d /path/to/combined_typing --w /path/to/results \
   --o /path/to/prepared_datasets \
   --pattern 'Best-Typing_AA_MM_9loc_matrix_*_aligned*' \
+  --tx-year-min 2010 --tx-year-max 2025 \
+  --kidney-only --deceased-donor-only \
+  --recipient-age-min 18 --donor-age-min 9 \
+  --censor-date 2025-12-31 --drop-missing \
   --rc LSF --rm 4 --q i2c2_normal --dry-run
 ```
 
@@ -68,7 +114,7 @@ columns and ignores raw antigen counts. Prepared data is never rewritten by
 model fitting.
 
 Missing cells are preserved by default, including in `shared`, outcomes, antigen counts,
-and AA mismatches. Every preparation run automatically writes three reports
+and AA mismatches. Every preparation run automatically writes four reports
 under `missing_data_reports/` beside the output dataset. For `BestTyping_1.csv`
 (or `BestTyping_1.csv.gz`), these are:
 
@@ -80,7 +126,13 @@ under `missing_data_reports/` beside the output dataset. For `BestTyping_1.csv`
   `missing_percent` before any row dropping, including columns with no missing cells.
 - `BestTyping_1_missing_summary.json`: total rows, columns, missing cells,
   rows with missing cells, and columns with missing cells, separately for
-  the source and prepared dataset, plus the `drop_missing` setting and `rows_dropped`.
+  the source and prepared dataset, plus all filter settings and `rows_dropped`.
+  Counts separate cohort exclusions, subsequent missing-numeric exclusions,
+  shortened follow-up, and events changed to censored observations.
+- `BestTyping_1_row_exclusions.csv`: one entry per excluded source record with
+  `row_number`, `source_line_number`, `PX_ID`, `TX_ID`, and semicolon-separated
+  reasons. Individual reason counts can overlap. Cohort exclusions and subsequent
+  missing-numeric exclusions are disjoint and sum to `rows_dropped`.
 
 `row_number` starts at 1 for the first data record, excluding the header and
 blank lines. `source_line_number` is the record's starting line in the
@@ -91,25 +143,27 @@ from the prepared dataset. The separate report folder keeps report CSVs out
 of the training launchers' dataset discovery.
 
 Missing markers include empty or whitespace-only cells, `NA`, `N/A`, `NaN`,
-`null`, `None`, `<NA>`, `NaT`, `.`, `\N`, `998`, and common pandas missing markers.
-Numeric representations of 998, such as `998.0` and `9.98e2`, also count as missing.
+`null`, `None`, `<NA>`, `NaT`, `.`, `\N`, and common pandas missing markers.
+`998` (including `998.0` and `9.98e2`) is treated as an ordinary numeric value,
+so it is not reported or dropped as missing. Field-specific validation still applies.
 Detection ignores case and surrounding whitespace; the complete marker list
 is saved in the JSON summary. Zero is valid, and all source values are copied
 unchanged. With no missing data, the detail report contains only its header
 and the summary contains zero counts.
 
 Absent required columns, malformed rows, invalid nonmissing numeric values,
-infinities, and invalid counts or outcomes still stop conversion. Validation
+infinities, and invalid counts or outcomes in cohort-eligible rows stop conversion. Validation
 errors leave existing data and reports unchanged. Training still requires
 complete numeric model inputs; use the reports to resolve missing values
 before fitting.
 
 Add `--drop-missing` (or `--drop-missing true`) to omit rows missing any retained
 numeric field: covariates, outcomes, Agmm fields, raw antigen counts, and selected
-AA mismatch columns. Missing metadata (IDs, dates, donor type) and excluded
-source columns do not cause row drops. Omit the flag or use `--drop-missing false`
-to keep all rows, which is the default. Both the `run_` and `job_` preparation
-scripts accept this option. Training also rejects 998 in model inputs.
+AA mismatch columns. Other metadata and excluded source columns do not trigger
+missing-numeric drops; enabled cohort filters separately require their eligibility
+fields. Omit the flag or use `--drop-missing false` to disable missing-numeric
+exclusions. Both the `run_` and `job_` preparation
+scripts accept this option.
 
 Reports always include missing cells in dropped rows and preserve the original
 source row numbers and `TX_ID`. Column counts describe the complete source;

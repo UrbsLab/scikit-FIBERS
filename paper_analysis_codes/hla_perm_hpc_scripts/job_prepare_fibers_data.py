@@ -5,7 +5,9 @@ Accepts combined best-typing TXT/TSV/CSV or gzip input and writes CSV without
 an index. By default, keeps position, residue, AND donor-to-recipient mismatch
 columns. By default, rows, feature names, and existing values are preserved.
 --drop-missing optionally removes rows with missing retained numeric fields;
-no shuffling, aggregation, imputation, or rare filtering occurs.
+optional cohort parameters filter source dates, organ/donor type, and ages.
+--censor-date caps existing survival follow-up without extending it.
+No shuffling, aggregation, imputation, or rare filtering occurs.
 
 Uses only the Python standard library and streams one row at a time.
 """
@@ -20,6 +22,7 @@ os.environ.setdefault('MPLBACKEND', 'Agg')
 import re
 import tempfile
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 
@@ -67,19 +70,13 @@ MISMATCH_PATTERNS = {
 # Matching ignores surrounding whitespace and letter case; zero is not missing.
 MISSING_VALUES = frozenset({
     "", "na", "n/a", "nan", "-nan", "null", "none", "<na>", "nat", ".", r"\n",
-    "#na", "#n/a", "#n/a n/a", "-1.#ind", "-1.#qnan", "1.#ind", "1.#qnan", "998",
+    "#na", "#n/a", "#n/a n/a", "-1.#ind", "-1.#qnan", "1.#ind", "1.#qnan",
 })
 
 
 def is_missing(value):
-    """Recognize text markers and numeric representations of the 998 sentinel."""
-    normalized = value.strip().lower()
-    if normalized in MISSING_VALUES:
-        return True
-    try:
-        return float(normalized) == 998
-    except ValueError:
-        return False
+    """Recognize text markers, ignoring surrounding whitespace and letter case."""
+    return value.strip().lower() in MISSING_VALUES
 
 
 def get_covariates(cov_loci=DEFAULT_COV_LOCI):
@@ -124,18 +121,104 @@ def _number(value, column, row_number):
     return number
 
 
+def _date(value, column, row_number):
+    """Parse ISO dates/timestamps and US dates, including the supplied MM/DD/YY."""
+    value = value.strip()
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
+    except ValueError:
+        pass
+    for pattern in ("%m/%d/%Y", "%m/%d/%y", "%m-%d-%Y"):
+        try:
+            return datetime.strptime(value, pattern).date()
+        except ValueError:
+            pass
+    raise ValueError(f"Data row {row_number}, column {column}: invalid date; "
+                     "expected ISO YYYY-MM-DD or US MM/DD/YYYY (MM/DD/YY also accepted).")
+
+
+def _filter_settings(tx_year_min, tx_year_max, kidney_only, deceased_donor_only,
+                     recipient_age_min, donor_age_min, censor_date, days_per_year):
+    for name, value in (("tx_year_min", tx_year_min), ("tx_year_max", tx_year_max)):
+        if value is not None and (isinstance(value, bool) or not isinstance(value, int)
+                                  or not 1 <= value <= 9999):
+            raise ValueError(f"{name} must be an integer year from 1 to 9999.")
+    if tx_year_min is not None and tx_year_max is not None and tx_year_min > tx_year_max:
+        raise ValueError("tx_year_min must not exceed tx_year_max.")
+    for name, value in (("recipient_age_min", recipient_age_min), ("donor_age_min", donor_age_min)):
+        if value is not None and (not math.isfinite(value) or value < 0):
+            raise ValueError(f"{name} must be finite and nonnegative.")
+    if not math.isfinite(days_per_year) or days_per_year <= 0:
+        raise ValueError("days_per_year must be finite and positive.")
+    cutoff = _date(str(censor_date), "censor_date", 0) if censor_date is not None else None
+    if cutoff is not None and tx_year_min is not None and cutoff.year < tx_year_min:
+        raise ValueError("censor_date precedes the entire requested transplant-year window.")
+    return {
+        "tx_year_min": tx_year_min, "tx_year_max": tx_year_max,
+        "kidney_only": kidney_only, "deceased_donor_only": deceased_donor_only,
+        "recipient_age_min": recipient_age_min, "donor_age_min": donor_age_min,
+        "censor_date": cutoff.isoformat() if cutoff else None, "days_per_year": days_per_year,
+    }, cutoff
+
+
+def _cohort_reasons(row, indices, row_number, settings, cutoff):
+    """Evaluate source variables before selecting columns; never use STROBE flags."""
+    reasons = []
+    transplant_date = None
+    if any(settings[key] is not None for key in ("tx_year_min", "tx_year_max", "censor_date")):
+        value = row[indices["REC_TX_DT"]]
+        if is_missing(value):
+            reasons.append("missing_REC_TX_DT")
+        else:
+            transplant_date = _date(value, "REC_TX_DT", row_number)
+            if settings["tx_year_min"] is not None and transplant_date.year < settings["tx_year_min"]:
+                reasons.append("transplant_before_min_year")
+            if settings["tx_year_max"] is not None and transplant_date.year > settings["tx_year_max"]:
+                reasons.append("transplant_after_max_year")
+            if cutoff is not None and transplant_date > cutoff:
+                reasons.append("transplant_after_censor_date")
+    for enabled, column, accepted, reason in (
+        (settings["kidney_only"], "REC_TX_ORG_TY", {"KI", "KIDNEY", "KIDNEY ONLY", "KIDNEY-ONLY"}, "not_kidney_only"),
+        (settings["deceased_donor_only"], "DON_TY", {"C", "CADAVERIC", "DECEASED", "DECEASED DONOR"}, "not_deceased_donor"),
+    ):
+        if enabled:
+            value = row[indices[column]]
+            if is_missing(value):
+                reasons.append("missing_" + column)
+            elif value.split(":", 1)[0].strip().upper() not in accepted:
+                reasons.append(reason)
+    for key, column, reason in (
+        ("recipient_age_min", "REC_AGE_AT_TX", "recipient_age_below_min"),
+        ("donor_age_min", "DON_AGE", "donor_age_below_min"),
+    ):
+        if settings[key] is not None:
+            value = row[indices[column]]
+            if is_missing(value):
+                reasons.append("missing_" + column)
+            elif _number(value, column, row_number) < settings[key]:
+                reasons.append(reason)
+    return reasons, transplant_date
+
+
 def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                     cov_loci=DEFAULT_COV_LOCI, delimiter=None, overwrite=False,
-                    drop_missing=False):
+                    drop_missing=False, tx_year_min=None, tx_year_max=None,
+                    kidney_only=False, deceased_donor_only=False, recipient_age_min=None,
+                    donor_age_min=None, censor_date=None, days_per_year=365.24):
     """Write the selected dataset; return counts and the FIBERS covariate list.
 
     Existing Agmm columns and raw antigen mismatch counts are copied unchanged.
     Missing cells are preserved and reported for every input column.
     With drop_missing, rows missing retained numeric fields are reported but omitted.
-    Absent required columns, invalid nonmissing numeric data, or malformed rows cause an error.
+    Enabled eligibility filters exclude unknown/missing criteria as well as failures.
+    Censoring only shortens existing follow-up; the original event definition is retained.
+    Absent required columns, malformed rows, or invalid numeric data in eligible rows cause an error.
     An unsuccessful conversion leaves any existing output untouched.
     """
     input_path, output_path = Path(input_path), Path(output_path)
+    settings, cutoff = _filter_settings(tx_year_min, tx_year_max, kidney_only,
+                                       deceased_donor_only, recipient_age_min, donor_age_min,
+                                       censor_date, days_per_year)
     if input_path.resolve() == output_path.resolve():
         raise ValueError("Input and output must be different files.")
     report_stem = output_path.name[:-3] if output_path.suffix.lower() == ".gz" else output_path.name
@@ -146,6 +229,7 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
         "cells": report_dir / f"{report_stem}_missing_cells.csv",
         "columns": report_dir / f"{report_stem}_missing_columns.csv",
         "summary": report_dir / f"{report_stem}_missing_summary.json",
+        "exclusions": report_dir / f"{report_stem}_row_exclusions.csv",
     }
     for destination in (output_path, *report_paths.values()):
         if destination.resolve() == input_path.resolve():
@@ -172,6 +256,12 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
         indices = {column: i for i, column in enumerate(header)}
 
         required = set(BASE_COVARIATES) | set(OUTCOMES)
+        if tx_year_min is not None or tx_year_max is not None or cutoff is not None:
+            required.add("REC_TX_DT")
+        if kidney_only:
+            required.add("REC_TX_ORG_TY")
+        if deceased_donor_only:
+            required.add("DON_TY")
         missing = sorted(required.difference(indices))
         if missing:
             raise ValueError("Missing required columns: " + ", ".join(missing))
@@ -196,6 +286,7 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
         numeric_columns = set(output_columns) - set(metadata_columns)
         retained = [column in numeric_columns or column in metadata_columns for column in header]
         tx_id_index = indices.get("TX_ID")
+        px_id_index = indices.get("PX_ID")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         row_count = 0
         missing_counts = Counter()
@@ -204,16 +295,24 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
         prepared_rows_with_missing = 0
         written_rows = 0
         dropped_rows = 0
+        cohort_dropped_rows = 0
+        missing_dropped_rows = 0
+        reason_counts = Counter()
+        censor_counts = {"rows_shortened": 0, "events_changed_to_censored": 0,
+                         "rows_not_censored_missing_outcomes": 0}
         with tempfile.TemporaryDirectory(dir=output_path.parent, prefix=".fibers-") as staging:
             temporary_path = Path(staging) / output_path.name
             temporary_reports = {key: Path(staging) / path.name for key, path in report_paths.items()}
             with _open_text(temporary_path, "w") as destination, temporary_reports["cells"].open(
-                    "w", encoding="utf-8", newline="") as details:
+                    "w", encoding="utf-8", newline="") as details, temporary_reports["exclusions"].open(
+                    "w", encoding="utf-8", newline="") as exclusions:
                 writer = csv.writer(destination, lineterminator="\n")
                 writer.writerow(output_columns)
                 detail_writer = csv.writer(details, lineterminator="\n")
                 detail_writer.writerow(["row_number", "source_line_number", "TX_ID", "column",
                                         "missing_value", "retained_in_output", "row_dropped"])
+                exclusion_writer = csv.writer(exclusions, lineterminator="\n")
+                exclusion_writer.writerow(["row_number", "source_line_number", "PX_ID", "TX_ID", "reasons"])
                 previous_line_number = reader.line_num
                 for row in reader:
                     source_line_number = previous_line_number + 1
@@ -226,14 +325,31 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                             f"Data row {row_count}: expected {len(header)} fields, got {len(row)}."
                         )
                     missing_indices = {index for index, value in enumerate(row) if is_missing(value)}
-                    row_dropped = drop_missing and any(header[index] in numeric_columns
-                                                       for index in missing_indices)
+                    reasons, transplant_date = _cohort_reasons(row, indices, row_count, settings, cutoff)
+                    cohort_failed = bool(reasons)
+                    numeric_missing = any(header[index] in numeric_columns for index in missing_indices)
+                    if drop_missing and numeric_missing:
+                        reasons.append("missing_retained_numeric")
+                    row_dropped = bool(reasons)
                     tx_id = row[tx_id_index] if tx_id_index is not None else ""
                     for index in sorted(missing_indices):
                         missing_counts[header[index]] += 1
                         detail_writer.writerow([row_count, source_line_number, tx_id,
                                                 header[index], row[index], retained[index], row_dropped])
                     rows_with_missing += bool(missing_indices)
+                    if cohort_failed:
+                        cohort_dropped_rows += 1
+                    elif row_dropped:
+                        missing_dropped_rows += 1
+                    if row_dropped:
+                        reason_counts.update(reasons)
+                        exclusion_writer.writerow([row_count, source_line_number,
+                                                   row[px_id_index] if px_id_index is not None else "",
+                                                   tx_id, ";".join(reasons)])
+                    # Rows outside the cohort cannot enter fitting. Do not interpret their outcomes.
+                    if cohort_failed:
+                        dropped_rows += 1
+                        continue
                     for column, index in selectors:
                         if column not in numeric_columns or index in missing_indices:
                             continue
@@ -253,6 +369,20 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                     if row_dropped:
                         dropped_rows += 1
                         continue
+                    if cutoff is not None:
+                        duration_index, event_index = indices["graftyrs"], indices["grf_fail"]
+                        if duration_index in missing_indices or event_index in missing_indices:
+                            censor_counts["rows_not_censored_missing_outcomes"] += 1
+                        else:
+                            observed_days = float(row[duration_index]) * days_per_year
+                            available_days = (cutoff - transplant_date).days
+                            # Source graftyrs is rounded. Preserve events exactly on the cutoff.
+                            if observed_days > available_days and not math.isclose(
+                                    observed_days, available_days, rel_tol=0, abs_tol=1e-5):
+                                censor_counts["rows_shortened"] += 1
+                                censor_counts["events_changed_to_censored"] += int(float(row[event_index]) == 1)
+                                row[duration_index] = format(available_days / days_per_year, ".15g")
+                                row[event_index] = "0"
                     prepared_rows_with_missing += any(retained[index] for index in missing_indices)
                     prepared_missing_counts.update(header[index] for index in missing_indices if retained[index])
                     writer.writerow([row[index] for _, index in selectors])
@@ -274,10 +404,17 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                 "source_line_number_definition": "1-based starting line in the uncompressed source file",
                 "TX_ID_present": tx_id_index is not None,
                 "missing_markers": sorted(MISSING_VALUES),
-                "marker_matching": "case-insensitive after stripping whitespace; numeric 998 equivalents included; values preserved",
+                "marker_matching": "case-insensitive after stripping whitespace; values preserved",
                 "drop_missing": drop_missing,
                 "drop_missing_scope": "retained numeric columns; metadata and excluded columns do not cause drops",
                 "rows_dropped": dropped_rows,
+                "rows_dropped_for_cohort": cohort_dropped_rows,
+                "rows_dropped_for_missing_after_cohort": missing_dropped_rows,
+                "cohort_filters": settings,
+                "exclusion_reason_counts": dict(reason_counts),
+                "exclusion_count_definition": "reason counts may overlap; cohort and subsequent missing-row totals are disjoint",
+                "censoring": {"method": "cap existing graftyrs; never extend follow-up or redefine earlier events",
+                              **censor_counts},
                 "source": {
                     "rows": row_count, "columns": len(header),
                     "missing_cells": sum(missing_counts.values()),
@@ -325,7 +462,18 @@ def add_preparation_arguments(parser):
     parser.add_argument("--overwrite", action="store_true", help="Replace the dataset and its missing-data reports")
     parser.add_argument("--drop-missing", nargs="?", const="true", default="false", type=str.lower,
                         choices=("true", "false"),
-                        help="Drop rows missing retained numeric fields, including 998; metadata does not cause drops (default: false)")
+                        help="Drop rows missing retained numeric fields (default: false); cohort eligibility is checked separately")
+    parser.add_argument("--tx-year-min", type=int, help="Inclusive minimum transplant year from REC_TX_DT")
+    parser.add_argument("--tx-year-max", type=int, help="Inclusive maximum transplant year from REC_TX_DT")
+    parser.add_argument("--kidney-only", nargs="?", const="true", default="false", type=str.lower,
+                        choices=("true", "false"), help="Require REC_TX_ORG_TY=KI (default: false)")
+    parser.add_argument("--deceased-donor-only", nargs="?", const="true", default="false", type=str.lower,
+                        choices=("true", "false"), help="Require DON_TY=C (default: false)")
+    parser.add_argument("--recipient-age-min", type=float, help="Inclusive minimum REC_AGE_AT_TX in years")
+    parser.add_argument("--donor-age-min", type=float, help="Inclusive minimum DON_AGE in years")
+    parser.add_argument("--censor-date", help="Administrative cutoff, e.g. 2025-12-31; caps existing outcomes")
+    parser.add_argument("--days-per-year", type=float, default=365.24,
+                        help="Divisor used by source graftyrs (default: 365.24, verified in SampleImp1)")
 
 
 def main(argv=None):
@@ -344,11 +492,20 @@ def main(argv=None):
             args.input, args.output, mismatch_level=args.mismatch_level, cov_loci=cov_loci,
             delimiter={"tab": "\t", "comma": ","}.get(args.delimiter), overwrite=args.overwrite,
             drop_missing=args.drop_missing == "true",
+            tx_year_min=args.tx_year_min, tx_year_max=args.tx_year_max,
+            kidney_only=args.kidney_only == "true", deceased_donor_only=args.deceased_donor_only == "true",
+            recipient_age_min=args.recipient_age_min, donor_age_min=args.donor_age_min,
+            censor_date=args.censor_date, days_per_year=args.days_per_year,
         )
     except (ValueError, OSError, csv.Error, EOFError) as error:
         parser.exit(1, f"Error: {error}\n")
     print(f"Wrote {result['rows']:,} rows x {result['columns']:,} columns to {args.output}")
-    print(f"Rows dropped for missing numeric fields: {result['rows_dropped']:,}")
+    summary = result["missing_summary"]
+    print(f"Rows dropped: {result['rows_dropped']:,} "
+          f"(cohort: {summary['rows_dropped_for_cohort']:,}; "
+          f"missing numeric fields after cohort: {summary['rows_dropped_for_missing_after_cohort']:,})")
+    if args.censor_date:
+        print(f"Follow-up shortened at censor date: {summary['censoring']['rows_shortened']:,}")
     print(f"Covariates: {len(result['covariates'])}; outcomes: {', '.join(OUTCOMES)}")
     print("AA mismatches: " + "; ".join(
         f"{level}={result['mismatch_counts'].get(level, 0):,}" for level in MISMATCH_PATTERNS
