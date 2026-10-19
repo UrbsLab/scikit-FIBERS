@@ -204,13 +204,16 @@ To run FIBERS on permutation features from the prepared data:
 ```bash
 python paper_analysis_codes/hla_perm_hpc_scripts/job_fibers_hpc.py \
   --d data/prepared/BestTyping_1.csv --o /path/to/single_run \
-  --r 0 --f log_rank_residuals --ra 0.1
+  --r 0 --f log_rank_residuals --ra 0.1 --mismatch-level permutation
 ```
 
 Use a full cohort for model fitting. The nine-row sample is sufficient for
 checking conversion but is too small for the configured survival adjustment.
-The `job_fibers_hpc.py` and `job_fibers_hpc_cv.py` workers in this folder select
-only permutation features from either the all-types or permutation-only output.
+The `run_fibers_hpc.py`, `run_fibers_hpc_cv.py`, and corresponding `job_` workers
+accept `--mismatch-level mismatch` (alias `position`), `residue`, `permutation`,
+or `all`. Training defaults to `permutation`; preparation defaults to `all`.
+Keep all three types during preparation to switch training modes without
+preparing again. `all` trains with all available types in the prepared input.
 The original workers in `hla_hpc_scripts` still select position-only features.
 See [FIBERS_run_commands.txt](FIBERS_run_commands.txt) and
 [FIBERS_CV_run_commands.txt](FIBERS_CV_run_commands.txt) for the complete HPC

@@ -55,11 +55,29 @@ the supplied sample's survival-year units. General script defaults remain
 unfiltered; the run-command files explicitly enable the requested settings.
 The reports also record exclusions by source row, `PX_ID`, `TX_ID`, and reason,
 plus counts for the cohort, missing-data, and censoring steps.
-The FIBERS workers then select only donor-to-recipient permutation features.
+Both training launchers and workers accept `--mismatch-level`:
+
+| Value | AA features used for training |
+| --- | --- |
+| `mismatch` (or `position`) | Position counts, such as `MM_A_9` |
+| `residue` | Residue counts, such as `MM_A_9_Y` |
+| `permutation` (default) | Donor-to-recipient counts, such as `MM_A_9_rF_dY` |
+| `all` | All three available types together |
+
+For example, add `--mismatch-level all` to `run_fibers_hpc.py` or
+`run_fibers_hpc_cv.py`. The same option works when calling either `job_` worker
+directly. Preparation defaults to keeping all three types, so one prepared
+dataset can support each training mode. Training cannot use columns omitted
+during preparation. Use a separate `--w` directory for each mode and use that
+same directory for its summaries and comparison tables.
+
+Workers select the requested types and loci while reading the CSV, so excluded
+columns are not loaded into the model DataFrame. CV selects features from the
+training fold and loads exactly the retained feature/covariate schema for testing.
 `MM_A_9_rF_dY` means **donor Y → recipient F** at A position 9. The reverse pair
 `MM_A_9_rY_dF` is a separate feature. Names and integer counts are preserved.
-Position-only columns, residue-only columns, locus totals, and metadata do not
-enter permutation bins.
+Locus totals and metadata never enter bins. Position and residue columns enter
+bins only when their type or `all` is selected.
 
 Training uses every observed AA position for the selected loci. The old
 `locus_range_dict` and its filtering condition remain commented in both workers.

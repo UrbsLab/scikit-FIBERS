@@ -65,6 +65,9 @@ def main(argv):
     parser.add_argument('--cl', dest='pop_clean', help='clean population', type=str, default='None')
     parser.add_argument('--r', dest='random_seed', help='random seed', type=int, default=None)
 
+    parser.add_argument('--mismatch-level', choices=('mismatch', 'position', 'residue', 'permutation', 'all'),
+                        type=str.lower, default='permutation',
+                        help='AA features to train on: mismatch/position, residue, permutation, or all (default: permutation)')
     parser.add_argument('--all-positions', action='store_true', help='Compatibility option: all observed AA positions are always used')
 
     options=parser.parse_args(argv[1:])
@@ -198,7 +201,25 @@ def main(argv):
         raise FileNotFoundError(data_full_test)
     final_covariates = list(dict.fromkeys(final_covariates))
     Ag_covariates = list(dict.fromkeys(Ag_covariates))
-    train_data = pd.read_csv(data_full_train, usecols=lambda column: column not in IGNORE_COLUMNS)
+    # Select from the header before loading values; unselected types need no memory.
+    mismatch_level = 'position' if options.mismatch_level == 'mismatch' else options.mismatch_level
+    mismatch_pattern = re.compile(
+        r"MM_(A|B|C|DRB1|DRB345|DQA1|DQB1|DPA1|DPB1)_([1-9][0-9]*)(?:_([A-Z])|_r([A-Z])_d([A-Z]))?"
+    )
+
+    def selected_mismatch(column):
+        match = mismatch_pattern.fullmatch(column)
+        if not match or match[1] not in loci_list:
+            return False
+        # lower, upper = locus_range_dict[match[1]]
+        # if options.all_positions or lower <= int(match[2]) <= upper:
+        level = 'permutation' if match[4] else 'residue' if match[3] else 'position'
+        return mismatch_level == 'all' or mismatch_level == level
+
+    print('AA mismatch level: ' + mismatch_level)
+    model_columns = set(final_covariates + [outcome_label, censor_label])
+    train_data = pd.read_csv(data_full_train, usecols=lambda column: column not in IGNORE_COLUMNS
+                             and (column in model_columns or selected_mismatch(column)))
 
     # Choose existing antigen covariates on the training schema, then reuse them for testing.
     final_covariates = [column for column in final_covariates
@@ -220,17 +241,10 @@ def main(argv):
     #             if column in missing_indicators:
     #                 train_data[column] = (raw_counts == count).astype(int)
 
-    # Donor-to-recipient permutations only. rF_dY means donor Y -> recipient F.
-    permutation_pattern = re.compile(r"MM_(A|B|C|DRB1|DRB345|DQA1|DQB1|DPA1|DPB1)_([1-9][0-9]*)_r[A-Z]_d[A-Z]")
-    MM_feature_list = []
-    for feature in train_data.columns:
-        match = permutation_pattern.fullmatch(feature)
-        if match and match[1] in loci_list:
-            # lower, upper = locus_range_dict[match[1]]
-            # if options.all_positions or lower <= int(match[2]) <= upper:
-            MM_feature_list.append(feature)
+    # rF_dY preserves donor Y -> recipient F direction when permutations are selected.
+    MM_feature_list = [column for column in train_data.columns if selected_mismatch(column)]
     if not MM_feature_list:
-        raise ValueError("No requested permutation features (e.g. MM_A_9_rF_dY) were found")
+        raise ValueError(f"No requested {mismatch_level} AA mismatch features were found for the selected loci")
     features = MM_feature_list + final_covariates + [outcome_label, censor_label]
     missing = [column for column in features if column not in train_data.columns]
     if missing:
@@ -243,7 +257,7 @@ def main(argv):
         raise ValueError("Model data must contain rows and finite numeric values")
     counts = train_data.loc[:, MM_feature_list].to_numpy(dtype=float)
     if (counts < 0).any() or (counts != np.floor(counts)).any():
-        raise ValueError("Permutation mismatches must be nonnegative integer counts")
+        raise ValueError("AA mismatches must be nonnegative integer counts")
     if (train_data[outcome_label] < 0).any() or not train_data[censor_label].isin([0, 1]).all():
         raise ValueError("Invalid survival times or event indicators")
 
@@ -254,7 +268,7 @@ def main(argv):
     train_data = train_data.drop(columns=columns_to_remove)
     MM_feature_list = [feature for feature in MM_feature_list if feature not in columns_to_remove]
     if len(MM_feature_list) < min_bin_size:
-        raise ValueError("Too few permutation features remain after rare filtering")
+        raise ValueError("Too few AA mismatch features remain after rare filtering")
     max_bin_init_size = min(max_bin_init_size, len(MM_feature_list))
     if max_bin_size is not None:
         max_bin_size = min(max_bin_size, len(MM_feature_list))
@@ -296,7 +310,9 @@ def main(argv):
     save_model(fibers, output, run_prefix)
 
     # Use exactly the features retained from training, with no test-based filtering.
-    original_test_data = pd.read_csv(data_full_test, usecols=lambda column: column not in IGNORE_COLUMNS)
+    features = MM_feature_list + final_covariates + [outcome_label, censor_label]
+    test_columns = set(features)
+    original_test_data = pd.read_csv(data_full_test, usecols=lambda column: column in test_columns)
 
     # Disabled: retain source Agmm values without reconstruction.
     # for locus in cov_list or []:
@@ -311,7 +327,6 @@ def main(argv):
     #         for count, column in enumerate(cov_typ_dict[locus]):
     #             if column in missing_indicators:
     #                 original_test_data[column] = (raw_counts == count).astype(int)
-    features = MM_feature_list + final_covariates + [outcome_label, censor_label]
     missing = [column for column in features if column not in original_test_data.columns]
     if missing:
         raise ValueError("Testing fold is missing required columns: " + ", ".join(missing))
@@ -323,7 +338,7 @@ def main(argv):
         raise ValueError("Testing data must contain rows and finite numeric values")
     test_counts = test_data.loc[:, MM_feature_list].to_numpy(dtype=float)
     if (test_counts < 0).any() or (test_counts != np.floor(test_counts)).any():
-        raise ValueError("Testing permutation counts must be nonnegative integers")
+        raise ValueError("Testing AA mismatch counts must be nonnegative integers")
     if (test_data[outcome_label] < 0).any() or not test_data[censor_label].isin([0, 1]).all():
         raise ValueError("Invalid testing survival times or event indicators")
     evaluate_model(fibers, test_data, output, run_prefix, "test", final_covariates, base_covariates)

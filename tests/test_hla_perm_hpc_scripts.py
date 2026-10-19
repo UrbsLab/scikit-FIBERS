@@ -111,6 +111,108 @@ def test_cv_rare_filter_uses_training_only(tmp_path, monkeypatch):
     assert not audit.loc["MM_A_10_rF_dY", "kept_for_training"]
 
 
+@pytest.mark.parametrize("cv", [False, True])
+@pytest.mark.parametrize("level", ["mismatch", "position", "residue", "permutation", "all"])
+def test_workers_select_mismatch_level_before_loading(tmp_path, monkeypatch, cv, level):
+    frame = model_frame()
+    frame = frame.drop(columns=[column for column in frame if column.startswith("MM_")])
+    groups = {
+        "position": ["MM_A_9", "MM_A_183", "MM_DRB1_5", "MM_DQB1_96"],
+        "residue": ["MM_A_9_Y", "MM_A_183_F", "MM_DRB1_5_Y", "MM_DQB1_96_F"],
+        "permutation": ["MM_A_9_rF_dY", "MM_A_9_rY_dF", "MM_A_183_rF_dY",
+                        "MM_DRB1_5_rF_dY", "MM_DQB1_96_rF_dY"],
+    }
+    canonical = "position" if level == "mismatch" else level
+    selected = {feature for kind, features in groups.items() if canonical in (kind, "all")
+                for feature in features}
+    for features in groups.values():
+        for feature in features:
+            frame[feature] = [0, 1, 2, 0] if feature in selected else "unselected text"
+    for feature in ("MM_DPB1_9", "MM_DPB1_9_Y", "MM_DPB1_9_rF_dY", "MM_A_COUNT",
+                    "MM_A_9_rF_dY_extra", "MM_A_9_YY", "MM_A_0", "MM_A_9_rF"):
+        frame[feature] = "excluded text"
+    test = frame.copy()
+    test["MM_A_999"] = test["MM_A_999_G"] = test["MM_A_999_rF_dY"] = 1
+    loaded_columns = []
+    original_read_csv = pd.read_csv
+
+    def capture_read(*args, **kwargs):
+        result = original_read_csv(*args, **kwargs)
+        loaded_columns.append(set(result.columns))
+        return result
+
+    monkeypatch.setattr(pd, "read_csv", capture_read)
+    result = run_worker(tmp_path, monkeypatch, frame, cv=cv, test=test,
+                        extra=["--mismatch-level", level])
+    expected = selected | set(prepare.BASE_COVARIATES) | set(prepare.OUTCOMES)
+    assert loaded_columns == [expected] * (2 if cv else 1)
+    for split in (["train", "test"] if cv else ["train"]):
+        assert set(result[split]) == expected
+        assert all(result[split][column].tolist() == [0, 1, 2, 0] for column in selected)
+
+
+@pytest.mark.parametrize("cv", [False, True])
+@pytest.mark.parametrize("level", ["mismatch", "residue", "permutation", "all"])
+def test_workers_reject_absent_selected_features(tmp_path, monkeypatch, cv, level):
+    frame = model_frame()
+    frame = frame.drop(columns=[column for column in frame if column.startswith("MM_")])
+    frame["MM_DPB1_9_rF_dY"] = 1  # Outside the requested loci.
+    with pytest.raises(ValueError, match="No requested .* AA mismatch features"):
+        run_worker(tmp_path, monkeypatch, frame, cv=cv, extra=["--mismatch-level", level])
+
+
+@pytest.mark.parametrize("level,suffixes", [("mismatch", [""]), ("residue", ["_Y"]),
+                                           ("all", ["", "_Y", "_rF_dY"])])
+def test_cv_rare_filter_uses_training_only_for_selected_types(tmp_path, monkeypatch, level, suffixes):
+    train = model_frame()
+    test = train.copy()
+    for suffix in suffixes:
+        train["MM_A_9" + suffix] = [0, 0, 2, 2]
+        train["MM_A_10" + suffix] = [0, 0, 0, 1]
+        test["MM_A_9" + suffix] = 0
+        test["MM_A_10" + suffix] = 2
+    result = run_worker(tmp_path, monkeypatch, train, cv=True, test=test,
+                        extra=["--mismatch-level", level, "--ra", "0.5"])
+    assert result["train"].columns.tolist() == result["test"].columns.tolist()
+    for suffix in suffixes:
+        assert "MM_A_10" + suffix not in result["train"]
+        assert result["test"]["MM_A_9" + suffix].tolist() == [0] * 4
+
+
+@pytest.mark.parametrize("cv", [False, True])
+@pytest.mark.parametrize("cluster", ["LSF", "SLURM"])
+@pytest.mark.parametrize("level", ["mismatch", "position", "residue", "permutation", "all"])
+def test_launchers_forward_mismatch_level(tmp_path, monkeypatch, cv, cluster, level):
+    module = importlib.import_module(PACKAGE + ".run_fibers_hpc" + ("_cv" if cv else ""))
+    data, work = tmp_path / "data", tmp_path / "jobs"
+    data.mkdir()
+    if cv:
+        for fold in (1, 2):
+            for split in ("Train", "Test"):
+                (data / f"BestTyping_1_CV_{fold}_{split}.csv").write_text("MM_A_9\n1\n")
+    else:
+        (data / "BestTyping_1.csv").write_text("MM_A_9\n1\n")
+    monkeypatch.setattr(module.subprocess, "run", lambda *a, **k: pytest.fail("Dry run submitted"))
+    args = ["run", "--d", str(data), "--w", str(work), "--o", "example", "--rc", cluster,
+            "--mismatch-level", level, "--dry-run"]
+    args += ["--cv", "2"] if cv else ["--rs", "1", "--re", "1"]
+    module.main(args)
+    scripts = list((work / "scratch").glob("*.sh"))
+    assert len(scripts) == (2 if cv else 1)
+    for script in scripts:
+        command = shlex.split(script.read_text().splitlines()[-1])
+        assert command.count("--mismatch-level") == 1
+        assert command[command.index("--mismatch-level") + 1] == level
+
+
+@pytest.mark.parametrize("name", ["run_fibers_hpc", "run_fibers_hpc_cv", "job_fibers_hpc", "job_fibers_hpc_cv"])
+def test_training_mismatch_level_rejects_invalid_choice(name):
+    module = importlib.import_module(PACKAGE + "." + name)
+    with pytest.raises(SystemExit) as error:
+        module.main([name, "--mismatch-level", "unknown"])
+    assert error.value.code == 2
+
+
 @pytest.mark.parametrize("column,value,error", [
     ("MM_A_9_rF_dY", float("nan"), "finite numeric"),
     ("MM_A_9_rF_dY", -1, "nonnegative integer"),

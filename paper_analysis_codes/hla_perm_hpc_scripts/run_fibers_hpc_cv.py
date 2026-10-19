@@ -56,6 +56,9 @@ def main(argv):
 
     parser.add_argument('--dry-run', action='store_true', help='Write job files without submitting')
     parser.add_argument('--python-executable', default='python', help='Compute-node Python')
+    parser.add_argument('--mismatch-level', choices=('mismatch', 'position', 'residue', 'permutation', 'all'),
+                        type=str.lower, default='permutation',
+                        help='AA features to train on: mismatch/position, residue, permutation, or all (default: permutation)')
     parser.add_argument('--all-positions', action='store_true', help='Compatibility option: all observed AA positions are always used')
 
     options=parser.parse_args(argv[1:])
@@ -158,13 +161,13 @@ def main(argv):
             submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                     iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                     diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,loci_list,cov_list,rare_filter,random_seed,dry_run=options.dry_run,python_executable=options.python_executable,all_positions=options.all_positions)
+                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,loci_list,cov_list,rare_filter,random_seed,dry_run=options.dry_run,python_executable=options.python_executable,all_positions=options.all_positions,mismatch_level=options.mismatch_level)
             jobCount +=1
         elif run_cluster == 'SLURM':
             submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                     iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                     diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,loci_list,cov_list,rare_filter,random_seed,dry_run=options.dry_run,python_executable=options.python_executable,all_positions=options.all_positions)
+                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,loci_list,cov_list,rare_filter,random_seed,dry_run=options.dry_run,python_executable=options.python_executable,all_positions=options.all_positions,mismatch_level=options.mismatch_level)
             jobCount +=1
         else:
             print('ERROR: Cluster type not found')
@@ -174,7 +177,7 @@ def main(argv):
 def submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                     iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                     diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,loci_list,cov_list,rare_filter,random_seed,dry_run=False,python_executable='python',all_positions=False):
+                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,loci_list,cov_list,rare_filter,random_seed,dry_run=False,python_executable='python',all_positions=False,mismatch_level='permutation'):
     job_ref = str(time.time())
     job_name = 'FIBERS_'+str(part)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -193,7 +196,7 @@ def submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manu
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n').rstrip('\n') + (' --all-positions' if all_positions else '') + '\n')
+        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n').rstrip('\n') + (' --all-positions' if all_positions else '') + ' --mismatch-level ' + shlex.quote(mismatch_level) + '\n')
     sh_file.close()
     if dry_run:
         print('Prepared: '+job_path)
@@ -205,7 +208,7 @@ def submit_slurm_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manu
 def submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual_bin_init,reserved_memory,queue,outcome_label,outcome_type,
                                     iterations,pop_size,tournament_prop,crossover_prob,min_mutation_prob,max_mutation_prob,merge_prob,new_gen,elitism,
                                     diversity_pressure,min_bin_size,max_bin_size,max_bin_init_size,fitness_metric,log_rank_weighting,censor_label,
-                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,loci_list,cov_list,rare_filter,random_seed,dry_run=False,python_executable='python',all_positions=False):
+                                    group_strata_min,penalty,group_thresh,min_thresh,max_thresh,thresh_evolve_prob,desired_bin_effect,pop_clean,loci_list,cov_list,rare_filter,random_seed,dry_run=False,python_executable='python',all_positions=False,mismatch_level='permutation'):
     job_ref = str(time.time())
     job_name = 'FIBERS_'+str(part)+'_'+job_ref
     job_path = scratchPath+'/'+job_name+ '_run.sh'
@@ -224,7 +227,7 @@ def submit_lsf_cluster_job(scratchPath,logPath,datafolder,outputpath,part,manual
         +' --ma '+str(max_mutation_prob)+' --mp '+str(merge_prob)+' --ng '+str(new_gen)+' --e '+str(elitism)+' --dp '+str(diversity_pressure)
         +' --bi '+str(min_bin_size)+' --ba '+str(max_bin_size)+' --ib '+str(max_bin_init_size)+' --f '+str(fitness_metric)+' --we '+str(log_rank_weighting)
         +' --c '+str(censor_label)+' --g '+str(group_strata_min)+' --p '+str(penalty)+' --t '+str(group_thresh)+' --it '+str(min_thresh)+' --at '+str(max_thresh)
-        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n').rstrip('\n') + (' --all-positions' if all_positions else '') + '\n')
+        +' --te '+str(thresh_evolve_prob)+' --de '+str(desired_bin_effect)+' --cl '+str(pop_clean)+' --loci-list '+str(loci_list)+' --cov-list '+str(cov_list)+' --ra '+str(rare_filter)+'\n').rstrip('\n') + (' --all-positions' if all_positions else '') + ' --mismatch-level ' + shlex.quote(mismatch_level) + '\n')
     sh_file.close()
     if dry_run:
         print('Prepared: '+job_path)
