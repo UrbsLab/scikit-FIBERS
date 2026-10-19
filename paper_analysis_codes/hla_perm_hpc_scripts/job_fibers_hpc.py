@@ -224,6 +224,9 @@ def main(argv):
     if missing:
         raise ValueError("Missing required columns: " + ", ".join(missing))
     data = data.loc[:, features].apply(pd.to_numeric, errors='raise')
+    non_numeric = data.select_dtypes(exclude='number').columns.tolist()
+    if non_numeric:
+        raise ValueError("Model DataFrame has nonnumeric columns after conversion: " + ", ".join(non_numeric))
     if data.empty or not np.isfinite(data.to_numpy(dtype=float)).all():
         raise ValueError("Model data must contain rows and finite numeric values")
     counts = data.loc[:, MM_feature_list].to_numpy(dtype=float)

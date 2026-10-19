@@ -236,6 +236,9 @@ def main(argv):
     if missing:
         raise ValueError("Missing required columns: " + ", ".join(missing))
     train_data = train_data.loc[:, features].apply(pd.to_numeric, errors='raise')
+    non_numeric = train_data.select_dtypes(exclude='number').columns.tolist()
+    if non_numeric:
+        raise ValueError("Model DataFrame has nonnumeric columns after conversion: " + ", ".join(non_numeric))
     if train_data.empty or not np.isfinite(train_data.to_numpy(dtype=float)).all():
         raise ValueError("Model data must contain rows and finite numeric values")
     counts = train_data.loc[:, MM_feature_list].to_numpy(dtype=float)
@@ -313,6 +316,9 @@ def main(argv):
     if missing:
         raise ValueError("Testing fold is missing required columns: " + ", ".join(missing))
     test_data = original_test_data.loc[:, features].apply(pd.to_numeric, errors='raise')
+    non_numeric = test_data.select_dtypes(exclude='number').columns.tolist()
+    if non_numeric:
+        raise ValueError("Testing DataFrame has nonnumeric columns after conversion: " + ", ".join(non_numeric))
     if test_data.empty or not np.isfinite(test_data.to_numpy(dtype=float)).all():
         raise ValueError("Testing data must contain rows and finite numeric values")
     test_counts = test_data.loc[:, MM_feature_list].to_numpy(dtype=float)

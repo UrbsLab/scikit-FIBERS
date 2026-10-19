@@ -92,8 +92,10 @@ def test_worker_preserves_direction_counts_and_all_positions(tmp_path, monkeypat
     assert result["train"]["MM_A_9_rF_dY"].tolist() == [0, 0, 2, 2]
     assert result["parameters"]["covariates"] == list(prepare.BASE_COVARIATES)
     assert not set(prepare.METADATA_COLUMNS) & set(result["train"].columns)
+    assert result["train"].select_dtypes(exclude="number").empty
     if cv:
         assert result["test"].columns.tolist() == result["train"].columns.tolist()
+        assert result["test"].select_dtypes(exclude="number").empty
 
 
 def test_cv_rare_filter_uses_training_only(tmp_path, monkeypatch):
@@ -277,14 +279,15 @@ def test_preparation_accepts_missing_metadata_without_adding_columns(tmp_path, c
 
 
 @pytest.mark.parametrize("cov_loci", [[], ["A"], prepare.DEFAULT_COV_LOCI])
-def test_preparation_keeps_all_antigen_fields_without_encoding(tmp_path, cov_loci):
+def test_preparation_keeps_processed_antigen_covariates_without_encoding(tmp_path, cov_loci):
     rows = []
     for count in (0, 1, 2):
         row = {column: "0" for column in prepare.BASE_COVARIATES}
         row.update({"graftyrs": "2.5", "grf_fail": "1", "MM_A_9_rF_dY": str(count),
                     "DON_TY": "L" if count == 0 else "C"})
         for source, _, _ in prepare.ANTIGEN_COVARIATES.values():
-            row[source] = str(count)
+            row[source] = ["raw text", "NA", "998"][count]
+        row["Agmm_notes"] = "unprocessed label"
         for locus in ("A", "B", "DR", "DPB1"):
             for category in (0, 1, 2):
                 row[f"Agmm{locus}{category}"] = str(int(count == category))
@@ -295,13 +298,15 @@ def test_preparation_keeps_all_antigen_fields_without_encoding(tmp_path, cov_loc
         writer.writeheader()
         writer.writerows(rows)
     output = tmp_path / "BestTyping_1.csv"
-    prepare.prepare_dataset(source, output, cov_loci=cov_loci)
+    prepare.prepare_dataset(source, output, cov_loci=cov_loci, drop_missing=True)
     with output.open(newline="") as handle:
         result = list(csv.DictReader(handle))
-    assert result == rows
+    excluded = {fields[0] for fields in prepare.ANTIGEN_COVARIATES.values()} | {"Agmm_notes"}
+    assert result == [{column: value for column, value in row.items() if column not in excluded}
+                      for row in rows]
     assert "Agmmc0" not in result[0]
     assert "Agmmc1" not in result[0]
-    assert [row["REC_C_MM_EQUIV_CUR"] for row in result] == ["0", "1", "2"]
+    assert not excluded.intersection(result[0])
     assert [row["AgmmA2"] for row in result] == ["0", "0", "1"]
 
 
@@ -331,7 +336,15 @@ def test_preparation_preserves_missing_cells_and_reports_all_source_columns(tmp_
     summary = prepare.prepare_dataset(source, output)
     with opener(output, "rt", newline="") as handle:
         result = list(csv.DictReader(handle))
-    assert result == [{column: value for column, value in row.items() if column != "UNUSED"} for row in rows]
+    expected = [{column: value for column, value in row.items()
+                 if column not in ("UNUSED", "REC_A_MM_EQUIV_CUR")} for row in rows]
+    expected[1].update(shared="", graftyrs="")
+    expected[2].update(AgmmA2="", MM_A_9="", MM_A_9_Y="", MM_A_9_rF_dY="")
+    expected[3].update(grf_fail="")
+    assert result == expected
+    numeric = pd.read_csv(output).drop(columns=["TX_ID", "DON_TY"])
+    assert numeric.select_dtypes(exclude="number").empty
+    assert numeric["shared"].isna().sum() == 2
     assert "shared" in summary["covariates"]
     assert summary["rows"] == 4
     report_dir = tmp_path / "missing_data_reports"
@@ -346,7 +359,7 @@ def test_preparation_preserves_missing_cells_and_reports_all_source_columns(tmp_
     assert details == [
         {"row_number": str(number), "source_line_number": str(line), "TX_ID": rows[number - 1]["TX_ID"],
          "column": column, "missing_value": rows[number - 1][column],
-         "retained_in_output": str(column != "UNUSED"), "row_dropped": "False"}
+         "retained_in_output": str(column not in ("UNUSED", "REC_A_MM_EQUIV_CUR")), "row_dropped": "False"}
         for number, line, column in expected_cells
     ]
     with (report_dir / "BestTyping_1_missing_columns.csv").open(newline="") as handle:
@@ -363,8 +376,11 @@ def test_preparation_preserves_missing_cells_and_reports_all_source_columns(tmp_
     assert overall["TX_ID_present"] is True
     assert overall["source"] == {"rows": 4, "columns": len(rows[0]), "missing_cells": 12,
                                  "rows_with_missing": 4, "columns_with_missing": 11}
-    assert overall["prepared"] == {"rows": 4, "columns": len(rows[0]) - 1, "missing_cells": 11,
-                                   "rows_with_missing": 4, "columns_with_missing": 10}
+    assert overall["prepared"] == {"rows": 4, "columns": len(rows[0]) - 2, "missing_cells": 10,
+                                   "rows_with_missing": 4, "columns_with_missing": 9}
+    assert overall["numeric_validation"]["passed"] is True
+    assert overall["numeric_validation"]["rows_checked"] == 4
+    assert overall["numeric_validation"]["columns_checked"] == len(numeric.columns)
 
 
 def test_preparation_reports_missing_without_tx_id_and_refreshes_reports(tmp_path):
@@ -406,7 +422,7 @@ def test_drop_missing_is_opt_in_and_reports_dropped_rows(tmp_path, options, drop
     for row, (column, marker) in zip(rows, [
         ("shared", "NA"), ("grf_fail", "null"), ("graftyrs", "NaN"), ("MM_A_9", " N/A "),
         ("MM_A_9_Y", "."), ("MM_A_9_rF_dY", ""), ("AgmmA2", "None"),
-        ("REC_A_MM_EQUIV_CUR", "<NA>"),
+        ("DCD", "<NA>"),
     ]):
         row[column] = marker
     rows[8].update(TX_ID="", TFL_DEATH_DT="", UNUSED="NA")
@@ -420,7 +436,13 @@ def test_drop_missing_is_opt_in_and_reports_dropped_rows(tmp_path, options, drop
     with gzip.open(output, "rt", newline="") as handle:
         result = list(csv.DictReader(handle))
     expected = rows[8:] if drop else rows
-    assert result == [{column: value for column, value in row.items() if column != "UNUSED"} for row in expected]
+    expected = [{column: value for column, value in row.items()
+                 if column not in ("UNUSED", "REC_A_MM_EQUIV_CUR")} for row in expected]
+    if not drop:
+        for row, column in zip(expected, ["shared", "grf_fail", "graftyrs", "MM_A_9", "MM_A_9_Y",
+                                         "MM_A_9_rF_dY", "AgmmA2", "DCD"]):
+            row[column] = ""
+    assert result == expected
     reports = tmp_path / "missing_data_reports"
     summary = json.loads((reports / "BestTyping_1_missing_summary.json").read_text())
     assert summary["drop_missing"] is drop
@@ -504,6 +526,38 @@ def test_workers_require_complete_shared_for_training(tmp_path, monkeypatch, cv)
     frame["shared"] = ["", "NA", "NaN", "1"]
     with pytest.raises(ValueError, match="finite numeric"):
         run_worker(tmp_path, monkeypatch, frame, cv=cv)
+
+
+@pytest.mark.parametrize("column", ["shared", "AgmmA2"])
+def test_preparation_rejects_text_in_processed_covariates(tmp_path, column):
+    frame = model_frame()
+    frame[column] = "unprocessed category"
+    source, output = tmp_path / "input.csv", tmp_path / "prepared.csv"
+    frame.to_csv(source, index=False)
+    with pytest.raises(ValueError, match=f"column {column}: invalid or non-finite numeric"):
+        prepare.prepare_dataset(source, output)
+    assert not output.exists()
+
+
+def test_numeric_dataframe_check_covers_later_chunks_before_replacing_outputs(tmp_path):
+    frame = model_frame()
+    source, output = tmp_path / "input.csv", tmp_path / "prepared.csv"
+    frame.to_csv(source, index=False)
+    result = prepare.prepare_dataset(source, output)
+    paths = [output, *(Path(path) for path in result["missing_reports"].values())]
+    before = {path: path.read_bytes() for path in paths}
+    frame = pd.concat([frame.iloc[:1]] * 1001, ignore_index=True)
+    frame["shared"] = "1"
+    # Python float accepts underscores, but pandas CSV inference leaves them as text.
+    frame.loc[1000, "shared"] = "1_000"
+    frame.to_csv(source, index=False)
+    with pytest.raises(ValueError, match="Converted model DataFrame has nonnumeric columns: shared"):
+        prepare.prepare_dataset(source, output, overwrite=True)
+    assert {path: path.read_bytes() for path in paths} == before
+    frame.loc[1000, "shared"] = "1000"
+    frame.to_csv(source, index=False)
+    result = prepare.prepare_dataset(source, output, overwrite=True)
+    assert result["missing_summary"]["numeric_validation"]["rows_checked"] == 1001
 
 
 @pytest.mark.parametrize("cv", [False, True])
@@ -639,7 +693,8 @@ def test_aligned_inputs_detect_format_and_preserve_values(tmp_path, suffix, comp
     assert output_path.name == "BestTyping_7.csv"
     prepare.main(["--d", str(input_path), "--o", str(output_path)])
     with output_path.open(newline="") as handle:
-        assert list(csv.DictReader(handle)) == [row]
+        assert list(csv.DictReader(handle)) == [{key: value for key, value in row.items()
+                                                if key != "REC_A_MM_EQUIV_CUR"}]
 
 
 def test_aligned_batch_numbering_natural_order_and_duplicate_formats(tmp_path):

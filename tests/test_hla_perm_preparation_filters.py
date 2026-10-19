@@ -114,7 +114,7 @@ def test_censoring_preserves_missing_outcomes_unless_drop_requested(tmp_path):
     source, output = tmp_path / "input.csv", tmp_path / "prepared.csv"
     write_source(source, [source_row(graftyrs="NA", grf_fail="")])
     result = prepare.prepare_dataset(source, output, censor_date="2025-12-31")
-    assert read_rows(output)[0]["graftyrs"] == "NA"
+    assert read_rows(output)[0]["graftyrs"] == ""
     assert result["missing_summary"]["censoring"]["rows_not_censored_missing_outcomes"] == 1
     result = prepare.prepare_dataset(source, output, censor_date="2025-12-31",
                                      drop_missing=True, overwrite=True)

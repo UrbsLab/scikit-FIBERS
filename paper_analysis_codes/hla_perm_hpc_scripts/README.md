@@ -23,12 +23,15 @@ FIBERS from this checkout, so the checkout must also exist on compute nodes.
 | Master summaries | `run_master_sum_fibers_hpc.py` / `job_master_sum_fibers_hpc.py` | `run_master_sum_fibers_hpc_cv.py` / `job_master_sum_fibers_hpc_cv.py` |
 | Comparison tables | `run_table_maker_hpc.py` / `job_table_maker_hpc.py` | `run_table_maker_hpc_cv.py` / `job_table_maker_hpc_cv.py` |
 
-Preparation retains all three AA mismatch types, the 43 base covariates, all
-existing `Agmm*` columns (including 0/1/2 categories), raw antigen mismatch
-counts, and both survival outcomes. Record IDs, dates, and `DON_TY` are also
-retained when present. Antigen values are copied without recoding.
-`shared` is retained. By default, missing cells are preserved without dropping rows or
-stopping preparation. Each dataset gets reports under `missing_data_reports/`:
+Preparation retains all three AA mismatch types, the 43 processed base covariates,
+existing Agmm 0/1/2 indicators, and both survival outcomes. Raw antigen counts and
+Agmm text annotations are excluded. Record IDs, dates, and `DON_TY` are also
+retained when present. Nonmissing Agmm values are copied without recoding.
+`shared` is retained. By default, missing cells remain missing without dropping
+rows; numeric missing markers are written as blanks so pandas infers numeric
+columns. Preparation checks the exported model DataFrame's numeric dtypes in
+chunks and records the result in the JSON summary. This requires pandas.
+Each dataset gets reports under `missing_data_reports/`:
 every missing cell with its row number, `TX_ID`, and column; counts and
 percentages by column; and overall totals for the source and prepared data.
 Reports cover all input columns and identify which are retained in the output.
@@ -75,6 +78,7 @@ At `--ra 0`, all-zero features are removed. A positive `--ra` removes features
 whose nonzero fraction is below that threshold. CV uses training rows to choose
 features and applies exactly that list to the test fold. Missing required
 columns, non-finite values, and invalid counts or outcomes stop the worker.
+Workers explicitly check numeric DataFrame dtypes after conversion.
 `998` is treated as an ordinary numeric value in preparation and training.
 Preparation's missing-data reports can be used to resolve missing model inputs
 before training; preparation does not impute them.

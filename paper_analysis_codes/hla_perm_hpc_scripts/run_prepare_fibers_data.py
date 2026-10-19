@@ -21,7 +21,7 @@ def add_preparation_arguments(parser):
                         help="Mismatch features to keep (default: all three types)")
     parser.add_argument("--cov-list", "--cov-loci", dest="cov_loci", default=",".join(DEFAULT_COV_LOCI),
                         help="Antigen loci for reporting available model covariates (default: A,B,C,DRB1,DQA1,DQB1); "
-                             "'none' reports base covariates only. All existing Agmm fields are retained.")
+                             "'none' reports base covariates only. Existing Agmm 0/1/2 indicators are retained; raw antigen fields are excluded.")
     parser.add_argument("--delimiter", choices=("tab", "comma"),
                         help="Input delimiter (default: detect tab or comma from header)")
     parser.add_argument("--overwrite", action="store_true", help="Replace the dataset and its missing-data reports")

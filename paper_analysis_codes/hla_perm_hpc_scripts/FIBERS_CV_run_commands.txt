@@ -5,6 +5,8 @@
 # For SLURM, use --rc SLURM and replace --q with your partition.
 
 # 1. PREPARE ONE IMPUTATION (skip if already prepared).
+# Keep processed numeric covariates/Agmm indicators; exclude raw antigen fields.
+# Pandas checks numeric model columns after conversion.
 python run_prepare_fibers_data.py --d /path/to/Best-Typing_AA_MM_9loc_matrix_1_aligned.tsv.gz --w /path/to/hla_perm_cv_results --o /path/to/prepared_datasets --rc LSF --rm 4 --q i2c2_normal --tx-year-min 2010 --tx-year-max 2025 --kidney-only --deceased-donor-only --recipient-age-min 18 --donor-age-min 9 --censor-date 2025-12-31 --days-per-year 365.24 --drop-missing
 # Cohort: 2010-2025 inclusive; kidney only; deceased donor; recipient age >=18; donor age >=9.
 # Apply filters to source variables before selecting columns and before CV splitting.

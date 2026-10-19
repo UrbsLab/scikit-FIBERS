@@ -1,5 +1,5 @@
-Run from the repository root with Python 3.9 or later; no additional packages
-are needed for preparation:
+Run from the repository root with Python 3.9 or later and pandas installed
+(the FIBERS Python environment already includes pandas):
 
 ```bash
 python3 paper_analysis_codes/hla_perm_hpc_scripts/job_prepare_fibers_data.py \
@@ -98,23 +98,32 @@ The default output contains:
 - All three AA mismatch types across all nine loci: `MM_A_9` (position),
   `MM_A_9_Y` (residue), and `MM_A_9_rF_dY` (donor Y → recipient F permutation).
 - The 43 base covariates used by the permutation FIBERS jobs, including `shared`.
-- All existing `Agmm*` columns, including the 0, 1, and 2 categories, plus
-  the raw `REC_*_MM_EQUIV_CUR` antigen mismatch counts. Source values are
-  copied exactly; no antigen indicators are created or recoded during preparation.
+- Existing processed Agmm indicators for the 0, 1, and 2 categories across the
+  HLA loci, plus `Agmm0`. Nonmissing indicator values are copied unchanged;
+  no antigen indicators are created or recoded during preparation.
 - `graftyrs` and `grf_fail`, required for FIBERS survival training.
 
-Haplotypes, allele typing, raw clinical fields outside the
-adjustment set, and `MM_*_COUNT` totals are excluded. Existing data values,
-feature names, row order, and all rows are preserved by default. No rare-feature filtering,
+Haplotypes, allele typing, raw `REC_*_MM_EQUIV_CUR` antigen counts, other raw
+clinical fields outside the adjustment set, Agmm text annotations, and
+`MM_*_COUNT` totals are excluded. Nonmissing data values, feature names, row
+order, and all rows are preserved by default. No rare-feature filtering,
 constant-column filtering, binarization, or imputation is performed.
 
-Preparation copies the source antigen fields without requiring or creating
-additional indicators. Training uses the existing requested Agmm adjustment
-columns and ignores raw antigen counts. Prepared data is never rewritten by
-model fitting.
+Preparation keeps the processed base and Agmm covariates without requiring or
+creating additional indicators. Training uses the existing requested Agmm
+adjustment columns. Prepared data is never rewritten by model fitting.
 
-Missing cells are preserved by default, including in `shared`, outcomes, antigen counts,
-and AA mismatches. Every preparation run automatically writes four reports
+Before publishing the output, preparation reads the converted CSV in chunks of
+1,000 rows and requires numeric pandas dtypes for every covariate, outcome, and
+AA mismatch column. IDs, dates, and donor type remain metadata and are excluded
+from this model DataFrame check. The JSON summary records the validation result
+and numbers of rows and columns checked. An empty output records zero checked
+rows. Non-CV and CV workers also check numeric dtypes after `pd.to_numeric`.
+
+Missing cells remain missing by default, including in `shared`, outcomes, Agmm
+indicators, and AA mismatches. Numeric missing markers are written as empty CSV
+cells so pandas loads those columns as numeric with `NaN`; reports retain the
+original source markers. Every preparation run automatically writes four reports
 under `missing_data_reports/` beside the output dataset. For `BestTyping_1.csv`
 (or `BestTyping_1.csv.gz`), these are:
 
@@ -147,8 +156,9 @@ Missing markers include empty or whitespace-only cells, `NA`, `N/A`, `NaN`,
 `998` (including `998.0` and `9.98e2`) is treated as an ordinary numeric value,
 so it is not reported or dropped as missing. Field-specific validation still applies.
 Detection ignores case and surrounding whitespace; the complete marker list
-is saved in the JSON summary. Zero is valid, and all source values are copied
-unchanged. With no missing data, the detail report contains only its header
+is saved in the JSON summary. Zero is valid. Nonmissing numeric values and all
+metadata values are copied unchanged unless censoring changes outcomes.
+With no missing data, the detail report contains only its header
 and the summary contains zero counts.
 
 Absent required columns, malformed rows, invalid nonmissing numeric values,
@@ -158,7 +168,7 @@ complete numeric model inputs; use the reports to resolve missing values
 before fitting.
 
 Add `--drop-missing` (or `--drop-missing true`) to omit rows missing any retained
-numeric field: covariates, outcomes, Agmm fields, raw antigen counts, and selected
+numeric field: processed covariates, outcomes, Agmm indicators, and selected
 AA mismatch columns. Other metadata and excluded source columns do not trigger
 missing-numeric drops; enabled cohort filters separately require their eligibility
 fields. Omit the flag or use `--drop-missing false` to disable missing-numeric
@@ -175,8 +185,8 @@ Optional arguments:
 - `--mismatch-level position`, `residue`, or `permutation` keeps one type only;
   the default is `all`.
 - `--cov-list` specifies antigen loci when reporting available model covariates;
-  `None` reports only the base adjustment set. All source `Agmm*` fields and
-  antigen counts are retained regardless of this option.
+  `None` reports only the base adjustment set. All existing processed Agmm 0/1/2
+  indicators are retained regardless of this option; raw antigen fields are excluded.
   `--cov-loci` remains an alias.
 - `--overwrite` replaces the output dataset and its reports after successful validation.
 - `--drop-missing [true|false]` drops rows with missing retained numeric fields;

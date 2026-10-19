@@ -3,13 +3,14 @@
 
 Accepts combined best-typing TXT/TSV/CSV or gzip input and writes CSV without
 an index. By default, keeps position, residue, AND donor-to-recipient mismatch
-columns. By default, rows, feature names, and existing values are preserved.
+columns. Numeric missing markers are written as empty cells; other values and
+feature names are preserved unless filtering or censoring is requested.
 --drop-missing optionally removes rows with missing retained numeric fields;
 optional cohort parameters filter source dates, organ/donor type, and ages.
 --censor-date caps existing survival follow-up without extending it.
 No shuffling, aggregation, imputation, or rare filtering occurs.
 
-Uses only the Python standard library and streams one row at a time.
+Streams one row at a time, then checks numeric DataFrame dtypes in pandas chunks.
 """
 
 import argparse
@@ -24,6 +25,8 @@ import tempfile
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+
+import pandas as pd
 
 
 # HLA base adjustment set, including shared.
@@ -48,7 +51,7 @@ METADATA_COLUMNS = (
 )
 
 # (source antigen mismatch count, indicator for zero, indicator for one).
-# These identify source antigen fields; preparation never encodes them.
+# Raw source fields are excluded; preparation keeps existing processed indicators.
 ANTIGEN_COVARIATES = {
     "A": ("REC_A_MM_EQUIV_CUR", "AgmmA0", "AgmmA1"),
     "B": ("REC_B_MM_EQUIV_CUR", "AgmmB0", "AgmmB1"),
@@ -60,13 +63,16 @@ ANTIGEN_COVARIATES = {
     "DPA1": ("REC_DPA1_MM_EQUIV_CUR", "Agmmdpa10", "Agmmdpa11"),
     "DPB1": ("REC_DPB1_MM_EQUIV_CUR", "Agmmdpb10", "Agmmdpb11"),
 }
+PROCESSED_ANTIGEN_PATTERN = re.compile(
+    r"Agmm(?:A|B|C|DR|DRB1|DRB345|DQA1|DQ|DQB1|DPA1|DPB1)?[012]", re.IGNORECASE
+)
 _MM_PREFIX = r"MM_(?:A|B|C|DRB1|DRB345|DQA1|DQB1|DPA1|DPB1)_[1-9][0-9]*"
 MISMATCH_PATTERNS = {
     "position": re.compile(_MM_PREFIX),
     "residue": re.compile(_MM_PREFIX + r"_[A-Z]"),
     "permutation": re.compile(_MM_PREFIX + r"_r[A-Z]_d[A-Z]"),
 }
-# Recognize common CSV/pandas and SAS missing markers without rewriting them.
+# Recognize common CSV/pandas and SAS missing markers; retain originals in reports.
 # Matching ignores surrounding whitespace and letter case; zero is not missing.
 MISSING_VALUES = frozenset({
     "", "na", "n/a", "nan", "-nan", "null", "none", "<na>", "nat", ".", r"\n",
@@ -207,8 +213,8 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                     donor_age_min=None, censor_date=None, days_per_year=365.24):
     """Write the selected dataset; return counts and the FIBERS covariate list.
 
-    Existing Agmm columns and raw antigen mismatch counts are copied unchanged.
-    Missing cells are preserved and reported for every input column.
+    Keep processed numeric base/Agmm covariates; exclude raw antigen fields.
+    Numeric missing markers become empty cells and are reported in their original form.
     With drop_missing, rows missing retained numeric fields are reported but omitted.
     Enabled eligibility filters exclude unknown/missing criteria as well as failures.
     Censoring only shortens existing follow-up; the original event definition is retained.
@@ -266,9 +272,8 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
         if missing:
             raise ValueError("Missing required columns: " + ", ".join(missing))
         covariates = [column for column in requested_covariates if column in indices]
-        antigen_counts = {columns[0] for columns in ANTIGEN_COVARIATES.values()}
         antigen_columns = [column for column in header
-                           if column.lower().startswith('agmm') or column in antigen_counts]
+                           if PROCESSED_ANTIGEN_PATTERN.fullmatch(column)]
 
         feature_types = {}
         for column in header:
@@ -358,8 +363,6 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                         if column == "grf_fail":
                             if number not in (0, 1):
                                 raise ValueError(f"Data row {row_count}: {column} must be 0 or 1.")
-                        if column in antigen_counts and number not in (0, 1, 2):
-                            raise ValueError(f"Data row {row_count}: {column} must be 0, 1, or 2.")
                         if column == "graftyrs" and number < 0:
                             raise ValueError(f"Data row {row_count}: graftyrs must be nonnegative.")
                         if column in feature_types and (number < 0 or not number.is_integer()):
@@ -385,10 +388,31 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                                 row[event_index] = "0"
                     prepared_rows_with_missing += any(retained[index] for index in missing_indices)
                     prepared_missing_counts.update(header[index] for index in missing_indices if retained[index])
-                    writer.writerow([row[index] for _, index in selectors])
+                    # Blank numeric missing cells let pandas infer numeric dtypes even
+                    # when the source used SAS/text markers such as '.' or '\\N'.
+                    writer.writerow(["" if column in numeric_columns and index in missing_indices
+                                     else row[index] for column, index in selectors])
                     written_rows += 1
             if row_count == 0:
                 raise ValueError("Input contains a header but no data rows.")
+            # Validate the actual converted CSV before publishing it. Keep memory
+            # bounded for the full matrix; metadata is outside the model DataFrame.
+            checked_rows = 0
+            with pd.read_csv(temporary_path, usecols=lambda column: column in numeric_columns,
+                             chunksize=1000, low_memory=False) as chunks:
+                for frame in chunks:
+                    if frame.empty:
+                        continue
+                    non_numeric = frame.select_dtypes(exclude="number").columns.tolist()
+                    if non_numeric:
+                        raise ValueError("Converted model DataFrame has nonnumeric columns: "
+                                         + ", ".join(non_numeric))
+                    checked_rows += len(frame)
+            if checked_rows != written_rows:
+                raise ValueError("Numeric DataFrame validation did not cover every output row.")
+            numeric_validation = {"passed": True, "rows_checked": checked_rows,
+                                  "columns_checked": len(numeric_columns),
+                                  "method": "pandas.read_csv numeric dtypes, checked in chunks"}
             with temporary_reports["columns"].open("w", encoding="utf-8", newline="") as handle:
                 summary_writer = csv.writer(handle, lineterminator="\n")
                 summary_writer.writerow(["column", "retained_in_output", "total_rows",
@@ -404,7 +428,8 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                 "source_line_number_definition": "1-based starting line in the uncompressed source file",
                 "TX_ID_present": tx_id_index is not None,
                 "missing_markers": sorted(MISSING_VALUES),
-                "marker_matching": "case-insensitive after stripping whitespace; values preserved",
+                "marker_matching": "case-insensitive after stripping whitespace; numeric missing cells written blank; originals preserved in reports",
+                "numeric_validation": numeric_validation,
                 "drop_missing": drop_missing,
                 "drop_missing_scope": "retained numeric columns; metadata and excluded columns do not cause drops",
                 "rows_dropped": dropped_rows,
@@ -456,7 +481,7 @@ def add_preparation_arguments(parser):
                         help="Mismatch features to keep (default: all three types)")
     parser.add_argument("--cov-list", "--cov-loci", dest="cov_loci", default=",".join(DEFAULT_COV_LOCI),
                         help="Antigen loci for reporting available model covariates (default: A,B,C,DRB1,DQA1,DQB1); "
-                             "'none' reports base covariates only. All existing Agmm fields are retained.")
+                             "'none' reports base covariates only. Existing Agmm 0/1/2 indicators are retained; raw antigen fields are excluded.")
     parser.add_argument("--delimiter", choices=("tab", "comma"),
                         help="Input delimiter (default: detect tab or comma from header)")
     parser.add_argument("--overwrite", action="store_true", help="Replace the dataset and its missing-data reports")
@@ -507,6 +532,9 @@ def main(argv=None):
     if args.censor_date:
         print(f"Follow-up shortened at censor date: {summary['censoring']['rows_shortened']:,}")
     print(f"Covariates: {len(result['covariates'])}; outcomes: {', '.join(OUTCOMES)}")
+    validation = summary["numeric_validation"]
+    print(f"Numeric DataFrame check passed: {validation['rows_checked']:,} rows x "
+          f"{validation['columns_checked']:,} model columns")
     print("AA mismatches: " + "; ".join(
         f"{level}={result['mismatch_counts'].get(level, 0):,}" for level in MISMATCH_PATTERNS
     ))
