@@ -10,7 +10,8 @@ optional cohort parameters filter source dates, organ/donor type, and ages.
 --censor-date caps existing survival follow-up without extending it.
 No shuffling, aggregation, imputation, or rare filtering occurs.
 
-Streams one row at a time, then checks numeric DataFrame dtypes in pandas chunks.
+Uses only the Python standard library. Numeric validation and reports stream
+one row at a time without loading the input or output as a DataFrame.
 """
 
 import argparse
@@ -25,9 +26,6 @@ import tempfile
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-
-import pandas as pd
-
 
 # HLA base adjustment set, including shared.
 BASE_COVARIATES = (
@@ -78,6 +76,9 @@ MISSING_VALUES = frozenset({
     "", "na", "n/a", "nan", "-nan", "null", "none", "<na>", "nat", ".", r"\n",
     "#na", "#n/a", "#n/a n/a", "-1.#ind", "-1.#qnan", "1.#ind", "1.#qnan",
 })
+# Accept decimal/scientific notation that numeric CSV readers recognize. Python
+# float alone also accepts underscores and Unicode digits, which can load as text.
+NUMERIC_PATTERN = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 
 
 def is_missing(value):
@@ -117,6 +118,10 @@ def _open_text(path, mode):
 
 def _number(value, column, row_number):
     try:
+        # The common mismatch values need no regex; keep this per-cell check cheap.
+        if value not in ("0", "1", "2", "0.0", "1.0", "2.0") and not NUMERIC_PATTERN.fullmatch(
+                value.strip(" \t\r\n\v\f")):
+            raise ValueError("Not decimal or scientific notation")
         number = float(value)
     except (ValueError, TypeError):
         number = float("nan")
@@ -395,24 +400,11 @@ def prepare_dataset(input_path, output_path, *, mismatch_level="all",
                     written_rows += 1
             if row_count == 0:
                 raise ValueError("Input contains a header but no data rows.")
-            # Validate the actual converted CSV before publishing it. Keep memory
-            # bounded for the full matrix; metadata is outside the model DataFrame.
-            checked_rows = 0
-            with pd.read_csv(temporary_path, usecols=lambda column: column in numeric_columns,
-                             chunksize=1000, low_memory=False) as chunks:
-                for frame in chunks:
-                    if frame.empty:
-                        continue
-                    non_numeric = frame.select_dtypes(exclude="number").columns.tolist()
-                    if non_numeric:
-                        raise ValueError("Converted model DataFrame has nonnumeric columns: "
-                                         + ", ".join(non_numeric))
-                    checked_rows += len(frame)
-            if checked_rows != written_rows:
-                raise ValueError("Numeric DataFrame validation did not cover every output row.")
-            numeric_validation = {"passed": True, "rows_checked": checked_rows,
+            # Every written numeric cell was validated above or normalized to a
+            # blank missing value. Do not reread this wide matrix into a DataFrame.
+            numeric_validation = {"passed": True, "rows_checked": written_rows,
                                   "columns_checked": len(numeric_columns),
-                                  "method": "pandas.read_csv numeric dtypes, checked in chunks"}
+                                  "method": "streaming numeric validation during conversion"}
             with temporary_reports["columns"].open("w", encoding="utf-8", newline="") as handle:
                 summary_writer = csv.writer(handle, lineterminator="\n")
                 summary_writer.writerow(["column", "retained_in_output", "total_rows",
@@ -533,7 +525,7 @@ def main(argv=None):
         print(f"Follow-up shortened at censor date: {summary['censoring']['rows_shortened']:,}")
     print(f"Covariates: {len(result['covariates'])}; outcomes: {', '.join(OUTCOMES)}")
     validation = summary["numeric_validation"]
-    print(f"Numeric DataFrame check passed: {validation['rows_checked']:,} rows x "
+    print(f"Streaming numeric check passed: {validation['rows_checked']:,} rows x "
           f"{validation['columns_checked']:,} model columns")
     print("AA mismatches: " + "; ".join(
         f"{level}={result['mismatch_counts'].get(level, 0):,}" for level in MISMATCH_PATTERNS

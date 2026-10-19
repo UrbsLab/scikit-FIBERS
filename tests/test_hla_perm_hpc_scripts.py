@@ -539,7 +539,7 @@ def test_preparation_rejects_text_in_processed_covariates(tmp_path, column):
     assert not output.exists()
 
 
-def test_numeric_dataframe_check_covers_later_chunks_before_replacing_outputs(tmp_path):
+def test_streaming_numeric_check_covers_later_rows_before_replacing_outputs(tmp_path):
     frame = model_frame()
     source, output = tmp_path / "input.csv", tmp_path / "prepared.csv"
     frame.to_csv(source, index=False)
@@ -551,13 +551,46 @@ def test_numeric_dataframe_check_covers_later_chunks_before_replacing_outputs(tm
     # Python float accepts underscores, but pandas CSV inference leaves them as text.
     frame.loc[1000, "shared"] = "1_000"
     frame.to_csv(source, index=False)
-    with pytest.raises(ValueError, match="Converted model DataFrame has nonnumeric columns: shared"):
+    with pytest.raises(ValueError, match="Data row 1001, column shared: invalid or non-finite numeric"):
         prepare.prepare_dataset(source, output, overwrite=True)
     assert {path: path.read_bytes() for path in paths} == before
     frame.loc[1000, "shared"] = "1000"
     frame.to_csv(source, index=False)
     result = prepare.prepare_dataset(source, output, overwrite=True)
     assert result["missing_summary"]["numeric_validation"]["rows_checked"] == 1001
+
+
+@pytest.mark.parametrize("compressed", [False, True])
+def test_preparation_runs_without_site_packages(tmp_path, compressed):
+    source = tmp_path / ("input.tsv.gz" if compressed else "input.tsv")
+    output = tmp_path / ("prepared.csv.gz" if compressed else "prepared.csv")
+    frame = model_frame()
+    frame["shared"] = ["998", "NA", "1.25e-2", "0"]
+    frame.to_csv(source, sep="\t", index=False)
+    # -S disables site-packages, including pandas/numpy, in the worker process.
+    completed = subprocess.run([sys.executable, "-S", str(SCRIPTS / "job_prepare_fibers_data.py"),
+                                "--d", str(source), "--o", str(output)],
+                               check=True, capture_output=True, text=True)
+    assert "Streaming numeric check passed" in completed.stdout
+    data = pd.read_csv(output).drop(columns=list(prepare.METADATA_COLUMNS))
+    assert data.select_dtypes(exclude="number").empty
+    assert data["shared"].iloc[0] == 998
+    assert pd.isna(data["shared"].iloc[1])
+    assert data["shared"].iloc[2] == pytest.approx(0.0125)
+    summary = json.loads((tmp_path / "missing_data_reports/prepared_missing_summary.json").read_text())
+    assert summary["numeric_validation"]["method"] == "streaming numeric validation during conversion"
+    assert summary["numeric_validation"]["rows_checked"] == len(frame)
+
+
+@pytest.mark.parametrize("value", ["1_000", "１２", "\u00a01", "True", "1,000"])
+def test_preparation_rejects_numeric_lookalikes_that_load_as_text(tmp_path, value):
+    frame = model_frame()
+    frame["shared"] = value
+    source, output = tmp_path / "input.csv", tmp_path / "prepared.csv"
+    frame.to_csv(source, index=False)
+    with pytest.raises(ValueError, match="column shared: invalid or non-finite numeric"):
+        prepare.prepare_dataset(source, output)
+    assert not output.exists()
 
 
 @pytest.mark.parametrize("cv", [False, True])

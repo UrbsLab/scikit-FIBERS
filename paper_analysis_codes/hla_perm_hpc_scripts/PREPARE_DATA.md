@@ -1,5 +1,5 @@
-Run from the repository root with Python 3.9 or later and pandas installed
-(the FIBERS Python environment already includes pandas):
+Run from the repository root with Python 3.9 or later. Preparation uses only
+the Python standard library; pandas is needed by training, not preparation:
 
 ```bash
 python3 paper_analysis_codes/hla_perm_hpc_scripts/job_prepare_fibers_data.py \
@@ -113,12 +113,19 @@ Preparation keeps the processed base and Agmm covariates without requiring or
 creating additional indicators. Training uses the existing requested Agmm
 adjustment columns. Prepared data is never rewritten by model fitting.
 
-Before publishing the output, preparation reads the converted CSV in chunks of
-1,000 rows and requires numeric pandas dtypes for every covariate, outcome, and
-AA mismatch column. IDs, dates, and donor type remain metadata and are excluded
-from this model DataFrame check. The JSON summary records the validation result
-and numbers of rows and columns checked. An empty output records zero checked
-rows. Non-CV and CV workers also check numeric dtypes after `pd.to_numeric`.
+Preparation validates every nonmissing covariate, outcome, and AA mismatch cell
+as finite decimal/scientific numeric text while processing its source row.
+It rejects text, underscores in numbers, Unicode digits, infinities, and invalid
+counts/outcomes. IDs, dates, and donor type remain metadata. Missing numeric cells
+are written blank; all other numeric values retain their source representation
+unless censoring changes outcomes.
+
+The JSON summary records streaming validation and numbers of output rows and
+numeric columns checked. An empty output records zero checked rows. Preparation
+never imports pandas, builds a DataFrame, or rereads the converted CSV. Data and
+reports are written incrementally; memory depends on the column count and one
+record's size, not the dataset's row count. Non-CV and CV workers still check
+actual DataFrame dtypes after `pd.to_numeric`, when loading data for training.
 
 Missing cells remain missing by default, including in `shared`, outcomes, Agmm
 indicators, and AA mismatches. Numeric missing markers are written as empty CSV

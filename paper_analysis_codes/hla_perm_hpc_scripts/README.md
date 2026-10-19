@@ -29,8 +29,10 @@ Agmm text annotations are excluded. Record IDs, dates, and `DON_TY` are also
 retained when present. Nonmissing Agmm values are copied without recoding.
 `shared` is retained. By default, missing cells remain missing without dropping
 rows; numeric missing markers are written as blanks so pandas infers numeric
-columns. Preparation checks the exported model DataFrame's numeric dtypes in
-chunks and records the result in the JSON summary. This requires pandas.
+columns. Preparation validates decimal/scientific numeric values one row at a
+time and records the result in the JSON summary. It uses only the Python standard
+library and never loads a DataFrame or rereads the output. Memory depends on the
+number of columns and the size of one record, rather than the total row count.
 Each dataset gets reports under `missing_data_reports/`:
 every missing cell with its row number, `TX_ID`, and column; counts and
 percentages by column; and overall totals for the source and prepared data.

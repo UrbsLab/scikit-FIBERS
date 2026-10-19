@@ -7,7 +7,7 @@
 # --re 10 expects BestTyping_1.csv through BestTyping_10.csv; --rs 10 uses seeds 0-9.
 
 # 1. PREPARE DATA: retains all mismatch types, processed numeric covariates/Agmm indicators, outcomes, and metadata.
-# Raw antigen fields are excluded. Pandas checks numeric model columns after conversion.
+# Raw antigen fields are excluded. Numeric validation streams one row at a time without pandas.
 python run_prepare_fibers_data.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/RawData --w /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/output --o /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData --prefix BestTyping --pattern 'Best-Typing_AA_MM_9loc_matrix_*_aligned*' --rc LSF --rm 16 --q i2c2_normal --tx-year-min 2010 --tx-year-max 2025 --kidney-only --deceased-donor-only --recipient-age-min 18 --donor-age-min 9 --censor-date 2025-12-31 --days-per-year 365.24 --drop-missing
 # Cohort: 2010-2025 inclusive; kidney only; deceased donor; recipient age >=18; donor age >=9.
 # Apply filters to source variables before selecting columns and before CV splitting.
