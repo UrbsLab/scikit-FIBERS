@@ -309,7 +309,7 @@ def test_cv_launcher_preflights_all_pairs(tmp_path, monkeypatch):
 
 def test_partitioner_disjoint_complete_folds(tmp_path):
     source = tmp_path / "best_typing_1.csv"
-    original = pd.DataFrame({"row": range(12)})
+    original = pd.DataFrame({"row": range(12), "grf_fail": [0, 1] * 6, "graftyrs": range(12)})
     for name in prepare.METADATA_COLUMNS:
         original[name] = ["0001", "NA", "", "2020-01-01"] * 3
     original.to_csv(source, index=False)

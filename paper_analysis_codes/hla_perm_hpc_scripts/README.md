@@ -133,14 +133,77 @@ Output naming follows the original scripts:
 - The partitioning launcher appends `_<cv>` to its `--o` folder prefix;
   the direct partitioning worker uses `--o` exactly.
 
-Outputs include populations, fitted-model pickles, parameters, Cox reports,
-Kaplan–Meier plots, feature-frequency audits, and retained-feature counts.
-Summary jobs produce seed/fold statistics, master summaries, and heatmaps.
-A failed secondary Cox fit is recorded in a `_failed.txt` file while the fitted
-model is saved; resolve missing required Cox reports before summarizing that run.
+Partitioning copies CSV records without pandas, preserving numeric text, IDs,
+dates, and original row order. RRS is the only partitioning method.
+Each job loads the plain CSV into RAM as bytes once, then writes
+its folds from RAM. Memory use is approximately the CSV size plus row bookkeeping and buffers,
+without expanding every cell into a pandas object.
+NumPy supplies the time sort and random fold assignment. Fold outputs remain CSV.
+Logs show loading/writing progress every 10,000 rows
+and the expected output size. Fold files and reports are written to unique
+`.partial` files next to their final paths, then renamed after writing succeeds;
+there is no temporary directory or second data copy. Handled failures clean up
+that job's partial files. A forced kill can leave partial files, which are not
+finished fold CSVs. Renames are atomic per file, not across the complete set;
+wait for all partition jobs to finish before starting training.
 
-Table makers retain the original inline experiment comparisons, updated to
-`hla_perm_` names. The command files include the three fitness experiments
-needed for the DP3 comparison. Comparisons whose input summaries are missing
-are skipped. Edit the inline experiment lists in the table workers to add your
-own comparisons, including directional analyses or different locus sets.
+`run_HLA_CV_Partitioner.py --cv 10 --parallel-folds --max-concurrent-folds 10`
+submits ten independent fold jobs in one array, allowing all ten to run together.
+Both LSF and SLURM are supported, with separate logs for each array task.
+The run-command file enables
+this mode with 16 GB requested per job. Each task reads the source once into its
+own RAM and writes only its own train/test pair. The initial reads still access
+shared storage; no source reads occur during writing in this mode.
+Omitting `--parallel-folds` writes all folds from RAM in one job.
+The direct worker's `--fold 3 --cv 10` writes only fold 3 for a targeted retry.
+Wait for the entire array to succeed before submitting CV training. Ten folds
+still write roughly ten times the input's size across all pairs.
+The concurrency limits use the schedulers' documented array controls:
+[LSF](https://www.ibm.com/docs/en/spectrum-lsf/10.1.0?topic=arrays-job-array-job-slot-limit)
+and [SLURM](https://slurm.schedmd.com/job_array.html).
+
+### RRS survival partitioning
+
+Both scripts now use representative random sampling (RRS) only. There is no
+`--stratify` or `--time-bins` option.
+
+1. Separate events (`grf_fail=1`) from censored rows (`grf_fail=0`).
+2. Shuffle each status group to randomize ties, then stably sort by `graftyrs`.
+3. Take consecutive blocks of K rows, where K is `--cv`. Randomly send one row
+   from each full block to each fold. Assign the final incomplete block to
+   distinct random folds.
+
+This implements the allocation in
+[Rendleman et al. (2022), Algorithm 1](https://link.springer.com/article/10.1007/s11222-022-10138-7),
+separately by status. Equal times can cross block boundaries. Each fold receives
+nearly the same count for each status (difference at most one). Independent
+remainders from the two statuses can make total fold sizes differ by up to two.
+Every row appears in exactly one test fold and K-1 training folds. Original
+continuous times stay unchanged; for censored rows these are times until censoring.
+
+| Option | Meaning |
+| --- | --- |
+| `--cv 10` | Number of folds and RRS block size. |
+| `--event-col grf_fail` (alias `--c`) | Binary status: 0=censored, 1=event. |
+| `--time-col graftyrs` (alias `--ol`) | Finite, nonnegative observed follow-up. |
+| `--seed 42` | Partition seed, separate from FIBERS training seed `--r`. |
+| `--fold 3` | Worker only: write a single fold, using the same assignment. |
+
+All array jobs reproduce the same assignment from identical input row order,
+options, and seed. To keep each observed status in every fold, the worker stops
+if that status has fewer than K rows. Missing/invalid outcomes stop the job with
+the data-row number and TX_ID when present. Partitioning does not drop rows.
+Other columns are copied without interpreting missing-value codes. Rows from the
+same patient or donor are not grouped by this splitter.
+
+Each fold writes two small files under `partition_reports/`:
+
+- `<input>_CV_<fold>_balance.csv`: train/test counts, event fractions, and observed
+  time min/quartiles/max separately for each status. These quartiles summarize
+  the output only; they do not determine folds.
+- `<input>_CV_<fold>_partition.json`: source identity, method (`rrs`), K, fold,
+  seed, column names, and the same balance summary.
+
+The commands in `FIBERS_CV_run_commands.txt` write data to
+`PermutationData/BestTyping_1_CV_rrs_10`, with runs/logs/summaries under
+`output_shared/Best_Center_Data_Typing_Deceased/cv_rrs`.

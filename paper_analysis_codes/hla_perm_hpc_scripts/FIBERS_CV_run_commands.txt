@@ -1,7 +1,7 @@
 # Run from paper_analysis_codes/hla_perm_hpc_scripts in your FIBERS Python environment.
 # Paths are configured for Best_Center_Data_Typing_Deceased. Wait for each stage to finish.
 # Data: /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased
-# Runs, logs, and summaries: /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased (CV uses its cv subdirectory).
+# Runs, logs, and summaries: /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased (CV uses its cv_rrs subdirectory).
 # CV fitting and summaries use a separate cv run directory so they scan only CV experiment folders.
 # Add --dry-run to any run_ command to inspect job scripts without submitting.
 # For SLURM, use --rc SLURM and replace --q with your partition.
@@ -20,11 +20,19 @@ python run_prepare_fibers_data.py --d /project/kamoun_shared/data_shared/Best_Ce
 # --days-per-year must match the source graftyrs definition (SampleImp1 uses 365.24).
 
 # 2. PARTITION: start after preparation finishes.
-# The wrapper appends _10 to --o, creating /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_10.
-python run_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1.csv --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --o /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV --cv 10 --rc LSF --rm 16 --q i2c2_normal
+# RRS only: sort graftyrs separately within grf_fail=0 and grf_fail=1.
+# Each consecutive block of 10 contributes one randomly assigned row to each fold.
+# Separate folders preserve earlier CV runs. Fold balance reports go in partition_reports/.
+# --seed controls partitioning; --r below controls FIBERS fitting.
+# The wrapper appends _10 to --o, creating /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs_10.
+# Ten independent fold jobs, up to ten running together; --rm is per job.
+# Each job reads the source once into RAM as CSV bytes and writes only its train/test pair.
+# Partitioning writes about 10x the prepared CSV size for ten train/test pairs.
+# Wait for ALL array tasks to finish; progress is reported every 10,000 rows.
+python run_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1.csv --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --o /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs --cv 10 --rc LSF --rm 16 --q i2c2_normal --parallel-folds --max-concurrent-folds 10 --event-col grf_fail --time-col graftyrs --seed 42
 
 # Local partition alternative (uses --o exactly):
-# python job_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1.csv --o /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_10 --cv 10
+# python job_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1.csv --o /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs_10 --cv 10 --event-col grf_fail --time-col graftyrs --seed 42
 
 # 3. TRAIN: start after all fold files exist. Rare filtering uses training rows only.
 # Training --mismatch-level: mismatch/position (MM_A_9), residue (MM_A_9_Y),
@@ -32,19 +40,19 @@ python run_HLA_CV_Partitioner.py --d /project/kamoun_shared/data_shared/Best_Cen
 # Preparation keeps all three types by default. Change the training flag below to select a mode.
 # Use a separate --w directory per mode, with the same --w for that mode's summaries and tables.
 # --r 10 is the fixed seed used for each fold. Each command submits ten jobs.
-python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --o hla_perm_7locus_logrank_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank --de default --mismatch-level permutation
-python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --o hla_perm_7locus_residuals_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f residuals --de default --mismatch-level permutation
-python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --o hla_perm_7locus_product_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de default --mismatch-level permutation
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --o hla_perm_7locus_logrank_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank --de default --mismatch-level permutation
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --o hla_perm_7locus_residuals_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f residuals --de default --mismatch-level permutation
+python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --o hla_perm_7locus_product_DP3 --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de default --mismatch-level permutation
 
 # OPTIONAL: submit these too if directional comparisons are needed, then wait for ALL training jobs.
-# python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --o hla_perm_7locus_product_DP3_protective --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de protective --mismatch-level permutation
-# python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --o hla_perm_7locus_product_DP3_high_risk --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de high_risk --mismatch-level permutation
+# python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --o hla_perm_7locus_product_DP3_protective --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de protective --mismatch-level permutation
+# python run_fibers_hpc_cv.py --d /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs_10 --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --o hla_perm_7locus_product_DP3_high_risk --cv 10 --r 10 --rc LSF --rm 16 --q i2c2_normal --ol graftyrs --c grf_fail --i 500 --ps 200 --dp 3 --ra 0.1 --g 0.1 --t None --at 20 --cl group_strata --loci-list A,B,C,DRB1,DRB345,DQA1,DQB1 --cov-list A,B,C,DRB1,DQA1,DQB1 --f log_rank_residuals --de high_risk --mismatch-level permutation
 
 # 4. SUMMARIZE FOLDS: start after all training jobs finish.
-python run_sum_fibers_hpc_cv.py --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --cv 10 --rc LSF --rm 16 --q i2c2_normal
+python run_sum_fibers_hpc_cv.py --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --cv 10 --rc LSF --rm 16 --q i2c2_normal
 
 # 5. MASTER SUMMARY: start after fold summaries finish.
-python run_master_sum_fibers_hpc_cv.py --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --cv 10 --rc LSF --rm 16 --q i2c2_normal
+python run_master_sum_fibers_hpc_cv.py --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --cv 10 --rc LSF --rm 16 --q i2c2_normal
 
 # 6. COMPARISON TABLES: start after summaries finish.
-python run_table_maker_hpc_cv.py --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv --cv 10 --rc LSF --rm 16 --q i2c2_normal
+python run_table_maker_hpc_cv.py --w /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs --cv 10 --rc LSF --rm 16 --q i2c2_normal
