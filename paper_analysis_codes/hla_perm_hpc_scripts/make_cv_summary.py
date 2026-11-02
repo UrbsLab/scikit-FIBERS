@@ -34,6 +34,7 @@ parser.add_argument('--pdf', type=Path, help='PDF path (default: output director
 args = parser.parse_args()
 SOURCE = args.results.resolve()
 ROOT = args.o.resolve()
+RUN_LABEL = SOURCE.name.split('_product_')[-1].replace('_adaptive_', ' / adaptive ')
 if SOURCE == ROOT or SOURCE in ROOT.parents:
     raise ValueError('Use a report directory outside the input results directory')
 DATA, PNG, SVG = ROOT / 'tables', ROOT / 'png', ROOT / 'svg'
@@ -102,6 +103,7 @@ def stats(values):
 folds = sorted(int(p.name) for p in SOURCE.iterdir() if p.is_dir() and p.name.isdigit())
 assert folds == list(range(1, 11)), f"Expected CV1-CV10; found {folds}"
 fold_rows, cox_rows, parameters, selected_sets, retained_sets = [], [], [], [], []
+pkpra_rows = []
 model_files = {
     "Unadjusted": "coxph_unadj_bin_{split}_0",
     "Base adjusted": "coxph_adj_bin_{split}_0_NoAg",
@@ -134,6 +136,7 @@ for fold in folds:
         "train_log_rank_score": float(top["log_rank_score"]),
         "train_log_rank_p": float(top["log_rank_p_value"]),
         "train_residual_score": float(top["residuals_score"]),
+        "train_pre_fitness": float(top["pre_fitness"]),
         "retained_features": len(retained), "population_size": len(population),
         "feature_list": json.dumps(features),
     }
@@ -148,6 +151,14 @@ for fold in folds:
                       "adjustment_covariates": None, "failure_reason": "", "source_file": ""}
             if csv_file.exists():
                 table = read_csv(csv_file)
+                for coefficient in table:
+                    if coefficient['covariate'] == 'PKPRA_MS':
+                        pkpra_rows.append({
+                            'cv': fold, 'split': split, 'model': model,
+                            'coef': float(coefficient['coef']),
+                            'se': float(coefficient['se(coef)']),
+                            'source_file': str(csv_file.relative_to(SOURCE)),
+                        })
                 bin_row = next(r for r in table if r["covariate"] == "Bin_0")
                 result.update(
                     hr=float(bin_row["exp(coef)"]), ci_lower=float(bin_row["exp(coef) lower 95%"]),
@@ -176,8 +187,10 @@ for fold in folds:
 write_csv("fold_summary.csv", fold_rows)
 write_csv("cox_estimates_long.csv", cox_rows)
 write_csv("failed_models.csv", [r for r in cox_rows if r["status"] != "ok"])
+write_csv("pkpra_ms_estimates.csv", pkpra_rows)
 
-for key in ("random_seed", "iterations", "pop_size", "fitness_metric", "diversity_pressure"):
+for key in ("random_seed", "iterations", "pop_size", "fitness_metric", "diversity_pressure",
+            "min_thresh", "max_thresh", "thresh_evolve_prob", "group_thresh", "covariates"):
     assert len({p[key] for p in parameters}) == 1
 feature_counts = Counter(feature for selected in selected_sets for feature in selected)
 all_features = sorted(feature_counts, key=feature_key)
@@ -209,7 +222,7 @@ write_csv("pairwise_jaccard.csv", [
     for i, fold in enumerate(folds)])
 aggregate = []
 for metric in ("bin_size", "threshold", "train_n", "train_above_threshold_pct",
-               "birth_iteration", "retained_features", "train_log_rank_score", "train_residual_score"):
+               "birth_iteration", "retained_features", "train_log_rank_score", "train_residual_score", "train_pre_fitness"):
     aggregate.append({"metric": metric, **stats([r[metric] for r in fold_rows])})
 aggregate.append({"metric": "pairwise_jaccard_45_pairs", **stats(pairwise)})
 write_csv("descriptive_statistics.csv", aggregate)
@@ -227,6 +240,7 @@ for split in ("train", "test"):
         })
 write_csv("hazard_ratio_summary.csv", hr_summary)
 summary = {
+    "run": SOURCE.name, "parameters": parameters[0],
     "folds": folds, "seed": int(parameters[0]["random_seed"]),
     "union_features": len(all_features), "features_in_all_folds": [f for f in all_features if feature_counts[f] == 10],
     "features_in_at_least_4_folds": len(recurrent),
@@ -239,6 +253,7 @@ summary = {
     "full_model": "Base plus 6 indicators: AgmmA0/A1, AgmmB0/B1, AgmmDR0/DR1",
     "estimand_note": "Each fold has its own selected bin and threshold; HR means are descriptive, not pooled estimates.",
     "test_sample_size_note": "Test sample sizes are not supplied; no counts were inferred or summed.",
+    "cox_status_note": "ok means a coefficient CSV was exported, not independently verified convergence. PKPRA_MS estimates are audited separately.",
 }
 (DATA / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
 full_test = next(r for r in hr_summary if r['split'] == 'test' and r['model'] == 'Fully adjusted')
@@ -248,7 +263,7 @@ failed_label = ', '.join('CV' + value for value in full_test['failed_folds'].spl
 
 def canvas(title, subtitle, page, appendix=False):
     fig = plt.figure(figsize=(16, 9), facecolor="white")
-    fig.text(.055, .955, "FIBERS  /  10 CV FOLDS  /  SEED 10" + ("  /  FULL FEATURE DETAIL" if appendix else ""),
+    fig.text(.055, .955, f"FIBERS  /  {RUN_LABEL}  /  10 CV FOLDS  /  SEED {summary['seed']}" + ("  /  FULL FEATURE DETAIL" if appendix else ""),
              fontsize=11, color=TEAL, weight="bold", va="top")
     fig.text(.055, .905, title, fontsize=27, weight="bold", va="top")
     fig.text(.055, .846, subtitle, fontsize=14, color=MUTED, va="top")
@@ -304,7 +319,7 @@ def feature_heatmap(fig, features, rect, font_size=13, locus_labels=True):
 
 
 with PdfPages(PDF) as pdf:
-    pdf.infodict().update(Title="FIBERS - all CV heatmaps and descriptive summary",
+    pdf.infodict().update(Title=f"FIBERS {RUN_LABEL} - all CV heatmaps and descriptive summary",
                           Author="Harsh Bandhey", Subject="Top-bin feature recurrence across ten folds")
     # Full union overview: keep every feature; individual labels appear in appendix.
     fig = canvas(f"All ten selected bins, across {len(all_features)} distinct permutations",
@@ -342,7 +357,8 @@ with PdfPages(PDF) as pdf:
     # Readable recurring-feature figure for the main presentation.
     fig = canvas("Recurring permutations across the ten folds",
                  f"{len(recurrent)} features selected in at least 4 folds; labels show locus, position and donor → recipient.", 2)
-    feature_heatmap(fig, recurrent, [.28, .22, .54, .55], font_size=14)
+    feature_heatmap(fig, recurrent, [.28, .19, .54, .59],
+                    font_size=11 if len(recurrent) > 25 else 14)
     fig.text(.84, .799, "FOLDS", fontsize=11, color=MUTED, weight="bold")
     membership_legend(fig)
     export(fig, "02_recurring_features_heatmap", pdf)
@@ -413,18 +429,18 @@ with PdfPages(PDF) as pdf:
                  fontsize=13, ha="center", weight="bold")
         fig.text(left+.12, .144, f"95% CI above 1: {entry['ci_entirely_above_1']}/{entry['n_available']}",
                  fontsize=12, ha="center", color=MUTED)
-    fig.text(.055, .10, "Means describe the available fold estimates; they are not pooled HRs. No estimate was substituted for a failed fit.",
+    fig.text(.055, .10, "Available exports only; convergence is not verified. PKPRA_MS instability remains. Means are not pooled HRs.",
              fontsize=11.5, color=MUTED)
     export(fig, "04_test_hazard_ratios", pdf)
 
     # Descriptive summary: present denominators and variability explicitly.
     fig = canvas("Ten-fold descriptive summary",
-                 "One fitted run per fold: seed 10, 500 iterations, population 200, log-rank × residuals fitness.", 5)
+                 f"One run per fold: seed {summary['seed']}, {parameters[0]['iterations']} iterations, population {parameters[0]['pop_size']}, log-rank × residuals fitness.", 5)
     cards = [
         ("DISTINCT FEATURES", str(len(all_features)), "Across the 10 selected bins"),
         ("SHARED BY ALL FOLDS", str(len(summary["features_in_all_folds"])), "Exact directional permutations"),
         ("MEAN BIN SIZE", f"{summary['bin_size']['mean']:.1f}", f"{summary['bin_size']['min']:.0f}-{summary['bin_size']['max']:.0f} selected features"),
-        ("ADJUSTED TEST FITS", f"{full_test['n_available']}/10", f"{full_test['n_failed']} failed folds"),
+        ("ADJUSTED TEST EXPORTS", f"{full_test['n_available']}/10", f"{full_test['n_failed']} failed folds"),
     ]
     for i, (label, value, note) in enumerate(cards):
         x = .055 + i*.23
@@ -484,20 +500,27 @@ with PdfPages(PDF) as pdf:
 
     # Full feature identities, not truncated: one readable page per locus.
     covered = []
-    for page, locus in enumerate(LOCI, 7):
+    page = 7
+    for locus in LOCI:
         features = [f for f in all_features if feature_parts(f)[0] == locus]
         covered.extend(features)
-        fig = canvas(f"{locus}: all {len(features)} selected permutations",
-                     "Position | donor → recipient. Every permutation selected in at least one fold is included.", page, appendix=True)
-        feature_heatmap(fig, features, [.26, .20, .57, .57],
-                        font_size=12 if len(features)>27 else 13, locus_labels=False)
-        fig.text(.85, .80, "FOLDS", fontsize=11, color=MUTED, weight="bold")
-        membership_legend(fig)
-        export(fig, f"{page:02}_all_features_{locus}", pdf)
+        # Balance continuation pages so a 31-feature locus is split 16/15.
+        chunk_size = math.ceil(len(features) / math.ceil(len(features) / 30))
+        chunks = [features[i:i+chunk_size] for i in range(0, len(features), chunk_size)]
+        for part, subset in enumerate(chunks, 1):
+            detail = f" (part {part}/{len(chunks)})" if len(chunks) > 1 else ''
+            fig = canvas(f"{locus}: {len(features)} selected permutations{detail}",
+                         "Position | donor → recipient. Every permutation selected in at least one fold is included.", page, appendix=True)
+            feature_heatmap(fig, subset, [.26, .20, .57, .57],
+                            font_size=12 if len(subset)>27 else 13, locus_labels=False)
+            fig.text(.85, .80, "FOLDS", fontsize=11, color=MUTED, weight="bold")
+            membership_legend(fig)
+            export(fig, f"{page:02}_all_features_{locus}_{part}", pdf)
+            page += 1
     assert set(covered) == set(all_features) and len(covered) == len(all_features)
 
     fig = canvas(f"Adjusted test Cox models failed in {full_test['n_failed']} folds",
-                 'Saved exports identify failed fits, but do not retain the underlying convergence exception.', 14)
+                 'A saved coefficient table does not establish numerical stability; fit warnings are not retained.', page)
     ax = fig.add_axes([.14, .29, .57, .46])
     labels = [(split, model) for split in ('train', 'test') for model in model_files]
     status_matrix = np.array([[int(next(r for r in cox_rows if r['cv'] == f and r['split'] == s and r['model'] == m)['status'] == 'ok') for s,m in labels] for f in folds])
@@ -507,23 +530,48 @@ with PdfPages(PDF) as pdf:
     ax.tick_params(length=0, pad=8)
     for i in range(10):
         for j in range(6):
-            ax.text(j, i, 'OK' if status_matrix[i,j] else 'Failed', ha='center', va='center', fontsize=11, color=INK if status_matrix[i,j] else 'white')
+            ax.text(j, i, 'Exported' if status_matrix[i,j] else 'Failed', ha='center', va='center', fontsize=10, color=INK if status_matrix[i,j] else 'white')
     ax.set_xticks(np.arange(-.5,6,1), minor=True); ax.set_yticks(np.arange(-.5,10,1), minor=True)
     ax.grid(which='minor', color='white', linewidth=1.5); ax.tick_params(which='minor', length=0)
     fig.text(.75, .68, f'{full_test["n_available"]}/10', fontsize=40, color=TEAL, weight='bold')
-    fig.text(.75, .61, 'Adjusted test fits', fontsize=17, weight='bold')
+    fig.text(.75, .61, 'Adjusted test exports', fontsize=15, weight='bold')
     fig.text(.75, .52, 'Failures in', fontsize=14, color=MUTED)
     fig.text(.75, .46, failed_label, fontsize=13, weight='bold')
-    fig.text(.055, .21, 'Exact covariates cannot be identified from the generic failure files.', fontsize=20, weight='bold')
-    fig.text(.055, .155, 'The diagnostic script uses the matching fold CSVs to capture errors and check covariates.', fontsize=14, color=MUTED)
-    fig.text(.055, .105, 'NoAg still includes Agmm0. Diagnostic omission tests do not determine the final adjustment set.', fontsize=12, color=MUTED)
-    export(fig, '14_cox_fit_status', pdf)
+    pkpra_test = [r for r in pkpra_rows if r['split'] == 'test' and r['model'] == 'Fully adjusted']
+    extreme = [r for r in pkpra_test if r['se'] > 100]
+    extreme_label = ', '.join(f"CV{r['cv']}" for r in extreme)
+    fig.text(.055, .21, f'PKPRA_MS has standard errors above 100 in {extreme_label}.', fontsize=19, weight='bold')
+    fig.text(.055, .155, 'Those exported fits also need review. Raw fold data and omission refits are needed to diagnose this run.', fontsize=13, color=MUTED)
+    fig.text(.055, .105, 'NoAg includes Agmm0. Generic failure files alone do not identify the responsible covariate.', fontsize=12, color=MUTED)
+    export(fig, f'{page:02}_cox_fit_status', pdf)
+    page += 1
+
+    fig = canvas('Run settings and interpretation',
+                 'Parameters below are read from all ten saved run-parameter files and checked for agreement.', page)
+    config = [
+        ('Diversity pressure', parameters[0]['diversity_pressure']),
+        ('Threshold search range', f"{parameters[0]['min_thresh']}-{parameters[0]['max_thresh']} (integer)"),
+        ('Threshold evolution probability', parameters[0]['thresh_evolve_prob']),
+        ('Fixed threshold', parameters[0]['group_thresh']),
+        ('Iterations / population / seed', f"{parameters[0]['iterations']} / {parameters[0]['pop_size']} / {summary['seed']}"),
+        ('Adjustment', 'Base: 43 covariates; full: 49; both include PKPRA_MS'),
+    ]
+    for i, (label, value) in enumerate(config):
+        y = .74 - .073*i
+        fig.text(.055, y, label, fontsize=16, weight='bold')
+        fig.text(.48, y, value, fontsize=15, color=MUTED)
+    fig.text(.055, .26, 'Thresholds are learned from training data; each fold defines a different bin and group contrast.', fontsize=15)
+    fig.text(.055, .205, 'HR size and nominal significance do not establish predictive superiority.', fontsize=15)
+    fig.text(.055, .15, 'These exports contain no C-index, time-dependent AUC, calibration or Brier-score comparison.', fontsize=14, color=MUTED)
+    fig.text(.055, .105, 'Source: ' + SOURCE.name, fontsize=11, color=MUTED)
+    export(fig, f'{page:02}_run_settings', pdf)
 
 summary_md = f"""# All-CV heatmaps and summary
 
-Source: {SOURCE.name}, supplied on 2026-11-02. CV1-CV10, seed 10, 500 iterations,
-population 200, DP3, log-rank x residuals fitness. Threshold search 0-20,
-threshold evolution probability 0.5. First population row (Bin_0) per fold.
+Source: {SOURCE.name}. CV1-CV10, seed {summary['seed']}, {parameters[0]['iterations']} iterations,
+population {parameters[0]['pop_size']}, DP{parameters[0]['diversity_pressure']}, log-rank x residuals fitness.
+Threshold search {parameters[0]['min_thresh']}-{parameters[0]['max_thresh']},
+threshold evolution probability {parameters[0]['thresh_evolve_prob']}. First population row (Bin_0) per fold.
 
 ## Findings
 
@@ -549,8 +597,10 @@ P value is calculated. Failed estimates remain missing, never zero or one.
 ## Cox failures
 
 Adjusted test fits failed in {failed_label}. See tables/failed_models.csv for
-model-by-model status. All unadjusted test and all training Cox estimates are
-available. The recorded error is only `CoxPHFitter could not estimate this model.`
+model-by-model status. A status of `ok` means a coefficient CSV is available,
+not independently verified convergence. PKPRA_MS standard errors exceed 100 in
+the fully adjusted test exports for {extreme_label}; see tables/pkpra_ms_estimates.csv.
+The recorded failure is only `CoxPHFitter could not estimate this model.`
 The FIBERS methods catch the underlying exception, so these exports cannot tell
 which covariate(s) caused non-convergence. Failure is a model-level event.
 
@@ -570,8 +620,8 @@ not a reason to choose adjustment variables using test outcomes.
 
 Figures 1-6 reproduce the earlier overview, recurrent-feature heatmap, locus
 composition, test HR forest plots, descriptive statistics, and pairwise overlap.
-Figures 7-13 show every selected feature, with one heatmap per locus. The final
-page summarizes the Cox failures and the diagnostic next step.
+The appendix shows every selected feature, with at most 30 rows per heatmap.
+The final two pages summarize Cox export status, coefficient instability and run settings.
 
 Direction is donor to recipient: source r = recipient, d = donor. Colored means
 selected; near-white means eligible but not selected; gray means filtered out.
