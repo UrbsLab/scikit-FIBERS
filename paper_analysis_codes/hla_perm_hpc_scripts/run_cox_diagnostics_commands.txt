@@ -1,0 +1,16 @@
+# Run from paper_analysis_codes/hla_perm_hpc_scripts in the same Python environment used for training.
+# Uses the matching RRS fold CSVs. Writes diagnostics separately from trained models.
+# This submits one 64 GB LSF job covering the four affected test folds.
+mkdir -p /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs/cox_diagnostics_DP3/logs
+bsub -q i2c2_normal -R 'rusage[mem=64G]' -M 64GB -J CoxDiagnostics_DP3 -oo /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs/cox_diagnostics_DP3/logs/diagnostics.%J.out -eo /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs/cox_diagnostics_DP3/logs/diagnostics.%J.err python job_diagnose_cox.py --results /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs/output/Fibers2.0_hla_perm_7locus_product_DP3 --data /project/kamoun_shared/data_shared/Best_Center_Data_Typing_Deceased/PermutationData/BestTyping_1_CV_rrs_10 --o /project/kamoun_shared/output_shared/Best_Center_Data_Typing_Deceased/cv_rrs/cox_diagnostics_DP3 --fold 2 3 5 7 --split test --univariate --leave-one-out
+
+# Key outputs:
+# all_column_checks.csv: names of constant, low-variance or sparse covariates.
+# fit_results.csv: full-model, univariate and omission-fit statuses, errors and warnings.
+#   omitted_covariate identifies the variable removed in each diagnostic refit.
+#   A successful omission fit identifies a suspect; it does not prove a unique cause.
+# CV*/{base,full}_dependencies.json: joint linear dependencies and condition numbers.
+# CV*/*_error.txt and *_warnings.txt: actual lifelines exceptions and warnings.
+# CV*/invalid_cells.csv: missing/nonfinite cells with 1-based data row, TX_ID and column.
+# diagnostic_errors.csv: folds the diagnostic script could not process.
+# No source data, trained model or original result files are modified.
